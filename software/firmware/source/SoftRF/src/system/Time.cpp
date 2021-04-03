@@ -63,6 +63,7 @@ unsigned long sendNTPpacket(IPAddress& address)
   NTP_udp.beginPacket(address, 123); //NTP requests are to port 123
   NTP_udp.write(NTPPacketBuffer, NTP_PACKET_SIZE);
   NTP_udp.endPacket();
+  return 0;
 }
 
 void Time_setup()

@@ -133,7 +133,7 @@ void read_mavlink()
    static int  parse_error = 0;
   
    mavlink_message_t msg; 
-   mavlink_status_t status;
+   mavlink_status_t status = {0, 0, 0, MAVLINK_PARSE_STATE_UNINIT, 0, 0, 0, 0, 0};
 
  #if defined __AVR_ATmega32U4_  
    while (Serial1.available() > 0) {

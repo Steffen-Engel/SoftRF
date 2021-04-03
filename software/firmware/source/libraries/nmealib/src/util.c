@@ -33,33 +33,33 @@
 /** The maximum size of a string-to-number conversion buffer*/
 #define NMEALIB_CONVSTR_BUF    64
 
-void nmeaRandomInit(void) {
-  srandom((unsigned int) time(NULL));
-}
+//void nmeaRandomInit(void) {
+//  srandom((unsigned int) time(NULL));
+//}
 
-double nmeaRandom(const double min, const double max) {
-  long value;
-  int randomFile;
-  double range = fabs(max - min);
-
-  randomFile = open("/dev/urandom", O_RDONLY);
-  if (randomFile == -1) {
-    /* can't be covered in a test */
-    randomFile = open("/dev/random", O_RDONLY);
-  }
-
-  if ((randomFile == -1) //
-      || (read(randomFile, &value, sizeof(value)) != sizeof(value))) {
-    /* can't be covered in a test */
-    value = random();
-  }
-
-  if (randomFile != -1) {
-    close(randomFile);
-  }
-
-  return min + ((fabs((double) value) * range) / (double) LONG_MAX);
-}
+//double nmeaRandom(const double min, const double max) {
+//  long value;
+//  int randomFile;
+//  double range = fabs(max - min);
+//
+//  randomFile = open("/dev/urandom", O_RDONLY);
+//  if (randomFile == -1) {
+//    /* can't be covered in a test */
+//    randomFile = open("/dev/random", O_RDONLY);
+//  }
+//
+//  if ((randomFile == -1) //
+//      || (read(randomFile, &value, sizeof(value)) != sizeof(value))) {
+//    /* can't be covered in a test */
+//    value = random();
+//  }
+//
+//  if (randomFile != -1) {
+//    close(randomFile);
+//  }
+//
+//  return min + ((fabs((double) value) * range) / (double) LONG_MAX);
+//}
 
 size_t nmeaStringTrim(const char **s) {
   const char *str;
