@@ -844,7 +844,7 @@ static byte ESP32_Display_setup()
 
 #if defined(USE_OLED)
     /* SSD1306 I2C OLED probing */
-    if (GPIO_21_22_are_busy) {
+    if (GPIO_21_22_are_busy && (hw_info.model != SOFTRF_MODEL_PRIME_MK2)) {
       Wire1.begin(HELTEC_OLED_PIN_SDA , HELTEC_OLED_PIN_SCL);
       Wire1.beginTransmission(SSD1306_OLED_I2C_ADDR);
       if (Wire1.endTransmission() == 0) {
