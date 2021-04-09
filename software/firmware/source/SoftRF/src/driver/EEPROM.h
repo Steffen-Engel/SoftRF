@@ -60,10 +60,11 @@ typedef struct Settings {
 
     uint8_t  power_save;
     int8_t   freq_corr; /* +/-, kHz */
-    uint8_t  resvd23456;
-    uint8_t  resvd7;
-    uint8_t  resvd8;
-    uint8_t  resvd9;
+//    uint8_t  resvd23456;
+//    uint8_t  resvd7;
+//    uint8_t  resvd8;
+//    uint8_t  resvd9;
+    uint32_t device_id;
     uint8_t  resvd10;
     uint8_t  resvd11;
     uint8_t  resvd12;

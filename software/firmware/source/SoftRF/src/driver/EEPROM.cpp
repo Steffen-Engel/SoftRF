@@ -69,7 +69,13 @@ void EEPROM_setup()
       EEPROM_defaults();
     }
   }
+
+  if ((eeprom_block.field.settings.device_id == 0) ||  (eeprom_block.field.settings.device_id == -1))
+  {
+    eeprom_block.field.settings.device_id = SoC->getChipId() & 0x00FFFFFF;
+  }
   settings = &eeprom_block.field.settings;
+
 
   SoC->EEPROM_extension();
 }
@@ -114,6 +120,8 @@ void EEPROM_defaults()
   eeprom_block.field.settings.no_track   = false;
   eeprom_block.field.settings.power_save = POWER_SAVE_NONE;
   eeprom_block.field.settings.freq_corr  = 0;
+
+  eeprom_block.field.settings.device_id = SoC->getChipId() & 0x00FFFFFF;
 }
 
 void EEPROM_store()

@@ -159,7 +159,8 @@ void setup()
 
   SoC->Button_setup();
 
-  ThisAircraft.addr = SoC->getChipId() & 0x00FFFFFF;
+//  ThisAircraft.addr = SoC->getChipId() & 0x00FFFFFF;
+  ThisAircraft.addr = settings->device_id;
 
   hw_info.rf = RF_setup();
 

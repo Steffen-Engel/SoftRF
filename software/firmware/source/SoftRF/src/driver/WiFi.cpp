@@ -249,7 +249,8 @@ void WiFi_setup()
   }
 
   // Set Hostname.
-  host_name += String((SoC->getChipId() & 0xFFFFFF), HEX);
+//  host_name += String((SoC->getChipId() & 0xFFFFFF), HEX);
+  host_name += String((settings->device_id & 0xFFFFFF), HEX);
   SoC->WiFi_hostname(host_name);
 
   // Print hostname.
