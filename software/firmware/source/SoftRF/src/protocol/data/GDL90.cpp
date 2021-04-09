@@ -33,7 +33,7 @@
 #include "NMEA.h"
 
 #if defined(ENABLE_AHRS)
-#include "../../AHRS.h"
+#include "../../driver/AHRS.h"
 #endif /* ENABLE_AHRS */
 
 #define ADDR_TO_HEX_STR(s, c) (s += ((c) < 0x10 ? "0" : "") + String((c), HEX))

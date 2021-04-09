@@ -60,7 +60,7 @@ unsigned long PGRMZ_TimeMarker = 0;
 extern uint32_t tx_packets_counter, rx_packets_counter;
 
 #if defined(ENABLE_AHRS)
-#include "../../driver/AHRSHelper.h"
+#include "../../driver/AHRS.h"
 
 #define isTimeToRPYL()  (millis() - RPYL_TimeMarker > AHRS_INTERVAL)
 unsigned long RPYL_TimeMarker = 0;

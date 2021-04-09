@@ -113,7 +113,10 @@ hardware_info_t hw_info = {
   .rf       = RF_IC_NONE,
   .gnss     = GNSS_MODULE_NONE,
   .baro     = BARO_MODULE_NONE,
-  .display  = DISPLAY_NONE
+  .display  = DISPLAY_NONE,
+#if defined(ENABLE_AHRS)
+  .ahrs     = AHRS_MODULE_NONE,
+#endif
 };
 
 unsigned long LEDTimeMarker = 0;

@@ -30,6 +30,9 @@
 #include "Baro.h"
 #include "Battery.h"
 #include "../TrafficHelper.h"
+#if defined(ENABLE_AHRS)
+#include "AHRS.h"
+#endif /* ENABLE_AHRS */
 
 enum
 {
@@ -432,14 +435,16 @@ void OLED_info1()
 
     u8x8->clear();
 
-    u8x8->draw2x2String(0, 0, "RADIO");
-    u8x8->draw2x2String(14, 0, hw_info.rf   != RF_IC_NONE       ? "+" : "-");
-    u8x8->draw2x2String(0, 2, "GNSS");
-    u8x8->draw2x2String(14, 2, hw_info.gnss != GNSS_MODULE_NONE ? "+" : "-");
-    u8x8->draw2x2String(0, 4, "OLED");
-    u8x8->draw2x2String(14, 4, hw_info.display != DISPLAY_NONE  ? "+" : "-");
-    u8x8->draw2x2String(0, 6, "BARO");
-    u8x8->draw2x2String(14, 6, hw_info.baro != BARO_MODULE_NONE ? "+" : "-");
+    u8x8->drawString(0, 0, "RADIO");
+    u8x8->drawString(14, 0, hw_info.rf   != RF_IC_NONE       ? "+" : "-");
+    u8x8->drawString(0, 1, "GNSS");
+    u8x8->drawString(14, 1, hw_info.gnss != GNSS_MODULE_NONE ? "+" : "-");
+    u8x8->drawString(0, 2, "OLED");
+    u8x8->drawString(14, 2, hw_info.display != DISPLAY_NONE  ? "+" : "-");
+    u8x8->drawString(0, 3, "BARO");
+    u8x8->drawString(14, 3, hw_info.baro != BARO_MODULE_NONE ? "+" : "-");
+    u8x8->drawString(0, 4, "AHRS");
+    u8x8->drawString(14, 4, hw_info.ahrs != AHRS_MODULE_NONE ? "+" : "-");
 
     delay(3000);
   }
