@@ -105,6 +105,8 @@
 #define isTimeToExport()  (millis() - ExportTimeMarker  > 1000)
 
 ufo_t ThisAircraft;
+float StartupAltitude = 0.0;
+
 
 hardware_info_t hw_info = {
   .model    = DEFAULT_SOFTRF_MODEL,
@@ -170,6 +172,9 @@ void setup()
   delay(100);
 
   hw_info.baro = Baro_setup();
+
+  StartupAltitude = ThisAircraft.pressure_altitude;
+
 #if defined(ENABLE_AHRS)
   hw_info.ahrs = AHRS_setup();
 #endif /* ENABLE_AHRS */
@@ -397,7 +402,7 @@ void normal()
 #endif /* EXCLUDE_EGM96 */
     if (settings->airobaticbox)
     {
-      ThisAircraft.altitude = ThisAircraft.pressure_altitude;
+      ThisAircraft.altitude = ThisAircraft.pressure_altitude-StartupAltitude;
     }
     RF_Transmit(RF_Encode(&ThisAircraft), true);
   }

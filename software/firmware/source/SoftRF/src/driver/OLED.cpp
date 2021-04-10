@@ -36,6 +36,7 @@
 
 enum
 {
+  OLED_PAGE_AEROBATIC,
   OLED_PAGE_RADIO,
   OLED_PAGE_OTHER,
 #if !defined(EXCLUDE_OLED_BARO_PAGE)
@@ -111,7 +112,7 @@ const char CDR_text[]      = "CDR FPM";
 
 static const uint8_t Dot_Tile[] = { 0x00, 0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x00 };
 
-static int OLED_current_page = OLED_PAGE_RADIO;
+static int OLED_current_page = OLED_PAGE_AEROBATIC;
 
 byte OLED_setup() {
 
@@ -394,6 +395,37 @@ static void OLED_baro()
 }
 #endif /* EXCLUDE_OLED_BARO_PAGE */
 
+
+static void OLED_aerobatic()
+{
+  char buf[16];
+
+  if (!OLED_display_titles) {
+
+    u8x8->clear();
+
+    u8x8->drawString( 2, 1, ALT_text);
+
+    u8x8->drawString( 10, 1, "START");
+
+    prev_altitude     = (int32_t)   -10000;
+
+    OLED_display_titles = true;
+  }
+
+  int32_t altitude    = Baro_altitude() - StartupAltitude;        /* metres */
+
+  if (prev_altitude != altitude) {
+    snprintf(buf, sizeof(buf), "%4d", altitude);
+    u8x8->draw2x2String(0, 4, buf);
+    prev_altitude = altitude;
+    snprintf(buf, sizeof(buf), "%3d", (int32_t)StartupAltitude);
+    u8x8->draw2x2String(10, 4, buf);
+  }
+
+}
+
+
 void OLED_loop()
 {
   if (u8x8) {
@@ -408,6 +440,9 @@ void OLED_loop()
         OLED_baro();
         break;
 #endif /* EXCLUDE_OLED_BARO_PAGE */
+      case OLED_PAGE_AEROBATIC:
+        OLED_aerobatic();
+        break;
       case OLED_PAGE_RADIO:
       default:
         OLED_radio();

@@ -250,4 +250,7 @@ extern void shutdown(int);
 #define StdOut  Serial
 #endif /* LOGGER_IS_ENABLED */
 
+
+extern float StartupAltitude;
+
 #endif /* SOFTRF_H */
