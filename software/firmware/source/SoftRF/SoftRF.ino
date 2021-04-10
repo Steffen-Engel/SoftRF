@@ -432,6 +432,17 @@ void normal()
     LEDTimeMarker = millis();
   }
 
+  if (settings->airobaticbox)
+  {
+    if (((ThisAircraft.altitude > 90) && (ThisAircraft.altitude<100))
+       || ((ThisAircraft.altitude > 190) && (ThisAircraft.altitude<200))
+       || ((ThisAircraft.altitude > 1200) && (ThisAircraft.altitude<1250))
+       )
+    {
+      Sound_Beep();
+    }
+  }
+
   Sound_loop();
 
   if (isTimeToExport()) {

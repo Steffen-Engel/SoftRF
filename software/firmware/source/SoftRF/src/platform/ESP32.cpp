@@ -598,6 +598,14 @@ static void ESP32_Sound_test(int var)
     ledcDetachPin(SOC_GPIO_PIN_BUZZER);
     pinMode(SOC_GPIO_PIN_BUZZER, INPUT_PULLDOWN);
   }
+  else if (settings->airobaticbox)
+  {
+    ledcAttachPin(13, LEDC_CHANNEL_BUZZER);
+    ledcWriteTone(LEDC_CHANNEL_BUZZER, 3000); delay(150);
+    ledcWriteTone(LEDC_CHANNEL_BUZZER, 0); delay(100);
+    ledcWriteTone(LEDC_CHANNEL_BUZZER, 3000); delay(150);
+    ledcWriteTone(LEDC_CHANNEL_BUZZER, 0);
+  }
 
 #if defined(USE_BLE_MIDI)
   ESP32_BLEMIDI_test();
@@ -617,6 +625,20 @@ static void ESP32_Sound_tone(int hz, uint8_t volume)
 
       ledcDetachPin(SOC_GPIO_PIN_BUZZER);
       pinMode(SOC_GPIO_PIN_BUZZER, INPUT_PULLDOWN);
+    }
+  }
+  else if (settings->airobaticbox)
+  {
+    if (hz > 0) {
+      ledcAttachPin(13, LEDC_CHANNEL_BUZZER);
+
+      ledcWriteTone(LEDC_CHANNEL_BUZZER, hz);
+      ledcWrite(LEDC_CHANNEL_BUZZER, 0xFF);
+    } else {
+      ledcWriteTone(LEDC_CHANNEL_BUZZER, 0); // off
+
+      ledcDetachPin(13);
+      pinMode(13, INPUT_PULLDOWN);
     }
   }
 }

@@ -20,7 +20,7 @@
 #define SOUNDHELPER_H
 
 #define ALARM_TONE_HZ     1040
-#define ALARM_TONE_MS     1000
+#define ALARM_TONE_MS     300
 
 enum
 {
@@ -31,6 +31,7 @@ enum
 
 void Sound_setup(void);
 bool Sound_Notify(void);
+void Sound_Beep(void);
 void Sound_loop(void);
 void Sound_fini(void);
 
