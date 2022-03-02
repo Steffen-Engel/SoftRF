@@ -283,7 +283,9 @@ static uint8_t makeUBXCFG(uint8_t cl, uint8_t id, uint8_t msglen, const uint8_t 
 static void sendUBX(const uint8_t *MSG, uint8_t len) {
   for (int i = 0; i < len; i++) {
     swSer.write( MSG[i]);
+#if defined(DO_GNSS_DEBUG)
     GNSS_DEBUG_PRINT(MSG[i], HEX);
+#endif
   }
 //  swSer.println();
 }
@@ -294,8 +296,9 @@ static boolean getUBX_ACK(uint8_t cl, uint8_t id) {
   uint8_t ackByteID = 0;
   uint8_t ackPacket[2] = {cl, id};
   unsigned long startTime = millis();
-  GNSS_DEBUG_PRINT(F(" * Reading ACK response: "));
-
+#if defined(DO_GNSS_DEBUG)
+GNSS_DEBUG_PRINT(F(" * Reading ACK response: "));
+#endif
   // Construct the expected ACK packet
   makeUBXCFG(0x05, 0x01, 2, ackPacket);
 
@@ -304,13 +307,17 @@ static boolean getUBX_ACK(uint8_t cl, uint8_t id) {
     // Test for success
     if (ackByteID > 9) {
       // All packets in order!
+#if defined(DO_GNSS_DEBUG)
       GNSS_DEBUG_PRINTLN(F(" (SUCCESS!)"));
+#endif
       return true;
     }
 
     // Timeout if no valid response in 2 seconds
     if (millis() - startTime > 2000) {
+#if defined(DO_GNSS_DEBUG)
       GNSS_DEBUG_PRINTLN(F(" (FAILED!)"));
+#endif
       return false;
     }
 
@@ -321,8 +328,10 @@ static boolean getUBX_ACK(uint8_t cl, uint8_t id) {
       // Check that bytes arrive in sequence as per expected ACK packet
       if (b == GNSSbuf[ackByteID]) {
         ackByteID++;
+#if defined(DO_GNSS_DEBUG)
         GNSS_DEBUG_PRINT(b, HEX);
-      }
+#endif
+        }
       else {
         ackByteID = 0;  // Reset and look again, invalid order
       }
@@ -359,46 +368,54 @@ static void setup_UBX()
   SoC->swSer_begin(baudrate);
 #endif
 
+#if defined(DO_GNSS_DEBUG)
   GNSS_DEBUG_PRINTLN(F("Airborne <2g navigation mode: "));
-
+#endif
   // Set the navigation mode (Airborne, < 2g)
   msglen = makeUBXCFG(0x06, 0x24, sizeof(setNav5), setNav5);
   sendUBX(GNSSbuf, msglen);
   gnss_set_sucess = getUBX_ACK(0x06, 0x24);
 
+#if defined(DO_GNSS_DEBUG)
   if (!gnss_set_sucess) {
     GNSS_DEBUG_PRINTLN(F("WARNING: Unable to set airborne <2g navigation mode."));
   }
 
   GNSS_DEBUG_PRINTLN(F("Switching off NMEA GLL: "));
-
+#endif
   msglen = makeUBXCFG(0x06, 0x01, sizeof(setGLL), setGLL);
   sendUBX(GNSSbuf, msglen);
   gnss_set_sucess = getUBX_ACK(0x06, 0x01);
 
+#if defined(DO_GNSS_DEBUG)
   if (!gnss_set_sucess) {
     GNSS_DEBUG_PRINTLN(F("WARNING: Unable to disable NMEA GLL."));
   }
 
   GNSS_DEBUG_PRINTLN(F("Switching off NMEA GSV: "));
+#endif
 
   msglen = makeUBXCFG(0x06, 0x01, sizeof(setGSV), setGSV);
   sendUBX(GNSSbuf, msglen);
   gnss_set_sucess = getUBX_ACK(0x06, 0x01);
 
+#if defined(DO_GNSS_DEBUG)
   if (!gnss_set_sucess) {
     GNSS_DEBUG_PRINTLN(F("WARNING: Unable to disable NMEA GSV."));
   }
 
   GNSS_DEBUG_PRINTLN(F("Switching off NMEA VTG: "));
+#endif
 
   msglen = makeUBXCFG(0x06, 0x01, sizeof(setVTG), setVTG);
   sendUBX(GNSSbuf, msglen);
   gnss_set_sucess = getUBX_ACK(0x06, 0x01);
 
+#if defined(DO_GNSS_DEBUG)
   if (!gnss_set_sucess) {
     GNSS_DEBUG_PRINTLN(F("WARNING: Unable to disable NMEA VTG."));
   }
+#endif
 
 #if !defined(NMEA_TCP_SERVICE)
 
@@ -520,15 +537,18 @@ static byte ublox_version() {
   sendUBX(GNSSbuf, msglen);
 
   // Get the message back from the GPS
+#if defined(DO_GNSS_DEBUG)
   GNSS_DEBUG_PRINT(F(" * Reading response: "));
-
+#endif
   while ((millis() - startTime) < 2000 ) {
 
     if (swSer.available()) {
       unsigned char c = swSer.read();
       int ret = 0;
 
+#if defined(DO_GNSS_DEBUG)
       GNSS_DEBUG_PRINT(c, HEX);
+#endif
       ret = ubloxProcessData(c);
 
       // Upon a successfully parsed sentence, do the version detection
