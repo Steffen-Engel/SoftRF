@@ -378,7 +378,7 @@ void normal()
   GNSS_loop();
 
   ThisAircraft.timestamp = now();
-  if (isValidFix() || settings->airobaticbox) {
+  if (isValidFix() || settings->aerobaticbox) {
     ThisAircraft.latitude = gnss.location.lat();
     ThisAircraft.longitude = gnss.location.lng();
     ThisAircraft.altitude = gnss.altitude.meters();
@@ -400,7 +400,7 @@ void normal()
       ThisAircraft.altitude -= ThisAircraft.geoid_separation;
     }
 #endif /* EXCLUDE_EGM96 */
-    if (settings->airobaticbox)
+    if (settings->aerobaticbox)
     {
       ThisAircraft.altitude = ThisAircraft.pressure_altitude-StartupAltitude;
     }
@@ -432,7 +432,7 @@ void normal()
     LEDTimeMarker = millis();
   }
 
-  if (settings->airobaticbox)
+  if (settings->aerobaticbox)
   {
     if (((ThisAircraft.altitude > 90) && (ThisAircraft.altitude<100))
        || ((ThisAircraft.altitude > 190) && (ThisAircraft.altitude<200))

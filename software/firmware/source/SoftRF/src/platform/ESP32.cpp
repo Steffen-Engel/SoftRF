@@ -598,7 +598,7 @@ static void ESP32_Sound_test(int var)
     ledcDetachPin(SOC_GPIO_PIN_BUZZER);
     pinMode(SOC_GPIO_PIN_BUZZER, INPUT_PULLDOWN);
   }
-  else if (settings->airobaticbox)
+  else if (settings->aerobaticbox)
   {
     ledcAttachPin(13, LEDC_CHANNEL_BUZZER);
     ledcWriteTone(LEDC_CHANNEL_BUZZER, 3000); delay(150);
@@ -627,7 +627,7 @@ static void ESP32_Sound_tone(int hz, uint8_t volume)
       pinMode(SOC_GPIO_PIN_BUZZER, INPUT_PULLDOWN);
     }
   }
-  else if (settings->airobaticbox)
+  else if (settings->aerobaticbox)
   {
     if (hz > 0) {
       ledcAttachPin(13, LEDC_CHANNEL_BUZZER);

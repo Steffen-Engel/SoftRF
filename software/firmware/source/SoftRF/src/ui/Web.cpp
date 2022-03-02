@@ -259,7 +259,7 @@ void handleSettings() {
 <tr>\
 <th align=left>Special type Aerobatic Box</th>\
 <td align=right>\
-<input type='checkbox' name='airobaticbox' value='1' %s>\
+<input type='checkbox' name='aerobaticbox' value='1' %s>\
 </td>\
 </tr>\
 <tr>\
@@ -323,7 +323,7 @@ void handleSettings() {
   (settings->aircraft_type == AIRCRAFT_TYPE_BALLOON ? "selected" : ""),  AIRCRAFT_TYPE_BALLOON,
   (settings->aircraft_type == AIRCRAFT_TYPE_STATIC ? "selected" : ""),  AIRCRAFT_TYPE_STATIC,
   (settings->device_id),
-  (settings->airobaticbox ? "checked" : ""),
+  (settings->aerobaticbox ? "checked" : ""),
   (settings->alarm == TRAFFIC_ALARM_NONE ? "selected" : ""),  TRAFFIC_ALARM_NONE,
   (settings->alarm == TRAFFIC_ALARM_DISTANCE ? "selected" : ""),  TRAFFIC_ALARM_DISTANCE,
   (settings->alarm == TRAFFIC_ALARM_VECTOR ? "selected" : ""),  TRAFFIC_ALARM_VECTOR,
@@ -587,6 +587,7 @@ void handleRoot() {
   char str_lat[16];
   char str_lon[16];
   char str_alt[16];
+  char str_p_alt[16];
   char str_Vcc[8];
 
   char *Root_temp = (char *) malloc(2300);
@@ -597,6 +598,7 @@ void handleRoot() {
   dtostrf(ThisAircraft.latitude, 8, 4, str_lat);
   dtostrf(ThisAircraft.longitude, 8, 4, str_lon);
   dtostrf(ThisAircraft.altitude, 7, 1, str_alt);
+  dtostrf(ThisAircraft.pressure_altitude, 7, 1, str_p_alt);
   dtostrf(vdd, 4, 2, str_Vcc);
 
   snprintf_P ( Root_temp, 2300,
@@ -644,6 +646,7 @@ void handleRoot() {
   <tr><th align=left>Latitude</th><td align=right>%s</td></tr>\
   <tr><th align=left>Longitude</th><td align=right>%s</td></tr>\
   <tr><td align=left><b>Altitude</b>&nbsp;&nbsp;(above MSL)</td><td align=right>%s</td></tr>\
+  <tr><td align=left><b>pressure Altitude</b>&nbsp;&nbsp;(above MSL)</td><td align=right>%s</td></tr>\
  </table>\
  <hr>\
  <table width=100%%>\
@@ -670,7 +673,7 @@ void handleRoot() {
     hr, min % 60, sec % 60, ESP.getFreeHeap(),
     low_voltage ? "red" : "green", str_Vcc,
     tx_packets_counter, rx_packets_counter,
-    timestamp, sats, str_lat, str_lon, str_alt
+    timestamp, sats, str_lat, str_lon, str_alt, str_p_alt
   );
   SoC->swSer_enableRx(false);
   server.sendHeader(String(F("Cache-Control")), String(F("no-cache, no-store, must-revalidate")));
@@ -689,7 +692,7 @@ void handleInput() {
   }
 
   // set unchecked defaults for checkboxes
-  settings->airobaticbox = false;
+  settings->aerobaticbox = false;
 
   for ( uint8_t i = 0; i < server.args(); i++ ) {
     if (server.argName(i).equals("mode")) {
@@ -700,8 +703,8 @@ void handleInput() {
       settings->band = server.arg(i).toInt();
     } else if (server.argName(i).equals("acft_type")) {
       settings->aircraft_type = server.arg(i).toInt();
-    } else if (server.argName(i).equals("airobaticbox")) {
-      settings->airobaticbox = server.arg(i).toInt();
+    } else if (server.argName(i).equals("aerobaticbox")) {
+      settings->aerobaticbox = server.arg(i).toInt();
     } else if (server.argName(i).equals("deviceid")) {
       sscanf(server.arg(i).c_str(), "%x", &settings->device_id);
     } else if (server.argName(i).equals("alarm")) {
@@ -776,7 +779,7 @@ PSTR("<html>\
 </body>\
 </html>"),
   settings->mode, settings->rf_protocol, settings->band,
-  settings->aircraft_type, settings->airobaticbox, settings->device_id, settings->alarm, settings->txpower,
+  settings->aircraft_type, settings->aerobaticbox, settings->device_id, settings->alarm, settings->txpower,
   settings->volume, settings->pointer, settings->bluetooth,
   BOOL_STR(settings->nmea_g), BOOL_STR(settings->nmea_p),
   BOOL_STR(settings->nmea_l), BOOL_STR(settings->nmea_s),
