@@ -478,9 +478,10 @@ void OLED_info1()
     u8x8->drawString(14, 2, hw_info.display != DISPLAY_NONE  ? "+" : "-");
     u8x8->drawString(0, 3, "BARO");
     u8x8->drawString(14, 3, hw_info.baro != BARO_MODULE_NONE ? "+" : "-");
+#if defined(ENABLE_AHRS)
     u8x8->drawString(0, 4, "AHRS");
     u8x8->drawString(14, 4, hw_info.ahrs != AHRS_MODULE_NONE ? "+" : "-");
-
+#endif
     delay(3000);
   }
 }
