@@ -253,7 +253,7 @@ void handleSettings() {
 <tr>\
 <th align=left>Device ID</th>\
 <td align=right>\
-<INPUT type='text' name='deviceid' value='%lx'>\
+<INPUT type='text' name='deviceid' value='%x'>\
 </td>\
 </tr>\
 <tr>\
@@ -753,7 +753,7 @@ PSTR("<html>\
 <tr><th align=left>Band</th><td align=right>%d</td></tr>\
 <tr><th align=left>Aircraft type</th><td align=right>%d</td></tr>\
 <tr><th align=left>airobatic box</th><td align=right>%d</td></tr>\
-<tr><th align=left>device ID</th><td align=right>%lx</td></tr>\
+<tr><th align=left>device ID</th><td align=right>%x</td></tr>\
 <tr><th align=left>Alarm trigger</th><td align=right>%d</td></tr>\
 <tr><th align=left>Tx Power</th><td align=right>%d</td></tr>\
 <tr><th align=left>Volume</th><td align=right>%d</td></tr>\
