@@ -42,13 +42,31 @@ void OTA_setup()
   // ArduinoOTA.setPassword((const char *)"123");
 
   ArduinoOTA.onStart([]() {
-    Serial.println(F("Start"));
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH)
+      type = "sketch";
+    else // U_SPIFFS
+      type = "filesystem";
+
+    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+    Serial.println("Start updating " + type);
+
+    Serial.println("Progress: 0...10...20...30...40...50...60...70...80...90..100");
+    Serial.print  ("          ");
+
+    SoC->WDT_fini();
   });
   ArduinoOTA.onEnd([]() {
     Serial.println(F("\nEnd"));
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    static int percent;
+    int newval = (progress / (total / 100))/2*2;
+    if (newval != percent)
+    {
+      percent = newval;
+      Serial.printf(".");
+    }
   });
   ArduinoOTA.onError([](ota_error_t error) {
     Serial.printf("Error[%u]: ", error);
