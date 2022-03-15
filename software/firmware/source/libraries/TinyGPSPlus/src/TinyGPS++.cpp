@@ -47,6 +47,16 @@ TinyGPSPlus::TinyGPSPlus()
   ,  passedChecksumCount(0)
 {
   term[0] = '\0';
+
+
+      location.rawLatData.deg = 52;
+      location.rawLatData.billionths =  530000000;
+//                                     1000000000.0;
+      location.rawLngData.deg = 10;
+      location.rawLngData.billionths =  462800000;
+//                                     1000000000.0;
+
+
 }
 
 //
