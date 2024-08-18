@@ -293,6 +293,12 @@ void handleSettings() {
 </td>\
 </tr>\
 <tr>\
+<th align=left>Special type CIVA HMD Aerobatic Box</th>\
+<td align=right>\
+<input type='checkbox' name='aerobaticbox' value='1' %s>\
+</td>\
+</tr>\
+<tr>\
 <th align=left>Alarm trigger</th>\
 <td align=right>\
 <select name='alarm'>\
@@ -352,6 +358,7 @@ void handleSettings() {
   (settings->aircraft_type == AIRCRAFT_TYPE_PARAGLIDER ? "selected" : ""),  AIRCRAFT_TYPE_PARAGLIDER,
   (settings->aircraft_type == AIRCRAFT_TYPE_BALLOON ? "selected" : ""),  AIRCRAFT_TYPE_BALLOON,
   (settings->aircraft_type == AIRCRAFT_TYPE_STATIC ? "selected" : ""),  AIRCRAFT_TYPE_STATIC,
+  (settings->aerobaticbox ? "checked" : ""),
   (settings->alarm == TRAFFIC_ALARM_NONE ? "selected" : ""),  TRAFFIC_ALARM_NONE,
   (settings->alarm == TRAFFIC_ALARM_DISTANCE ? "selected" : ""),  TRAFFIC_ALARM_DISTANCE,
   (settings->alarm == TRAFFIC_ALARM_VECTOR ? "selected" : ""),  TRAFFIC_ALARM_VECTOR,
@@ -889,6 +896,9 @@ void handleInput() {
     return;
   }
 
+  // set unchecked defaults for checkboxes
+   settings->aerobaticbox = false;
+
   for ( uint8_t i = 0; i < server.args(); i++ ) {
     if (server.argName(i).equals("mode")) {
       settings->mode = server.arg(i).toInt();
@@ -898,6 +908,8 @@ void handleInput() {
       settings->band = server.arg(i).toInt();
     } else if (server.argName(i).equals("acft_type")) {
       settings->aircraft_type = server.arg(i).toInt();
+    } else if (server.argName(i).equals("aerobaticbox")) {
+      settings->aerobaticbox = server.arg(i).toInt();
     } else if (server.argName(i).equals("alarm")) {
       settings->alarm = server.arg(i).toInt();
     } else if (server.argName(i).equals("txpower")) {
@@ -958,6 +970,7 @@ PSTR("<html>\
 <tr><th align=left>Protocol</th><td align=right>%d</td></tr>\
 <tr><th align=left>Band</th><td align=right>%d</td></tr>\
 <tr><th align=left>Aircraft type</th><td align=right>%d</td></tr>\
+<tr><th align=left>aerobatic box</th><td align=right>%d</td></tr>\
 <tr><th align=left>Alarm trigger</th><td align=right>%d</td></tr>\
 <tr><th align=left>Tx Power</th><td align=right>%d</td></tr>\
 <tr><th align=left>Volume</th><td align=right>%d</td></tr>\
@@ -981,7 +994,7 @@ PSTR("<html>\
 </body>\
 </html>"),
   settings->mode, settings->rf_protocol, settings->band,
-  settings->aircraft_type, settings->alarm, settings->txpower,
+  settings->aircraft_type, settings->aerobaticbox, settings->alarm, settings->txpower,
   settings->volume, settings->pointer, settings->bluetooth,
   BOOL_STR(settings->nmea_g), BOOL_STR(settings->nmea_p),
   BOOL_STR(settings->nmea_l), BOOL_STR(settings->nmea_s),

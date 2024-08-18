@@ -59,7 +59,7 @@ typedef struct Settings {
     bool     nmea_p:1;
     bool     nmea_l:1;
     bool     nmea_s:1;
-    bool     resvd1:1;
+    bool     aerobaticbox:1;  // special behaviour: HMD for CIVA aerobatic contest height surveillance
     uint8_t  nmea_out:3;
 
     uint8_t  bluetooth:3; /* ESP32 built-in Bluetooth */

@@ -113,6 +113,7 @@ void EEPROM_defaults()
   eeprom_block.field.settings.nmea_p     = false;
   eeprom_block.field.settings.nmea_l     = true;
   eeprom_block.field.settings.nmea_s     = true;
+  eeprom_block.field.settings.aerobaticbox = false;
 
 #if (ARDUINO_USB_CDC_ON_BOOT && !defined(USE_USB_HOST)) || \
     (defined(USBD_USE_CDC) && !defined(DISABLE_GENERIC_SERIALUSB))

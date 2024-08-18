@@ -4345,6 +4345,10 @@ static bool ESP32_Baro_setup()
     if (Baro_probe())
       return true;
 
+    Wire.setPins(4, 0);
+    if (Baro_probe())
+      return true;
+
     WIRE_FINI(Wire);
 
     if (hw_info.revision == 2)
