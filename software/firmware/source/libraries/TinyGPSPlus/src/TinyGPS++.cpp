@@ -38,7 +38,7 @@ TinyGPSPlus::TinyGPSPlus()
   ,  curSentenceType(GPS_SENTENCE_OTHER)
   ,  curTermNumber(0)
   ,  curTermOffset(0)
-  ,  sentenceHasFix(false)
+  ,  sentenceHasFix(true)
   ,  customElts(0)
   ,  customCandidates(0)
   ,  encodedCharCount(0)
@@ -47,6 +47,11 @@ TinyGPSPlus::TinyGPSPlus()
   ,  passedChecksumCount(0)
 {
   term[0] = '\0';
+
+  location.rawLatData.deg = 52;
+  location.rawLatData.billionths =  530000000;
+  location.rawLngData.deg = 10;
+  location.rawLngData.billionths =  462800000;
 }
 
 //
