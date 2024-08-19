@@ -167,7 +167,14 @@ void setup()
 
   SoC->Button_setup();
 
-  ThisAircraft.addr = SoC->getChipId() & 0x00FFFFFF;
+  if (!settings->aerobaticbox)
+  {
+    ThisAircraft.addr = SoC->getChipId() & 0x00FFFFFF;
+  }
+  else
+  {
+    ThisAircraft.addr = 0xAEAB00+settings->CIVA_HMD_ID;
+  }
 
   hw_info.rf = RF_setup();
 

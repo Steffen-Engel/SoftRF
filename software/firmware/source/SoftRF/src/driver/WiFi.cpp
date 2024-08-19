@@ -221,7 +221,14 @@ void WiFi_setup()
 {
   // Set Hostname.
   host_name += "-";
-  host_name += String((SoC->getChipId() & 0xFFFFFF), HEX);
+  if (!settings->aerobaticbox)
+  {
+    host_name += String((SoC->getChipId() & 0xFFFFFF), HEX);
+  }
+  else
+  {
+    host_name += String((0xAEAB00+settings->CIVA_HMD_ID), HEX);
+  }
 
   if (SoC->id == SOC_ESP8266 || SoC->id == SOC_RP2040) {
     WiFi.mode(WIFI_STA);

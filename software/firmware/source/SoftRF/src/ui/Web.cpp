@@ -150,7 +150,7 @@ Copyright (C) 2015-2024 &nbsp;&nbsp;&nbsp; Linar Yusupov\
 
 void handleSettings() {
 
-  size_t size = 5470;
+  size_t size = 5570;
   char *offset;
   size_t len = 0;
   char *Settings_temp = (char *) malloc(size);
@@ -299,6 +299,12 @@ void handleSettings() {
 </td>\
 </tr>\
 <tr>\
+<th align=left>CIVA HMD Device ID</th>\
+<td align=right>\
+<INPUT type='number' name='CIVA_ID' min='0' max='200' value='%d'>\
+</td>\
+</tr>\
+<tr>\
 <th align=left>Alarm trigger</th>\
 <td align=right>\
 <select name='alarm'>\
@@ -359,6 +365,7 @@ void handleSettings() {
   (settings->aircraft_type == AIRCRAFT_TYPE_BALLOON ? "selected" : ""),  AIRCRAFT_TYPE_BALLOON,
   (settings->aircraft_type == AIRCRAFT_TYPE_STATIC ? "selected" : ""),  AIRCRAFT_TYPE_STATIC,
   (settings->aerobaticbox ? "checked" : ""),
+  (settings->CIVA_HMD_ID),
   (settings->alarm == TRAFFIC_ALARM_NONE ? "selected" : ""),  TRAFFIC_ALARM_NONE,
   (settings->alarm == TRAFFIC_ALARM_DISTANCE ? "selected" : ""),  TRAFFIC_ALARM_DISTANCE,
   (settings->alarm == TRAFFIC_ALARM_VECTOR ? "selected" : ""),  TRAFFIC_ALARM_VECTOR,
@@ -889,7 +896,7 @@ void handleRoot() {
 
 void handleInput() {
 
-  size_t size = 1700;
+  size_t size = 1800;
 
   char *Input_temp = (char *) malloc(size);
   if (Input_temp == NULL) {
@@ -910,6 +917,8 @@ void handleInput() {
       settings->aircraft_type = server.arg(i).toInt();
     } else if (server.argName(i).equals("aerobaticbox")) {
       settings->aerobaticbox = server.arg(i).toInt();
+    } else if (server.argName(i).equals("CIVA_ID")) {
+      sscanf(server.arg(i).c_str(), "%d", &settings->CIVA_HMD_ID);
     } else if (server.argName(i).equals("alarm")) {
       settings->alarm = server.arg(i).toInt();
     } else if (server.argName(i).equals("txpower")) {
@@ -971,6 +980,7 @@ PSTR("<html>\
 <tr><th align=left>Band</th><td align=right>%d</td></tr>\
 <tr><th align=left>Aircraft type</th><td align=right>%d</td></tr>\
 <tr><th align=left>aerobatic box</th><td align=right>%d</td></tr>\
+<tr><th align=left>HMD Id</th><td align=right>%x</td></tr>\
 <tr><th align=left>Alarm trigger</th><td align=right>%d</td></tr>\
 <tr><th align=left>Tx Power</th><td align=right>%d</td></tr>\
 <tr><th align=left>Volume</th><td align=right>%d</td></tr>\
@@ -994,7 +1004,7 @@ PSTR("<html>\
 </body>\
 </html>"),
   settings->mode, settings->rf_protocol, settings->band,
-  settings->aircraft_type, settings->aerobaticbox, settings->alarm, settings->txpower,
+  settings->aircraft_type, settings->aerobaticbox, settings->CIVA_HMD_ID, settings->alarm, settings->txpower,
   settings->volume, settings->pointer, settings->bluetooth,
   BOOL_STR(settings->nmea_g), BOOL_STR(settings->nmea_p),
   BOOL_STR(settings->nmea_l), BOOL_STR(settings->nmea_s),
