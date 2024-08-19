@@ -376,7 +376,7 @@ void normal()
   GNSS_loop();
 
   ThisAircraft.timestamp = now();
-  if (isValidFix()) {
+  if (isValidFix() || settings->aerobaticbox) {
     ThisAircraft.latitude  = gnss.location.lat();
     ThisAircraft.longitude = gnss.location.lng();
     ThisAircraft.altitude  = gnss.altitude.meters();
@@ -398,6 +398,10 @@ void normal()
       ThisAircraft.altitude -= ThisAircraft.geoid_separation;
     }
 #endif /* EXCLUDE_EGM96 */
+    if (settings->aerobaticbox)
+    {
+      ThisAircraft.altitude = ThisAircraft.pressure_altitude;
+    }
 
     RF_Transmit(RF_Encode(&ThisAircraft), true);
   }
@@ -408,7 +412,7 @@ void normal()
   success = true;
 #endif
 
-  if (success && isValidFix()) ParseData();
+  if (success && (isValidFix()|| settings->aerobaticbox)) ParseData();
 
 #if defined(ENABLE_TTN)
   TTN_loop();
