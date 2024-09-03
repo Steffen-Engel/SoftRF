@@ -19,7 +19,6 @@
 #if defined(ARDUINO_ARCH_SILABS)
 
 #include <SPI.h>
-#include <Wire.h>
 
 #include "../system/SoC.h"
 #include "../driver/RF.h"
@@ -34,6 +33,8 @@
 #include "../protocol/data/GDL90.h"
 #include "../protocol/data/D1090.h"
 
+#include <ArduinoLowPower.h>
+
 // SX127x pin mapping
 lmic_pinmap lmic_pins = {
     .nss = SOC_GPIO_PIN_SS,
@@ -41,7 +42,7 @@ lmic_pinmap lmic_pins = {
     .rxe = LMIC_UNUSED_PIN,
     .rst = SOC_GPIO_PIN_RST,
     .dio = {LMIC_UNUSED_PIN, LMIC_UNUSED_PIN, LMIC_UNUSED_PIN},
-    .busy = LMIC_UNUSED_PIN,
+    .busy = SOC_GPIO_PIN_BUSY,
     .tcxo = LMIC_UNUSED_PIN,
 };
 
@@ -110,8 +111,94 @@ eeprom_t eeprom_block;
 settings_t *settings = &eeprom_block.field.settings;
 #endif /* EXCLUDE_EEPROM */
 
+#if defined(USE_SOFTSPI)
+#include <SoftSPI.h>
+SoftSPI RadioSPI(SOC_GPIO_PIN_MOSI,SOC_GPIO_PIN_MISO, SOC_GPIO_PIN_SCK);
+#endif /* USE_SOFTSPI */
+
+#if defined __has_include
+#if __has_include(<FlexWire.h>)
+#include <FlexWire.h>
+
+FlexWire Wire = FlexWire(SOC_GPIO_PIN_SDA, SOC_GPIO_PIN_SCL, false);
+#endif /* FlexWire.h */
+#endif /* __has_include */
+
 static void EFR32_setup()
 {
+  uint32_t reset_cause = get_system_reset_cause();
+
+  if      (reset_cause & EMU_RSTCAUSE_POR) /* Power On Reset */
+  {
+      reset_info.reason = REASON_DEFAULT_RST;
+  }
+  else if (reset_cause & EMU_RSTCAUSE_PIN) /* Pin Reset */
+  {
+      reset_info.reason = REASON_EXT_SYS_RST;
+  }
+  else if (reset_cause & EMU_RSTCAUSE_EM4) /* EM4 Wakeup Reset */
+  {
+      reset_info.reason = REASON_DEEP_SLEEP_AWAKE;
+  }
+  else if (reset_cause & EMU_RSTCAUSE_WDOG0) /* Watchdog 0 Reset */
+  {
+      reset_info.reason = REASON_WDT_RST;
+  }
+#if defined(ARDUINO_NANO_MATTER)
+  else if (reset_cause & EMU_RSTCAUSE_WDOG1) /* Watchdog 1 Reset */
+  {
+      reset_info.reason = REASON_WDT_RST;
+  }
+#endif /* ARDUINO_NANO_MATTER */
+  else if (reset_cause & EMU_RSTCAUSE_LOCKUP) /* M33 Core Lockup Reset */
+  {
+      reset_info.reason = REASON_EXCEPTION_RST;
+  }
+  else if (reset_cause & EMU_RSTCAUSE_SYSREQ) /* M33 Core Sys Reset */
+  {
+      reset_info.reason = REASON_SOFT_RESTART;
+  }
+  else if (reset_cause & EMU_RSTCAUSE_DVDDBOD) /* HVBOD Reset */
+  {
+      reset_info.reason = REASON_EXCEPTION_RST;
+  }
+  else if (reset_cause & EMU_RSTCAUSE_DVDDLEBOD) /* LEBOD Reset */
+  {
+      reset_info.reason = REASON_EXCEPTION_RST;
+  }
+  else if (reset_cause & EMU_RSTCAUSE_DECBOD) /* LVBOD Reset */
+  {
+      reset_info.reason = REASON_EXCEPTION_RST;
+  }
+  else if (reset_cause & EMU_RSTCAUSE_AVDDBOD) /* LEBOD1 Reset */
+  {
+      reset_info.reason = REASON_EXCEPTION_RST;
+  }
+  else if (reset_cause & EMU_RSTCAUSE_IOVDD0BOD) /* LEBOD2 Reset */
+  {
+      reset_info.reason = REASON_EXCEPTION_RST;
+  }
+#if defined(ARDUINO_NANO_MATTER)
+  else if (reset_cause & EMU_RSTCAUSE_SETAMPER) /* SE Tamper event Reset */
+  {
+      reset_info.reason = REASON_EXCEPTION_RST;
+  }
+#endif /* ARDUINO_NANO_MATTER */
+#if defined(ARDUINO_SILABS_BGM220EXPLORERKIT)
+  else if (reset_cause & EMU_RSTCAUSE_DCI) /* DCI reset */
+  {
+      reset_info.reason = REASON_EXCEPTION_RST;
+  }
+#endif /* ARDUINO_SILABS_BGM220EXPLORERKIT */
+  else if (reset_cause & EMU_RSTCAUSE_VREGIN) /* DCDC VREGIN comparator */
+  {
+      reset_info.reason = REASON_EXCEPTION_RST;
+  }
+
+#if defined(USE_RADIOLIB)
+  lmic_pins.dio[0] = SOC_GPIO_PIN_DIO1;
+#endif /* USE_RADIOLIB */
+
 #if SOC_GPIO_RADIO_LED_TX != SOC_UNUSED_PIN
   pinMode(SOC_GPIO_RADIO_LED_TX, OUTPUT);
   digitalWrite(SOC_GPIO_RADIO_LED_TX, ! LED_STATE_ON);
@@ -231,7 +318,26 @@ static void EFR32_loop()
 
 static void EFR32_fini(int reason)
 {
-  NVIC_SystemReset(); /* TODO */
+  switch (reason)
+  {
+#if SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN
+  case SOFTRF_SHUTDOWN_BUTTON:
+  case SOFTRF_SHUTDOWN_LOWBAT:
+    /* the GPIO must have EM4 wake functionality */
+    pinMode(SOC_GPIO_PIN_BUTTON, INPUT_PULLUP);
+    LowPower.attachInterruptWakeup(SOC_GPIO_PIN_BUTTON, nullptr, FALLING);
+    break;
+#endif /* SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN */
+  case SOFTRF_SHUTDOWN_NMEA:
+    /* the GPIO must have EM4 wake functionality */
+    pinMode(SOC_GPIO_PIN_BUTTON, INPUT_PULLUP);
+    LowPower.attachInterruptWakeup(SOC_GPIO_PIN_CONS_RX, nullptr, FALLING);
+    break;
+  default:
+    break;
+  }
+
+  LowPower.deepSleep();
 }
 
 static void EFR32_reset()
@@ -278,12 +384,9 @@ static String EFR32_getResetReason()
   }
 }
 
-extern "C" void * _sbrk   (int);
-
 static uint32_t EFR32_getFreeHeap()
 {
-  char top;
-  return &top - reinterpret_cast<char*>(_sbrk(0));
+  return 0; /* TODO */
 }
 
 static long EFR32_random(long howsmall, long howBig)
@@ -344,17 +447,15 @@ static void EFR32_EEPROM_extension(int cmd)
       settings->mode = SOFTRF_MODE_NORMAL;
     }
 
-    if (settings->nmea_out == NMEA_BLUETOOTH ||
-        settings->nmea_out == NMEA_UDP       ||
+    if (settings->nmea_out == NMEA_USB ||
+        settings->nmea_out == NMEA_UDP ||
         settings->nmea_out == NMEA_TCP ) {
       settings->nmea_out = NMEA_UART;
     }
-    if (settings->gdl90 == GDL90_BLUETOOTH  ||
-        settings->gdl90 == GDL90_UDP) {
+    if (settings->gdl90 == GDL90_USB || settings->gdl90 == GDL90_UDP) {
       settings->gdl90 = GDL90_UART;
     }
-    if (settings->d1090 == D1090_BLUETOOTH  ||
-        settings->d1090 == D1090_UDP) {
+    if (settings->d1090 == D1090_USB || settings->d1090 == D1090_UDP) {
       settings->d1090 = D1090_UART;
     }
 
@@ -367,7 +468,9 @@ static void EFR32_EEPROM_extension(int cmd)
 
 static void EFR32_SPI_begin()
 {
+#if !defined(EXCLUDE_NRF905) || defined(USE_OGN_RF_DRIVER)
   SPI.begin();
+#endif
 }
 
 static void EFR32_swSer_begin(unsigned long baud)
@@ -534,7 +637,7 @@ static void EFR32_Button_setup()
     int button_pin = SOC_GPIO_PIN_BUTTON;
 
     // Button(s) uses external pull up resistor.
-    pinMode(button_pin, INPUT);
+    pinMode(button_pin, INPUT_PULLUP);
 
     button_1.init(button_pin);
 
