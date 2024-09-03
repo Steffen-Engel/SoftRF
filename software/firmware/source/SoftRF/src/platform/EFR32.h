@@ -91,6 +91,12 @@ struct rst_info {
 #define SOC_GPIO_PIN_SCK      PIN_SPI_SCK
 #define SOC_GPIO_PIN_SS       PIN_SPI_SS
 
+//#include <SoftSPI.h>
+//extern  SoftSPI RadioSPI;
+//#undef  SPI
+//#define SPI                   RadioSPI
+//#define USE_SOFTSPI
+
 /* NRF905 */
 #define SOC_GPIO_PIN_TXE      SOC_UNUSED_PIN
 #define SOC_GPIO_PIN_CE       SOC_UNUSED_PIN
@@ -98,7 +104,7 @@ struct rst_info {
 
 /* SX1276 */
 #define SOC_GPIO_PIN_RST      D0             /* PA0 */
-#define SOC_GPIO_PIN_BUSY     SOC_UNUSED_PIN
+#define SOC_GPIO_PIN_BUSY     LMIC_UNUSED_PIN
 #define SOC_GPIO_PIN_DIO1     D5             /* PC6 */
 
 /* I2C */
@@ -107,7 +113,7 @@ struct rst_info {
 
 #define SOC_GPIO_PIN_LED      SOC_UNUSED_PIN
 #define SOC_GPIO_PIN_GNSS_PPS D6             /* PB0 */
-#define SOC_GPIO_PIN_BATTERY  A0
+#define SOC_GPIO_PIN_BATTERY  SOC_UNUSED_PIN
 #define SOC_GPIO_PIN_BUTTON   BTN_BUILTIN
 
 #define SOC_GPIO_RADIO_LED_RX SOC_UNUSED_PIN
@@ -127,7 +133,7 @@ struct rst_info {
 //#define EXCLUDE_TRAFFIC_FILTER_EXTENSION
 //#define EXCLUDE_LK8EX1
 
-#define EXCLUDE_GNSS_UBLOX
+//#define EXCLUDE_GNSS_UBLOX
 #define EXCLUDE_GNSS_SONY
 //#define EXCLUDE_GNSS_MTK
 #define EXCLUDE_GNSS_GOKE
@@ -154,6 +160,10 @@ struct rst_info {
 #define USE_OLED                 //       kb
 #define EXCLUDE_OLED_049
 //#define EXCLUDE_OLED_BARO_PAGE
+
+//#define USE_BASICMAC
+//#define EXCLUDE_SX1276         //  -  3 kb
+//#define USE_RADIOLIB
 
 #define USE_TIME_SLOTS
 #define USE_OGN_ENCRYPTION
