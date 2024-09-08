@@ -119,6 +119,8 @@
 
 ufo_t ThisAircraft;
 
+float StartupAltitude = 0.0;
+
 hardware_info_t hw_info = {
   .model    = DEFAULT_SOFTRF_MODEL,
   .revision = 0,
@@ -181,6 +183,9 @@ void setup()
   delay(100);
 
   hw_info.baro = Baro_setup();
+
+  StartupAltitude = ThisAircraft.pressure_altitude;
+
 #if defined(ENABLE_AHRS)
   hw_info.imu = AHRS_setup();
 #endif /* ENABLE_AHRS */
@@ -407,7 +412,7 @@ void normal()
 #endif /* EXCLUDE_EGM96 */
     if (settings->aerobaticbox)
     {
-      ThisAircraft.altitude = ThisAircraft.pressure_altitude;
+      ThisAircraft.altitude = ThisAircraft.pressure_altitude-StartupAltitude;
     }
 
     RF_Transmit(RF_Encode(&ThisAircraft), true);

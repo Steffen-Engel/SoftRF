@@ -295,4 +295,6 @@ extern void shutdown(int);
 
 #define StdOut  Serial
 
+extern float StartupAltitude;
+
 #endif /* SOFTRF_H */
