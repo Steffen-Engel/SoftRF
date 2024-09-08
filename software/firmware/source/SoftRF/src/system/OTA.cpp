@@ -32,7 +32,7 @@ void OTA_setup()
 {
 
   // Port defaults to 8266
-  // ArduinoOTA.setPort(8266);
+  ArduinoOTA.setPort(8266);
 
   // Start OTA server.
   ArduinoOTA.setHostname(host_name.c_str());
