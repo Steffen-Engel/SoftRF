@@ -26,6 +26,7 @@
 #include "../../../SoftRF.h"
 #include "../../driver/RF.h"
 #include "../../driver/EEPROM.h"
+#include "../../system/SoC.h"
 
 const rf_proto_desc_t ogntp_proto_desc = {
   .name            = {'O','G','N','T','P', 0},
@@ -140,6 +141,12 @@ bool ogntp_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
   fop->ns[2] = 0; fop->ns[3] = 0;
   fop->ew[0] = 0; fop->ew[1] = 0;
   fop->ew[2] = 0; fop->ew[3] = 0;
+
+
+  char UDPpacketBuffer[150];
+  sprintf(UDPpacketBuffer, "$CIVA,0x%6x,%.4f,%.4f,%.1f\n", fop->addr, fop->latitude, fop->longitude,fop->altitude);
+  SoC->WiFi_transmit_UDP(NMEA_UDP_PORT, (byte *) UDPpacketBuffer, strlen(UDPpacketBuffer));
+
 
   return true;
 }

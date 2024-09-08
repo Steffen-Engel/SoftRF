@@ -34,6 +34,7 @@
 
 enum
 {
+  OLED_PAGE_AEROBATIC,
   OLED_PAGE_RADIO,
   OLED_PAGE_OTHER,
 #if defined(ENABLE_OLED_TEXT_PAGE)
@@ -145,7 +146,7 @@ const char G_load_text[]   = "G load";
 
 static const uint8_t Dot_Tile[] = { 0x00, 0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x00 };
 
-static uint8_t OLED_current_page = OLED_PAGE_RADIO;
+static uint8_t OLED_current_page = OLED_PAGE_AEROBATIC;
 static uint8_t page_count        = OLED_PAGE_COUNT;
 
 byte OLED_setup() {
@@ -682,6 +683,63 @@ static void OLED_baro()
 }
 #endif /* EXCLUDE_OLED_BARO_PAGE */
 
+
+static void OLED_aerobatic()
+{
+  char buf[16];
+
+  if (!OLED_display_titles) {
+
+    u8x8->clear();
+
+    u8x8->drawString( 2, 1, "AGL m");
+
+    u8x8->drawString( 10, 1, "Start m");
+
+    u8x8->drawString(2, 6, BAT_text);
+    u8x8->drawGlyph (8, 7, '.');
+
+    // force display of values
+    prev_altitude     = (int32_t)   -10000;
+    prev_voltage      = (uint32_t) -1;
+
+    OLED_display_titles = true;
+  }
+
+  int32_t altitude    = Baro_altitude() - StartupAltitude;        /* metres */
+
+  if (prev_altitude != altitude) {
+    snprintf(buf, sizeof(buf), "%4d", altitude);
+    u8x8->draw2x2String(0, 3, buf);
+    prev_altitude = altitude;
+    snprintf(buf, sizeof(buf), "%3d", (int32_t)StartupAltitude);
+    u8x8->draw2x2String(10, 3, buf);
+  }
+
+  int32_t  voltage;
+  uint32_t disp_value;
+
+  voltage = Battery_voltage() > BATTERY_THRESHOLD_INVALID ?
+            (int) (Battery_voltage() * 10.0) : 0;
+
+  if (prev_voltage != voltage) {
+    if (voltage) {
+      disp_value = voltage / 10;
+      disp_value = disp_value > 9 ? 9 : disp_value;
+      u8x8->draw2x2Glyph(6, 6, '0' + disp_value);
+
+      disp_value = voltage % 10;
+
+      u8x8->draw2x2Glyph(9, 6, '0' + disp_value);
+    } else {
+      u8x8->draw2x2Glyph(6, 6, 'N');
+      u8x8->draw2x2Glyph(9, 6, 'A');
+    }
+    prev_voltage = voltage;
+  }
+}
+
+
 #if !defined(EXCLUDE_IMU)
 static void OLED_imu()
 {
@@ -972,6 +1030,9 @@ void OLED_loop()
           OLED_baro();
           break;
 #endif /* EXCLUDE_OLED_BARO_PAGE */
+        case OLED_PAGE_AEROBATIC:
+          OLED_aerobatic();
+          break;
 #if !defined(EXCLUDE_IMU)
         case OLED_PAGE_IMU:
           OLED_imu();
