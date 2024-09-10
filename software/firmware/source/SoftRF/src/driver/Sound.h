@@ -35,6 +35,7 @@ enum
 
 void Sound_setup(void);
 bool Sound_Notify(void);
+void Sound_Beep(void);
 void Sound_loop(void);
 void Sound_fini(void);
 

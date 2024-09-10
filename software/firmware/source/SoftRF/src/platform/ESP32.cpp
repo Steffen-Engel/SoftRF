@@ -2703,6 +2703,14 @@ static void ESP32_Sound_test(int var)
 #endif /* ESP_IDF_VERSION_MAJOR */
     pinMode(SOC_GPIO_PIN_BUZZER, INPUT_PULLDOWN);
   }
+  else if (settings->aerobaticbox)
+  {
+    pinMode(SOC_GPIO_PIN_CIVA_BUZZER, OUTPUT);
+    digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, HIGH); delay(250);
+    digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, LOW); delay(100);
+    digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, HIGH); delay(250);
+    digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, LOW);
+  }
 
 #if !defined(EXCLUDE_BLUETOOTH) && defined(USE_BLE_MIDI)
   if (settings->volume != BUZZER_OFF                  &&
@@ -2772,6 +2780,11 @@ static void ESP32_Sound_tone(int hz, uint8_t volume)
 #endif /* ESP_IDF_VERSION_MAJOR */
       pinMode(SOC_GPIO_PIN_BUZZER, INPUT_PULLDOWN);
     }
+  }
+  else if (settings->aerobaticbox)
+  {
+    // its a beeper, not a speaker
+    digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, (hz > 0) ? HIGH : LOW);
   }
 
 #if !defined(EXCLUDE_BLUETOOTH) && defined(USE_BLE_MIDI)

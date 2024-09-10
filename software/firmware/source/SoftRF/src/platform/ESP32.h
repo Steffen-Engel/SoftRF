@@ -190,6 +190,9 @@ extern Adafruit_NeoPixel strip;
                                 (esp32_board == ESP32_C6_DEVKIT ?        \
                                 SOC_GPIO_PIN_C6_BUZZER : SOC_UNUSED_PIN))))
 
+#define SOC_GPIO_PIN_CIVA_BUZZER   (hw_info.model == SOFTRF_MODEL_PRIME_MK2 ? \
+                                    13 : hw_info.model == SOFTRF_MODEL_PRIME_MK3 ? 45 : 255)
+
 /* SPI (does match Heltec & TTGO LoRa32 pins mapping) */
 #define SOC_GPIO_PIN_MOSI       27
 #define SOC_GPIO_PIN_MISO       19

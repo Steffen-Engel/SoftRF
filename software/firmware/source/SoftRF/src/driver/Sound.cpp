@@ -29,6 +29,7 @@ void  Sound_fini()        {}
 #include "EEPROM.h"
 
 static unsigned long SoundTimeMarker = 0;
+static unsigned long SoundOffMarker = 0;
 
 void Sound_setup(void)
 {
@@ -49,11 +50,28 @@ bool Sound_Notify(void)
   return rval;
 }
 
+void Sound_Beep(void)
+{
+  if (SoundTimeMarker == 0)
+  {
+    SoC->Sound_tone(3000, 0xff);
+    SoundTimeMarker = millis();
+  }
+}
+
 void Sound_loop(void)
 {
   if (SoundTimeMarker != 0 && millis() - SoundTimeMarker > ALARM_TONE_MS) {
     SoC->Sound_tone(0, settings->volume);
-    SoundTimeMarker = 0;
+    if (SoundOffMarker == 0)
+    {
+      SoundOffMarker = millis();
+    }
+    if ((SoundOffMarker != 0) && (millis() - SoundOffMarker > ALARM_TONE_MS/2))
+    {
+      SoundOffMarker = 0;
+      SoundTimeMarker = 0;
+    }
   }
 }
 
