@@ -687,6 +687,7 @@ static void OLED_baro()
 static void OLED_aerobatic()
 {
   char buf[16];
+  static int prev_CIVA_Status;
 
   if (!OLED_display_titles) {
 
@@ -694,14 +695,13 @@ static void OLED_aerobatic()
 
     u8x8->drawString( 2, 1, "AGL m");
 
-    u8x8->drawString( 10, 1, "Start m");
-
-    u8x8->drawString(2, 6, BAT_text);
-    u8x8->drawGlyph (8, 7, '.');
-
+    u8x8->drawString(10, 1, BAT_text);
+    u8x8->drawGlyph (12, 4, '.');
     // force display of values
     prev_altitude     = (int32_t)   -10000;
     prev_voltage      = (uint32_t) -1;
+
+    prev_CIVA_Status   = -1;
 
     OLED_display_titles = true;
   }
@@ -712,8 +712,6 @@ static void OLED_aerobatic()
     snprintf(buf, sizeof(buf), "%4d", altitude);
     u8x8->draw2x2String(0, 3, buf);
     prev_altitude = altitude;
-    snprintf(buf, sizeof(buf), "%3d", (int32_t)StartupAltitude);
-    u8x8->draw2x2String(10, 3, buf);
   }
 
   int32_t  voltage;
@@ -726,16 +724,41 @@ static void OLED_aerobatic()
     if (voltage) {
       disp_value = voltage / 10;
       disp_value = disp_value > 9 ? 9 : disp_value;
-      u8x8->draw2x2Glyph(6, 6, '0' + disp_value);
 
+      u8x8->draw2x2Glyph(10, 3, '0' + disp_value);
       disp_value = voltage % 10;
 
-      u8x8->draw2x2Glyph(9, 6, '0' + disp_value);
+      u8x8->draw2x2Glyph(13, 3, '0' + disp_value);
     } else {
-      u8x8->draw2x2Glyph(6, 6, 'N');
-      u8x8->draw2x2Glyph(9, 6, 'A');
+      u8x8->draw2x2Glyph(10, 3, 'N');
+      u8x8->draw2x2Glyph(13, 3, 'A');
     }
     prev_voltage = voltage;
+  }
+
+  if (prev_CIVA_Status != CIVA_Status)
+  {
+    switch (CIVA_Status)
+    {
+    case CIVA_NONE:
+      u8x8->draw2x2String(1, 6, "UNKNOWN");
+      break;
+    case CIVA_GROUND:
+      u8x8->draw2x2String(1, 6, "GROUND ");
+      break;
+    case CIVA_CLIMB:
+    case CIVA_ALT150:
+    case CIVA_ALT200:
+      u8x8->draw2x2String(1, 6, "CLIMB  ");
+      break;
+    case CIVA_ACTIVE:
+      u8x8->draw2x2String(1, 6, "ACTIVE ");
+      break;
+
+    default:
+      break;
+    }
+    prev_CIVA_Status = CIVA_Status;
   }
 }
 

@@ -277,6 +277,16 @@ enum
 	MAG_BMM150,
 };
 
+enum
+{
+  CIVA_NONE,
+  CIVA_GROUND,
+  CIVA_CLIMB,
+  CIVA_ALT150,
+  CIVA_ALT200,
+  CIVA_ACTIVE
+};
+
 extern ufo_t ThisAircraft;
 extern hardware_info_t hw_info;
 extern const float txrx_test_positions[90][2] PROGMEM;
@@ -295,6 +305,9 @@ extern void shutdown(int);
 
 #define StdOut  Serial
 
+// status information for CIVA HMD
 extern float StartupAltitude;
+extern float CIVAAltitude;
+extern int CIVA_Status;
 
 #endif /* SOFTRF_H */

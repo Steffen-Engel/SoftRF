@@ -120,6 +120,8 @@
 ufo_t ThisAircraft;
 
 float StartupAltitude = 0.0;
+float CIVAAltitude    = 1200.0;
+int CIVA_Status = CIVA_GROUND;
 
 hardware_info_t hw_info = {
   .model    = DEFAULT_SOFTRF_MODEL,
@@ -445,13 +447,43 @@ void normal()
 
   if (settings->aerobaticbox)
   {
-    if (((ThisAircraft.altitude >= 140) && (ThisAircraft.altitude<150))
-       || ((ThisAircraft.altitude >= 190) && (ThisAircraft.altitude<200))
-       || ((ThisAircraft.altitude > 1200) && (ThisAircraft.altitude<=1250))
-       )
+    switch(CIVA_Status)
     {
-      Sound_Beep();
+    case CIVA_GROUND:
+      if (ThisAircraft.altitude >= 30)
+      {
+        CIVA_Status = CIVA_CLIMB;
+      }
+      break;
+    case CIVA_CLIMB:
+      if (ThisAircraft.altitude >= 150)
+      {
+        Sound_Beep();
+        CIVA_Status = CIVA_ALT150;
+      }
+    case CIVA_ALT150:
+      if (ThisAircraft.altitude >= 200)
+      {
+        Sound_Beep();
+        CIVA_Status = CIVA_ALT200;
+      }
+    case CIVA_ALT200:
+      if (ThisAircraft.altitude >= CIVAAltitude)
+        CIVA_Status = CIVA_ACTIVE;
+      break;
+    case CIVA_ACTIVE:
+      if (((ThisAircraft.altitude >= 150) && (ThisAircraft.altitude<200))
+         || ((ThisAircraft.altitude > CIVAAltitude) && (ThisAircraft.altitude<=CIVAAltitude+50))
+         )
+      {
+        Sound_Beep();
+      }
+      break;
+    default:
+      break;
     }
+
+
   }
 
   Sound_loop();

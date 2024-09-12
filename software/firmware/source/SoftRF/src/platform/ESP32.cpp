@@ -4632,6 +4632,8 @@ static void ESP32_Button_setup()
     PageButtonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterClick);
     PageButtonConfig->setClickDelay(600);
   }
+
+  pinMode(0, INPUT_PULLUP);
 }
 
 static void ESP32_Button_loop()
@@ -4650,6 +4652,22 @@ static void ESP32_Button_loop()
     }
 #endif /* USE_SA8X8 */
   }
+
+  static int prev_Button = HIGH;
+  int button = digitalRead(0);
+  // altimeter reference button pressed?
+  if (button != prev_Button)
+  {
+    if (button == LOW)
+    {
+      // set altitude to 0, aircraft to ground
+      Sound_Beep();
+      CIVA_Status = CIVA_GROUND;
+      StartupAltitude = ThisAircraft.pressure_altitude;
+    }
+    prev_Button = button;
+  }
+
 }
 
 static void ESP32_Button_fini()
