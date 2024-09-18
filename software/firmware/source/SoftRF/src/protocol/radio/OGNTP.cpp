@@ -27,6 +27,7 @@
 #include "../../driver/RF.h"
 #include "../../driver/EEPROM.h"
 #include "../../system/SoC.h"
+#include "../../protocol/data/NMEA.h"
 
 const rf_proto_desc_t ogntp_proto_desc = {
   .name            = {'O','G','N','T','P', 0},
@@ -87,7 +88,7 @@ bool ogntp_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
 //    return false;
 //  }
 
-  if ( ogn_rx_pkt.Packet.Header.Other ||
+  if (// ogn_rx_pkt.Packet.Header.Other ||
 #if defined(USE_OGN_ENCRYPTION)
       (ogn_rx_pkt.Packet.Header.Encrypted &&
        !(key[0] || key[1] || key[2] || key[3]))
@@ -135,18 +136,42 @@ bool ogntp_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
   fop->addr_type = ogn_rx_pkt.Packet.Header.AddrType;
   fop->timestamp = this_aircraft->timestamp;
 
-  fop->stealth   = ogn_rx_pkt.Packet.Position.Stealth;
+
+  char UDPpacketBuffer[150];
+  if (ogn_rx_pkt.Packet.Header.Other == 0)
+  {
+    fop->stealth   = ogn_rx_pkt.Packet.Position.Stealth;
+    sprintf(UDPpacketBuffer, "$POS,0x%6x,%.4f,%.4f,%3.1f*",
+          fop->addr, fop->latitude, fop->longitude, fop->altitude
+          );
+    NMEA_add_checksum(UDPpacketBuffer, 150);
+    SoC->WiFi_transmit_UDP(NMEA_UDP_PORT, (byte *) UDPpacketBuffer, strlen(UDPpacketBuffer));
+  }
+  else
+  {
+    switch (ogn_rx_pkt.Packet.Status.ReportType)
+    {
+    case 2:
+      fop->stealth = 0;
+
+      sprintf(UDPpacketBuffer, "$CIVA,0x%6x,%.4f,%.4f,%3.1f,%d*",
+            fop->addr, fop->latitude, fop->longitude, fop->altitude,
+            ogn_rx_pkt.Packet.CIVA.PenaltyAlarm
+            );
+      NMEA_add_checksum(UDPpacketBuffer, 150);
+      SoC->WiFi_transmit_UDP(NMEA_UDP_PORT, (byte *) UDPpacketBuffer, strlen(UDPpacketBuffer));
+      break;
+    default:
+      return false; // other packages not handled
+      break;
+    }
+
+  }
   fop->no_track  = 0;
   fop->ns[0] = 0; fop->ns[1] = 0;
   fop->ns[2] = 0; fop->ns[3] = 0;
   fop->ew[0] = 0; fop->ew[1] = 0;
   fop->ew[2] = 0; fop->ew[3] = 0;
-
-
-  char UDPpacketBuffer[150];
-  sprintf(UDPpacketBuffer, "$CIVA,0x%6x,%.4f,%.4f,%.1f\n", fop->addr, fop->latitude, fop->longitude,fop->altitude);
-  SoC->WiFi_transmit_UDP(NMEA_UDP_PORT, (byte *) UDPpacketBuffer, strlen(UDPpacketBuffer));
-
 
   return true;
 }
@@ -154,6 +179,26 @@ bool ogntp_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
 size_t ogntp_encode(void *pkt, ufo_t *this_aircraft) {
 
   uint32_t *key = settings->igc_key;
+
+  ogn_tx_pkt.Packet.HeaderWord      = 0;
+  ogn_tx_pkt.Packet.Header.Address  = this_aircraft->addr;
+
+#if !defined(SOFTRF_ADDRESS)
+  ogn_tx_pkt.Packet.Header.AddrType = ADDR_TYPE_ANONYMOUS;
+#else
+  ogn_tx_pkt.Packet.Header.AddrType = (this_aircraft->addr == SOFTRF_ADDRESS ?
+                                      ADDR_TYPE_ICAO : ADDR_TYPE_ANONYMOUS);
+#endif
+
+#if defined(USE_OGN_ENCRYPTION)
+  if (key[0] || key[1] || key[2] || key[3])
+    ogn_tx_pkt.Packet.Header.Encrypted = 1;
+  else
+#endif
+   ogn_tx_pkt.Packet.Header.Encrypted = 0;
+
+  ogn_tx_pkt.Packet.calcAddrParity();
+
 
   pos.Latitude  = (int32_t) (this_aircraft->latitude * 600000);
   pos.Longitude = (int32_t) (this_aircraft->longitude * 600000);
@@ -173,27 +218,17 @@ size_t ogntp_encode(void *pkt, ufo_t *this_aircraft) {
 
   pos.Encode(ogn_tx_pkt.Packet);
 
-  ogn_tx_pkt.Packet.HeaderWord      = 0;
-  ogn_tx_pkt.Packet.Header.Address  = this_aircraft->addr;
-
-#if !defined(SOFTRF_ADDRESS)
-  ogn_tx_pkt.Packet.Header.AddrType = ADDR_TYPE_ANONYMOUS;
-#else
-  ogn_tx_pkt.Packet.Header.AddrType = (this_aircraft->addr == SOFTRF_ADDRESS ?
-                                      ADDR_TYPE_ICAO : ADDR_TYPE_ANONYMOUS);
-#endif
-
-#if defined(USE_OGN_ENCRYPTION)
-  if (key[0] || key[1] || key[2] || key[3])
-    ogn_tx_pkt.Packet.Header.Encrypted = 1;
+  if (settings->aerobaticbox)
+  {
+    ogn_tx_pkt.Packet.Header.Other = 1;
+    ogn_tx_pkt.Packet.CIVA.ReportType = 2;
+    ogn_tx_pkt.Packet.CIVA.PenaltyAlarm = CIVA_Alarm;
+  }
   else
-#endif
-    ogn_tx_pkt.Packet.Header.Encrypted = 0;
-
-  ogn_tx_pkt.Packet.calcAddrParity();
-
-  ogn_tx_pkt.Packet.Position.AcftType = (int16_t) this_aircraft->aircraft_type;
-  ogn_tx_pkt.Packet.Position.Stealth  = (int16_t) this_aircraft->stealth;
+  {
+    ogn_tx_pkt.Packet.Position.AcftType = (int16_t) this_aircraft->aircraft_type;
+    ogn_tx_pkt.Packet.Position.Stealth = (int16_t) this_aircraft->stealth;
+  }
 
 #if defined(USE_OGN_ENCRYPTION)
   if (ogn_tx_pkt.Packet.Header.Encrypted)

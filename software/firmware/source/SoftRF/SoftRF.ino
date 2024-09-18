@@ -122,6 +122,7 @@ ufo_t ThisAircraft;
 float StartupAltitude = 0.0;
 float CIVAAltitude    = 1200.0;
 int CIVA_Status = CIVA_GROUND;
+bool CIVA_Alarm = false;
 
 hardware_info_t hw_info = {
   .model    = DEFAULT_SOFTRF_MODEL,
@@ -476,7 +477,12 @@ void normal()
          || ((ThisAircraft.altitude > CIVAAltitude) && (ThisAircraft.altitude<=CIVAAltitude+50))
          )
       {
+        CIVA_Alarm = true;
         Sound_Beep();
+      }
+      else
+      {
+        CIVA_Alarm = false;
       }
       break;
     default:

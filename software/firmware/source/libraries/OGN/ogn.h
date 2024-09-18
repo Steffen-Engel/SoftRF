@@ -94,23 +94,41 @@ class OGN_Packet           // Packet structure for the OGN tracker
                            // Pilot status:
                            // 0: NNNN NNNN NNNN NNNN NNNN NNNN NNNN NNNN  Name: 9 char x 7bit or 10 x 6bit or Huffman encoding ?
                            // 1: NNNN NNNN NNNN NNNN NNNN NNNN NNNN NNNN
-   struct
-   {   signed int    Latitude:24; //                  // QQTT TTTT LLLL LLLL LLLL LLLL LLLL LLLL  QQ=fix Quality:2, TTTTTT=time:6, LL..=Latitude:24
-     unsigned int        Time: 6; // [sec]            // time, just second thus ambiguity every every minute
-     unsigned int  FixQuality: 2; //
-       signed int   Longitude:24; //                  // MBDD DDDD LLLL LLLL LLLL LLLL LLLL LLLL  F=fixMode:1 B=isBaro:1, DDDDDD=DOP:6, LL..=Longitude:24
-     unsigned int         DOP: 6; //                  // GPS Dilution of Precision
-     unsigned int     BaroMSB: 1; //                  // negated bit #8 of the altitude difference between baro and GPS
-     unsigned int     FixMode: 1; //
-     unsigned int    Altitude:14; // [m] VR           // RRRR RRRR SSSS SSSS SSAA AAAA AAAA AAAA  RR..=turn Rate:8, SS..=Speed:10, AA..=Alt:14
-     unsigned int       Speed:10; // [0.1m/s] VR
-     unsigned int    TurnRate: 8; // [0.1deg/s] VR
-     unsigned int     Heading:10; //                  // BBBB BBBB YYYY PCCC CCCC CCDD DDDD DDDD  BB..=Baro altitude:8, YYYY=AcftType:4, P=Stealth:1, CC..=Climb:9, DD..=Heading:10
-     unsigned int   ClimbRate: 9; // [0.1m/s] VR
-     unsigned int     Stealth: 1;
-     unsigned int    AcftType: 4; // [0..15]          // type of aircraft: 1 = glider, 2 = towplane, 3 = helicopter, ...
-     unsigned int BaroAltDiff: 8; // [m]              // lower 8 bits of the altitude difference between baro and GPS
-   } Position;
+ struct
+  {   signed int    Latitude:24; //                  // QQTT TTTT LLLL LLLL LLLL LLLL LLLL LLLL  QQ=fix Quality:2, TTTTTT=time:6, LL..=Latitude:24
+    unsigned int        Time: 6; // [sec]            // time, just second thus ambiguity every every minute
+    unsigned int  FixQuality: 2; //
+      signed int   Longitude:24; //                  // MBDD DDDD LLLL LLLL LLLL LLLL LLLL LLLL  F=fixMode:1 B=isBaro:1, DDDDDD=DOP:6, LL..=Longitude:24
+    unsigned int         DOP: 6; //                  // GPS Dilution of Precision
+    unsigned int     BaroMSB: 1; //                  // negated bit #8 of the altitude difference between baro and GPS
+    unsigned int     FixMode: 1; //
+    unsigned int    Altitude:14; // [m] VR           // RRRR RRRR SSSS SSSS SSAA AAAA AAAA AAAA  RR..=turn Rate:8, SS..=Speed:10, AA..=Alt:14
+    unsigned int       Speed:10; // [0.1m/s] VR
+    unsigned int    TurnRate: 8; // [0.1deg/s] VR
+    unsigned int     Heading:10; //                  // BBBB BBBB YYYY PCCC CCCC CCDD DDDD DDDD  BB..=Baro altitude:8, YYYY=AcftType:4, P=Stealth:1, CC..=Climb:9, DD..=Heading:10
+    unsigned int   ClimbRate: 9; // [0.1m/s] VR
+    unsigned int     Stealth: 1;
+    unsigned int    AcftType: 4; // [0..15]          // type of aircraft: 1 = glider, 2 = towplane, 3 = helicopter, ...
+    unsigned int BaroAltDiff: 8; // [m]              // lower 8 bits of the altitude difference between baro and GPS
+  } Position;
+
+  struct
+   {   signed int     Latitude:24; //                  // QQTT TTTT LLLL LLLL LLLL LLLL LLLL LLLL  QQ=fix Quality:2, TTTTTT=time:6, LL..=Latitude:24
+     unsigned int         Time: 6; // [sec]            // time, just second thus ambiguity every every minute
+     unsigned int   FixQuality: 2; //
+       signed int    Longitude:24; //                  // MBDD DDDD LLLL LLLL LLLL LLLL LLLL LLLL  F=fixMode:1 B=isBaro:1, DDDDDD=DOP:6, LL..=Longitude:24
+     unsigned int          DOP: 6; //                  // GPS Dilution of Precision
+     unsigned int    bli         : 1; //                  // negated bit #8 of the altitude difference between baro and GPS
+     unsigned int      FixMode: 1; //
+     unsigned int     Altitude:14; // [m] VR           // RRRR RRRR SSSS SSSS SSAA AAAA AAAA AAAA  RR..=turn Rate:8, SS..=Speed:10, AA..=Alt:14
+     unsigned int        Speed:10; // [0.1m/s] VR
+              int    bla         : 8; //
+     unsigned int      Heading:10; //                  // BBBB BBBB YYYY PCCC CCCC CCDD DDDD DDDD  BB..=Baro altitude:8, YYYY=AcftType:4, P=Stealth:1, CC..=Climb:9, DD..=Heading:10
+     unsigned int    ClimbRate: 9; // [0.1m/s] VR
+     unsigned int PenaltyAlarm: 1;                     // the beeper is ON!
+     unsigned int   ReportType: 4; //                  // 2 for CIVA HMD report
+     unsigned int     blub        : 8; //                  //
+   } CIVA;
 
    struct
    {   signed int    Latitude:24; //                  // Latitude
@@ -1510,6 +1528,28 @@ class GPS_Position
      if(Baro) Packet.EncodeStdAltitude((StdAltitude+5)/10);
          else Packet.clrBaro();
    }
+
+
+   void EncodeCIVA(OGN_Packet &Packet) const
+   { Packet.Position.FixQuality = FixQuality<3 ? FixQuality:3;
+     if((FixQuality>0)&&(FixMode>=2)) Packet.Position.FixMode = FixMode-2;
+                                 else Packet.Position.FixMode = 0;
+     if(PDOP>0) Packet.EncodeDOP(PDOP-10);                              // encode PDOP from GSA
+           else Packet.EncodeDOP(HDOP-10);                              // or if no GSA: use HDOP
+     int ShortTime=Sec;
+     if(FracSec>=50) { ShortTime+=1; if(ShortTime>=60) ShortTime-=60; }
+     Packet.Position.Time=ShortTime;
+     Packet.EncodeLatitude(Latitude);
+     Packet.EncodeLongitude(Longitude);
+     Packet.EncodeSpeed(Speed);
+     Packet.EncodeHeading(Heading);
+     Packet.EncodeClimbRate(ClimbRate);
+     Packet.EncodeTurnRate(TurnRate);
+     Packet.EncodeAltitude((Altitude+5)/10);
+     if(Baro) Packet.EncodeStdAltitude((StdAltitude+5)/10);
+         else Packet.clrBaro();
+   }
+
 
    void EncodeStatus(OGN_Packet &Packet) const
    { Packet.Status.ReportType=0;
