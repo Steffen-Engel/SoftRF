@@ -362,6 +362,14 @@ bool RF_Transmit(size_t size, bool wait)
         break;
       }
 
+      // special situation for aerobatic HMD
+      // when close to Penaltyaltitudes, send out data much quicker
+      Serial.printf("set %d %d\n", settings->aerobaticbox, CIVA_Quicksend);
+      if (settings->aerobaticbox && CIVA_Quicksend)
+      {
+        TxTimeMarker = millis() + SoC->random(50, 100);
+      }
+
       return true;
     }
   }

@@ -310,5 +310,6 @@ extern float StartupAltitude;
 extern float CIVAAltitude;
 extern int CIVA_Status;
 extern bool CIVA_Alarm;
+extern bool CIVA_Quicksend;
 
 #endif /* SOFTRF_H */
