@@ -122,12 +122,12 @@ class OGN_Packet           // Packet structure for the OGN tracker
      unsigned int      FixMode: 1; //
      unsigned int     Altitude:14; // [m] VR           // RRRR RRRR SSSS SSSS SSAA AAAA AAAA AAAA  RR..=turn Rate:8, SS..=Speed:10, AA..=Alt:14
      unsigned int        Speed:10; // [0.1m/s] VR
-              int    bla         : 8; //
+     unsigned int    max_g    : 8; // [0.1g]
      unsigned int      Heading:10; //                  // BBBB BBBB YYYY PCCC CCCC CCDD DDDD DDDD  BB..=Baro altitude:8, YYYY=AcftType:4, P=Stealth:1, CC..=Climb:9, DD..=Heading:10
      unsigned int    ClimbRate: 9; // [0.1m/s] VR
      unsigned int PenaltyAlarm: 1;                     // the beeper is ON!
      unsigned int   ReportType: 4; //                  // 2 for CIVA HMD report
-     unsigned int     blub        : 8; //                  //
+     unsigned int   max_neg_g : 8; //                  //
    } CIVA;
 
    struct
