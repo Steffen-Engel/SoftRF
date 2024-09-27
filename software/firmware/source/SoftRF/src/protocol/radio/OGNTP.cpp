@@ -77,6 +77,14 @@ void ogntp_fini()
 
 }
 
+double nmeaMathDegreeToNdeg(const double v) {
+  double degrees;
+  double faction = modf(v, &degrees);
+
+  return ((degrees * 100.0) + (faction * 60.0));
+}
+
+
 bool ogntp_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
 
   uint32_t *key = settings->igc_key;
@@ -123,24 +131,25 @@ bool ogntp_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
   fop->protocol  = RF_PROTOCOL_OGNTP;
 
   fop->addr      = ogn_rx_pkt.Packet.Header.Address;
-  fop->latitude  = ogn_rx_pkt.Packet.DecodeLatitude() * 0.0001/60;
-  fop->longitude = ogn_rx_pkt.Packet.DecodeLongitude() * 0.0001/60;
-  fop->altitude  = (float) ogn_rx_pkt.Packet.DecodeAltitude();
-  fop->pressure_altitude = (float) ogn_rx_pkt.Packet.DecodeStdAltitude();
-  fop->aircraft_type = ogn_rx_pkt.Packet.Position.AcftType;
-  fop->course    = ogn_rx_pkt.Packet.DecodeHeading() * 0.1;
-  fop->speed     = (ogn_rx_pkt.Packet.DecodeSpeed() * 0.1) / _GPS_MPS_PER_KNOT;
-  fop->vs        = (ogn_rx_pkt.Packet.DecodeClimbRate() * 0.1) * (_GPS_FEET_PER_METER * 60.0);
-  fop->hdop      = (ogn_rx_pkt.Packet.DecodeDOP() + 10) * 10;
-
   fop->addr_type = ogn_rx_pkt.Packet.Header.AddrType;
-  fop->timestamp = this_aircraft->timestamp;
-
 
   char UDPpacketBuffer[150];
   if (ogn_rx_pkt.Packet.Header.Other == 0)
   {
+    fop->latitude  = ogn_rx_pkt.Packet.DecodeLatitude() * 0.0001/60;
+    fop->longitude = ogn_rx_pkt.Packet.DecodeLongitude() * 0.0001/60;
+    fop->altitude  = (float) ogn_rx_pkt.Packet.DecodeAltitude();
+    fop->pressure_altitude = (float) ogn_rx_pkt.Packet.DecodeStdAltitude();
+    fop->aircraft_type = ogn_rx_pkt.Packet.Position.AcftType;
+    fop->course    = ogn_rx_pkt.Packet.DecodeHeading() * 0.1;
+    fop->speed     = (ogn_rx_pkt.Packet.DecodeSpeed() * 0.1) / _GPS_MPS_PER_KNOT;
+    fop->vs        = (ogn_rx_pkt.Packet.DecodeClimbRate() * 0.1) * (_GPS_FEET_PER_METER * 60.0);
+    fop->hdop      = (ogn_rx_pkt.Packet.DecodeDOP() + 10) * 10;
+
+    fop->timestamp = this_aircraft->timestamp;
+
     fop->stealth   = ogn_rx_pkt.Packet.Position.Stealth;
+
     sprintf(UDPpacketBuffer, "$POS,0x%6x,%.4f,%.4f,%3.1f*",
           fop->addr, fop->latitude, fop->longitude, fop->altitude
           );
@@ -152,11 +161,31 @@ bool ogntp_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
     switch (ogn_rx_pkt.Packet.Status.ReportType)
     {
     case 2:
+
+      fop->latitude  = ogn_rx_pkt.Packet.DecodeLatitude() * 0.0001/60;
+      fop->longitude = ogn_rx_pkt.Packet.DecodeLongitude() * 0.0001/60;
+      fop->altitude  = (float) ogn_rx_pkt.Packet.DecodeAltitude();
+      fop->pressure_altitude = (float) ogn_rx_pkt.Packet.DecodeStdAltitude();
+      fop->aircraft_type = AIRCRAFT_TYPE_GLIDER;
+      fop->course    = ogn_rx_pkt.Packet.DecodeHeading() * 0.1;
+      fop->speed     = (ogn_rx_pkt.Packet.DecodeSpeed() * 0.1) / _GPS_MPS_PER_KNOT;
+      fop->vs        = (ogn_rx_pkt.Packet.DecodeClimbRate() * 0.1) * (_GPS_FEET_PER_METER * 60.0);
+      fop->hdop      = (ogn_rx_pkt.Packet.DecodeDOP() + 10) * 10;
+
+      fop->timestamp = this_aircraft->timestamp;
+
       fop->stealth = 0;
 
-      sprintf(UDPpacketBuffer, "$CIVA,0x%6x,%.4f,%.4f,%3.1f,%d*",
-            fop->addr, fop->latitude, fop->longitude, fop->altitude,
-            ogn_rx_pkt.Packet.CIVA.PenaltyAlarm
+      sprintf(UDPpacketBuffer, "$PHMD0,%6x,%.4f,%c,%.4f,%c,%3.1f,%3.1f,%3.1f,%d,%3.1f,%3.1f*",
+            fop->addr,
+            fabs(nmeaMathDegreeToNdeg(fop->latitude)), ((fop->latitude >= 0.0) ? 'N' : 'S'),
+            fabs(nmeaMathDegreeToNdeg(fop->longitude)), ((fop->longitude >= 0.0) ? 'E' : 'W'),
+            fop->altitude,
+            fop->course, // track
+            fop->speed,  // speed
+            ogn_rx_pkt.Packet.CIVA.PenaltyAlarm,
+            0.1*ogn_rx_pkt.Packet.CIVA.max_g,     // max pos g
+            0.1*ogn_rx_pkt.Packet.CIVA.max_neg_g  // max neg g
             );
       NMEA_add_checksum(UDPpacketBuffer, 150);
       SoC->WiFi_transmit_UDP(NMEA_UDP_PORT, (byte *) UDPpacketBuffer, strlen(UDPpacketBuffer));
@@ -223,6 +252,8 @@ size_t ogntp_encode(void *pkt, ufo_t *this_aircraft) {
     ogn_tx_pkt.Packet.Header.Other = 1;
     ogn_tx_pkt.Packet.CIVA.ReportType = 2;
     ogn_tx_pkt.Packet.CIVA.PenaltyAlarm = CIVA_Alarm;
+    ogn_tx_pkt.Packet.CIVA.max_g = 0;
+    ogn_tx_pkt.Packet.CIVA.max_neg_g = 0;
   }
   else
   {
