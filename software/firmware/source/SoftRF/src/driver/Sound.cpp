@@ -41,7 +41,7 @@ bool Sound_Notify(void)
 {
   bool rval = false;
 
-  if (SoundTimeMarker == 0) {
+  if (SoundTimeMarker == 0 && !settings->aerobaticbox) {
     SoC->Sound_tone(ALARM_TONE_HZ, settings->volume);
     SoundTimeMarker = millis();
     rval = true;
