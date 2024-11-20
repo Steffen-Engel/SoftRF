@@ -39,6 +39,7 @@
 #define  XPOWERS_CHIP_AXP2102
 #include <XPowersLib.h>
 #include <pcf8563.h>
+#include <TimeLib.h>
 
 #if defined(ESP_IDF_VERSION_MAJOR) && ESP_IDF_VERSION_MAJOR >= 5
 #include <esp_mac.h>
@@ -941,6 +942,9 @@ static void ESP32_setup()
 
         pinMode(SOC_GPIO_PIN_S3_RTC_IRQ, INPUT);
         hw_info.rtc = RTC_PCF8563;
+
+        RTC_Date now = rtc->getDateTime();
+        setTime(now.hour, now.minute, now.second, now.day, now.month, now.year);
       }
 
       /* wait until every LDO voltage will settle down */
