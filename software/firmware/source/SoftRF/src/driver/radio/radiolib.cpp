@@ -57,8 +57,8 @@ const rfchip_ops_t lr1121_ops = {
   lr11xx_shutdown
 };
 
-#define USE_SX1262      1
-#define USE_LR11XX      0
+#define USE_SX1262      0
+#define USE_LR11XX      1
 
 Module  *mod;
 #if USE_SX1262
@@ -157,14 +157,16 @@ static void lr11xx_GetVersion (uint8_t* hw, uint8_t* device,
                                uint8_t* major, uint8_t* minor) {
     uint8_t buf[4] = { 0 };
 
-    hal_spi_select(1);
     hal_pin_busy_wait();
-    hal_spi(RADIOLIB_LR11X0_CMD_GET_VERSION >> 8);
-    hal_spi(RADIOLIB_LR11X0_CMD_GET_VERSION);
+    hal_spi_select(1);
+
+    hal_spi((uint8_t)((RADIOLIB_LR11X0_CMD_GET_VERSION & 0xFF00) >> 8));
+    hal_spi((uint8_t) (RADIOLIB_LR11X0_CMD_GET_VERSION & 0x00FF));
     hal_spi_select(0);
 
-    hal_spi_select(1);
     hal_pin_busy_wait();
+    hal_spi_select(1);
+
     hal_spi(RADIOLIB_LR11X0_CMD_NOP);
     for (uint8_t i = 0; i < sizeof(buf); i++) {
         buf[i] = hal_spi(0x00);
@@ -175,7 +177,68 @@ static void lr11xx_GetVersion (uint8_t* hw, uint8_t* device,
     if (device) { *device = buf[1]; }
     if (major)  { *major  = buf[2]; }
     if (minor)  { *minor  = buf[3]; }
+#if 0
+    Serial.print("hw     = "); Serial.println(*hw, HEX);
+    Serial.print("device = "); Serial.println(*device, HEX);
+    Serial.print("major  = "); Serial.println(*major, HEX);
+    Serial.print("minor  = "); Serial.println(*minor, HEX);
+#endif
 }
+
+static const uint32_t rfswitch_dio_pins_hpdtek[] = {
+    RADIOLIB_LR11X0_DIO5, RADIOLIB_LR11X0_DIO6,
+    RADIOLIB_NC, RADIOLIB_NC, RADIOLIB_NC
+};
+
+static const Module::RfSwitchMode_t rfswitch_table_hpdtek[] = {
+    // mode                  DIO5  DIO6
+    { LR11x0::MODE_STBY,   { LOW,  LOW  } },
+    { LR11x0::MODE_RX,     { HIGH, LOW  } },
+    { LR11x0::MODE_TX,     { LOW,  HIGH } },
+    { LR11x0::MODE_TX_HP,  { LOW,  HIGH } },
+    { LR11x0::MODE_TX_HF,  { LOW,  LOW  } },
+    { LR11x0::MODE_GNSS,   { LOW,  LOW  } },
+    { LR11x0::MODE_WIFI,   { LOW,  LOW  } },
+    END_OF_MODE_TABLE,
+};
+
+static const uint32_t rfswitch_dio_pins_seeed[] = {
+    RADIOLIB_LR11X0_DIO5, RADIOLIB_LR11X0_DIO6,
+    RADIOLIB_LR11X0_DIO7, RADIOLIB_LR11X0_DIO8,
+    RADIOLIB_NC
+};
+
+static const Module::RfSwitchMode_t rfswitch_table_seeed[] = {
+    // mode                  DIO5  DIO6  DIO7  DIO8
+    { LR11x0::MODE_STBY,   { LOW,  LOW,  LOW,  LOW  } },
+    // SKY13373
+    { LR11x0::MODE_RX,     { HIGH, LOW,  LOW,  HIGH } },
+    { LR11x0::MODE_TX,     { HIGH, HIGH, LOW,  HIGH } },
+    { LR11x0::MODE_TX_HP,  { LOW,  HIGH, LOW,  HIGH } },
+    { LR11x0::MODE_TX_HF,  { LOW,  LOW,  LOW,  LOW  } },
+    // BGA524N6
+    { LR11x0::MODE_GNSS,   { LOW,  LOW,  HIGH, LOW  } },
+    // LC
+    { LR11x0::MODE_WIFI,   { LOW,  LOW,  LOW,  LOW  } },
+    END_OF_MODE_TABLE,
+};
+
+static const uint32_t rfswitch_dio_pins_ebyte[] = {
+    RADIOLIB_LR11X0_DIO5, RADIOLIB_LR11X0_DIO6, RADIOLIB_LR11X0_DIO7,
+    RADIOLIB_NC, RADIOLIB_NC
+};
+
+static const Module::RfSwitchMode_t rfswitch_table_ebyte[] = {
+    // mode                  DIO5  DIO6  DIO7
+    { LR11x0::MODE_STBY,   { LOW,  LOW,  LOW  } },
+    { LR11x0::MODE_RX,     { LOW,  HIGH, LOW  } },
+    { LR11x0::MODE_TX,     { HIGH, HIGH, LOW  } },
+    { LR11x0::MODE_TX_HP,  { HIGH, LOW,  LOW  } },
+    { LR11x0::MODE_TX_HF,  { LOW,  LOW,  LOW  } },
+    { LR11x0::MODE_GNSS,   { LOW,  LOW,  HIGH } },
+    { LR11x0::MODE_WIFI,   { LOW,  LOW,  LOW  } },
+    END_OF_MODE_TABLE,
+};
 #endif /* USE_LR11XX */
 
 // this function is called when a complete packet
@@ -209,7 +272,7 @@ static bool lr1110_probe()
   lr11xx_GetVersion(&hw, &device_reset, &major, &minor);
 
   hal_pin_rst(2); // configure RST pin floating!
-  hal_waitUntil(os_getTime()+ms2osticks(5)); // wait 5ms
+  hal_waitUntil(os_getTime()+ms2osticks(300)); // wait 300 ms
 
   lr11xx_GetVersion(&hw, &device, &major, &minor);
 
@@ -221,7 +284,12 @@ static bool lr1110_probe()
     if (device_reset == RADIOLIB_LR11X0_DEVICE_LR1110) {
       RF_SX12XX_RST_is_connected = false;
     }
-
+#if 0
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%d.%d", major, minor);
+    Serial.print("INFO: LR1110 base FW version ");
+    Serial.println(buf);
+#endif
     return true;
   } else {
     return false;
@@ -280,7 +348,7 @@ static bool lr1121_probe()
   lr11xx_GetVersion(&hw, &device_reset, &major, &minor);
 
   hal_pin_rst(2); // configure RST pin floating!
-  hal_waitUntil(os_getTime()+ms2osticks(5)); // wait 5ms
+  hal_waitUntil(os_getTime()+ms2osticks(300)); // wait 300 ms
 
   lr11xx_GetVersion(&hw, &device, &major, &minor);
 
@@ -292,7 +360,12 @@ static bool lr1121_probe()
     if (device_reset == RADIOLIB_LR11X0_DEVICE_LR1121) {
       RF_SX12XX_RST_is_connected = false;
     }
-
+#if 0
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%d.%d", major, minor);
+    Serial.print("INFO: LR1121 base FW version ");
+    Serial.println(buf);
+#endif
     return true;
   } else {
     return false;
@@ -396,6 +469,35 @@ static void lr11xx_setup()
 
   RF_FreqPlan.setPlan(settings->band, settings->rf_protocol);
 
+#if USE_LR11XX
+  float Vtcxo;
+
+  switch (hw_info.model)
+  {
+  case SOFTRF_MODEL_STANDALONE:
+  case SOFTRF_MODEL_ACADEMY:
+    // Ebyte E80-900M2213S
+    // LR1121 TCXO Voltage
+    Vtcxo = 1.8;
+    break;
+
+  case SOFTRF_MODEL_NEO:
+  case SOFTRF_MODEL_BADGE:
+  case SOFTRF_MODEL_PRIME_MK3:
+    // HPDTeK HPD-16E
+    // LR1121 TCXO Voltage 2.85~3.15V
+    Vtcxo = 3.0;
+    break;
+
+  case SOFTRF_MODEL_CARD:
+    // Seeed
+    // LR1110 TCXO Voltage
+  default:
+    Vtcxo = 1.6;
+    break;
+  }
+#endif
+
   float br, fdev, bw;
   switch (rl_protocol->modulation_type)
   {
@@ -404,11 +506,18 @@ static void lr11xx_setup()
     state = radio->begin();    // start LoRa mode (and disable FSK)
 #endif
 #if USE_LR11XX
-    state = radio->begin(125.0, 9, 7, RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE, 10, 8, 1.6);
+#if RADIOLIB_VERSION_MAJOR == 6
+    state = radio->begin(125.0, 9, 7, RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE, 10, 8, Vtcxo);
+#else
+    state = radio->begin(125.0, 9, 7, RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE, 8, Vtcxo);
+#endif /* RADIOLIB_VERSION_MAJOR */
 #endif
 
     switch (RF_FreqPlan.Bandwidth)
     {
+    case RF_RX_BANDWIDTH_SS_62KHZ:
+      bw = 125.0; /* BW_125 */
+      break;
     case RF_RX_BANDWIDTH_SS_250KHZ:
       bw = 500.0; /* BW_500 */
       break;
@@ -443,7 +552,11 @@ static void lr11xx_setup()
     state = radio->beginFSK(); // start FSK mode (and disable LoRa)
 #endif
 #if USE_LR11XX
-    state = radio->beginGFSK(4.8, 5.0, 156.2, 10, 16, 1.6);
+#if RADIOLIB_VERSION_MAJOR == 6
+    state = radio->beginGFSK(4.8, 5.0, 156.2, 10, 16, Vtcxo);
+#else
+    state = radio->beginGFSK(4.8, 5.0, 156.2, 16, Vtcxo);
+#endif /* RADIOLIB_VERSION_MAJOR */
 #endif
 
     switch (rl_protocol->bitrate)
@@ -481,6 +594,9 @@ static void lr11xx_setup()
     {
     case RF_RX_BANDWIDTH_SS_50KHZ:
       bw = 117.3;
+      break;
+    case RF_RX_BANDWIDTH_SS_62KHZ:
+      bw = 156.2;
       break;
     case RF_RX_BANDWIDTH_SS_100KHZ:
       bw = 234.3;
@@ -604,35 +720,28 @@ static void lr11xx_setup()
   switch (hw_info.model)
   {
   case SOFTRF_MODEL_CARD:
+#if 1
     radio->setDioAsRfSwitch(0x0f, 0x0, 0x09, 0x0B, 0x0A, 0x0, 0x4, 0x0);
-    state = radio->setTCXO(1.6);
+#else
+    radio->setRfSwitchTable(rfswitch_dio_pins_seeed, rfswitch_table_seeed);
+#endif
+    break;
+
+  case SOFTRF_MODEL_STANDALONE:
+  case SOFTRF_MODEL_ACADEMY:
+    /* Ebyte E80-900M2213S */
+#if 1
+    radio->setDioAsRfSwitch(0x07, 0x0, 0x02, 0x03, 0x01, 0x0, 0x4, 0x0);
+#else
+    radio->setRfSwitchTable(rfswitch_dio_pins_ebyte, rfswitch_table_ebyte);
+#endif
     break;
 
   case SOFTRF_MODEL_NEO:
+  case SOFTRF_MODEL_BADGE:
+  case SOFTRF_MODEL_PRIME_MK3:
   default:
-    {
-      // LR1121
-      static const uint32_t rfswitch_dio_pins[] = {
-          RADIOLIB_LR11X0_DIO5, RADIOLIB_LR11X0_DIO6,
-          RADIOLIB_NC, RADIOLIB_NC, RADIOLIB_NC
-      };
-
-      static const Module::RfSwitchMode_t rfswitch_table[] = {
-          // mode                  DIO5  DIO6
-          { LR11x0::MODE_STBY,   { LOW,  LOW  } },
-          { LR11x0::MODE_RX,     { HIGH, LOW  } },
-          { LR11x0::MODE_TX,     { LOW,  HIGH } },
-          { LR11x0::MODE_TX_HP,  { LOW,  HIGH } },
-          { LR11x0::MODE_TX_HF,  { LOW,  LOW  } },
-          { LR11x0::MODE_GNSS,   { LOW,  LOW  } },
-          { LR11x0::MODE_WIFI,   { LOW,  LOW  } },
-          END_OF_MODE_TABLE,
-      };
-      radio->setRfSwitchTable(rfswitch_dio_pins, rfswitch_table);
-
-      // LR1121 TCXO Voltage 2.85~3.15V
-      state = radio->setTCXO(3.0);
-    }
+    radio->setRfSwitchTable(rfswitch_dio_pins_hpdtek, rfswitch_table_hpdtek);
     break;
   }
 #endif
@@ -1037,7 +1146,9 @@ static void lr11xx_shutdown()
 #endif
 
 #if USE_LR11XX
-  int state = radio->sleep(false, 0);
+  int state = radio->standby(RADIOLIB_LR11X0_STANDBY_RC);
+  state = radio->setTCXO(0);
+  state = radio->sleep(false, 0);
 #endif
 
   SPI.end();

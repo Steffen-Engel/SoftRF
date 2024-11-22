@@ -25,6 +25,8 @@ Model|Instructions|Firmware folder
 [Ham Edition](https://github.com/lyusupov/SoftRF/wiki/Ham-Edition)|[ESP32-S3](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#esp32-s3)|[ESP32S3](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/ESP32S3/SoftRF/MassStorage)
 [Midi Edition](https://github.com/lyusupov/SoftRF/wiki/Midi-Edition)|[ESP32-S3](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#esp32-s3)|[ESP32S3](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/ESP32S3/SoftRF/MassStorage)
 [Badge Edition](https://github.com/lyusupov/SoftRF/wiki/Badge-Edition)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|[nRF52840](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/nRF52840)
+[Card Edition](https://github.com/lyusupov/SoftRF/wiki/Card-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|[nRF52840](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/nRF52840)
+[Cozy Edition](https://github.com/lyusupov/SoftRF/wiki/Cozy-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|[nRF52840](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/nRF52840)
 [Dongle Edition](https://github.com/lyusupov/SoftRF/wiki/Dongle-Edition)|[S76G](https://github.com/lyusupov/SoftRF/wiki/AcSiP-S7xG-flashing-instructions#s76g)|[S76G](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/STM32/S76G)
 [ES Edition](https://github.com/lyusupov/SoftRF/wiki/ES-Edition)|[LPC4320](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#lpc4320)|[LPC4320](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/LPC4320)
 [Lego Edition](https://github.com/lyusupov/SoftRF/wiki/Lego-Edition)|[RP2040](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#rp2040)|[RP2040](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/RP2040/SoftRF)
@@ -35,8 +37,10 @@ Model|Instructions|Firmware folder
 [Raspberry Edition](https://github.com/lyusupov/SoftRF/wiki/Raspberry-Edition)||[RaspberryPi](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/RaspberryPi)
 [UAV Edition](https://github.com/lyusupov/SoftRF/wiki/UAV-Edition)|[NodeMCU](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nodemcu)|[NodeMCU](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/NodeMCU/SoftRF)
 [Academy Edition](https://github.com/lyusupov/SoftRF/wiki/Academy-Edition)|N/A<sup>1</sup>|N/A<sup>1</sup>
+[Eco Edition](https://github.com/lyusupov/SoftRF/wiki/Eco-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|N/A<sup>2</sup>|N/A<sup>2</sup>
 
-<sup>1</sup> - since primary purpose of the **Academy Edition** is education - we do not provide firmware binaries for this model. Students and a teacher are responsible to [build and install the SoftRF firmware](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/source/README.md) ( [SAMD21](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/source#samd21) or [RA4M1](https://github.com/lyusupov/SoftRF/edit/master/software/firmware/source#ra4m1) ) from source code by themselves.<br>
+<sup>1</sup> - since primary purpose of the **Academy Edition** is education - we do not provide firmware binaries for this model. Students and a teacher are responsible to [build and install the SoftRF firmware](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/source/README.md) ( [SAMD21](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/source#samd21) or [RA4M1](https://github.com/lyusupov/SoftRF/edit/master/software/firmware/source#ra4m1) ) from source code by themselves ;<br>
+<sup>2</sup> - users of **Eco Edition** should build and install the SoftRF firmware from source code as well.<br>
 <br>
 
 Model|Instructions|Firmware folder
@@ -120,9 +124,15 @@ The Bootloader is capable to self-program an application firmware into the devic
 
 2. Connect the SoftRF Badge Edition device to your PC by means of a USB cable (Type-A <-> Type-C) ;
 
-3. Double click (within 0.5 seconds) onto the SoftRF device RESET button. A virtual disk with **NRF52BOOT** (or **TECHOBOOT**) label should appear in your "File manager" afterwards.
+3. Double click (within 0.5 seconds) onto the SoftRF device RESET button (LilyGO T-Echo or Heltec T114) or connect twice (within 0.5 seconds) the USB cable while holding the device button been pressed (Seeed T1000-E).<br>
 
-4. Drag the downloaded firmware file by your pointing device (mouse, trackball,...) , then drop it into **NRF52BOOT** (or **TECHOBOOT**) disk. Wait until the file transfer is complete.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A virtual disk with a device specific label should appear in your "File manager" afterwards.<br>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;For **LilyGO T-Echo** the label is &nbsp; **TECHOBOOT** (or **NRF52BOOT**)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;For **Seeed T1000-E** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **T1000-E**<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;For **Heltec T114** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **HT-n5262**<br>
+
+4. Drag the downloaded firmware file by your pointing device (mouse, trackball,...) , then drop it into **TECHOBOOT** / **NRF52BOOT** / **T1000-E** / **HT-n5262** disk. Wait until the file transfer is complete.
 
 <br>
 
@@ -183,10 +193,10 @@ GND|GND
 3V3|VCC
 TX|GPIO16
 RX|GPIO17
-DTR&nbsp;<sup>2</sup>|GPIO2
+DTR&nbsp;<sup>3</sup>|GPIO2
 RTS|RESET
 
-<sup>2</sup> - certain USB-Serial adapters may require to **invert DTR** signal either in hardware or in the Python script.<br>
+<sup>3</sup> - certain USB-Serial adapters may require to **invert DTR** signal either in hardware or in the Python script.<br>
 
 4. Plug the USB-Serial adapter into spare USB slot of your PC ;
 5. Use the loader tool to read the serial number of the MCU. This is a safety action to make sure that all the connections are good ;

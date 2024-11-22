@@ -93,6 +93,8 @@ void EEPROM_defaults()
   eeprom_block.field.settings.band          = RF_BAND_EU;
   eeprom_block.field.settings.aircraft_type = hw_info.model == SOFTRF_MODEL_BRACELET ?
                                               AIRCRAFT_TYPE_STATIC :
+                                              hw_info.model == SOFTRF_MODEL_CARD ?
+                                              AIRCRAFT_TYPE_PARAGLIDER :
                                               AIRCRAFT_TYPE_GLIDER;
   eeprom_block.field.settings.txpower       = hw_info.model == SOFTRF_MODEL_ES ?
                                               RF_TX_POWER_OFF :
@@ -101,12 +103,22 @@ void EEPROM_defaults()
   eeprom_block.field.settings.bluetooth     = BLUETOOTH_NONE;
   eeprom_block.field.settings.alarm         = TRAFFIC_ALARM_DISTANCE;
 
-  /* This will speed up 'factory' boot sequence on Editions other than Standalone */
+  /*
+   * This will speed up 'factory' boot sequence on Editions
+   * other than Standalone and Card
+   */
   if (hw_info.model == SOFTRF_MODEL_STANDALONE) {
     eeprom_block.field.settings.volume      = BUZZER_VOLUME_FULL;
     eeprom_block.field.settings.pointer     = DIRECTION_NORTH_UP;
   } else {
-    eeprom_block.field.settings.volume      = BUZZER_OFF;
+#if defined(USE_PWM_SOUND)
+    if (hw_info.model == SOFTRF_MODEL_CARD) {
+      eeprom_block.field.settings.volume    = BUZZER_VOLUME_FULL;
+    } else
+#endif /* USE_PWM_SOUND */
+    {
+      eeprom_block.field.settings.volume    = BUZZER_OFF;
+    }
     eeprom_block.field.settings.pointer     = LED_OFF;
   }
 
@@ -122,7 +134,9 @@ void EEPROM_defaults()
 #elif defined(ARDUINO_ARCH_SILABS)
   eeprom_block.field.settings.nmea_out   = NMEA_UART;
 #else
-  eeprom_block.field.settings.nmea_out   = hw_info.model == SOFTRF_MODEL_BADGE     ?
+  eeprom_block.field.settings.nmea_out   = hw_info.model == SOFTRF_MODEL_BADGE    ||
+                                           hw_info.model == SOFTRF_MODEL_CARD     ||
+                                           hw_info.model == SOFTRF_MODEL_COZY      ?
                                            NMEA_BLUETOOTH :
                                            hw_info.model == SOFTRF_MODEL_ES        ?
                                            NMEA_OFF :

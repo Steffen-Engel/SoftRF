@@ -22,13 +22,15 @@
 #include <SPI.h>
 #include <esp_err.h>
 #include <esp_wifi.h>
-#if !defined(CONFIG_IDF_TARGET_ESP32S2)
+#if !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32P4)
 #include <esp_bt.h>
 #include <BLEDevice.h>
 #endif /* CONFIG_IDF_TARGET_ESP32S2 */
-#if !defined(CONFIG_IDF_TARGET_ESP32C6) && !defined(CONFIG_IDF_TARGET_ESP32H2)
+#if !defined(CONFIG_IDF_TARGET_ESP32C6) && \
+    !defined(CONFIG_IDF_TARGET_ESP32H2) && \
+    !defined(CONFIG_IDF_TARGET_ESP32P4)
 #include <soc/rtc_cntl_reg.h>
-#endif /* CONFIG_IDF_TARGET_ESP32C6  || H2 */
+#endif /* CONFIG_IDF_TARGET_ESP32C6 || H2 || P4 */
 #include <soc/efuse_reg.h>
 #include <Wire.h>
 #include <rom/rtc.h>
@@ -624,6 +626,9 @@ static void ESP32_setup()
 #elif defined(CONFIG_IDF_TARGET_ESP32H2)
     default:
       esp32_board   = ESP32_H2_DEVKIT;
+#elif defined(CONFIG_IDF_TARGET_ESP32P4)
+    default:
+      esp32_board   = ESP32_P4_DEVKIT;
 #else
 #error "This ESP32 family build variant is not supported!"
 #endif
@@ -710,6 +715,7 @@ static void ESP32_setup()
     hw_info.rtc = RTC_PCF8563;
     hw_info.imu = ACC_BMA423;
 
+#if defined(CONFIG_IDF_TARGET_ESP32)
     Wire1.begin(SOC_GPIO_PIN_TWATCH_SEN_SDA , SOC_GPIO_PIN_TWATCH_SEN_SCL);
     Wire1.beginTransmission(AXP202_SLAVE_ADDRESS);
     bool has_axp202 = (Wire1.endTransmission() == 0);
@@ -740,9 +746,11 @@ static void ESP32_setup()
     } else {
       WIRE_FINI(Wire1);
     }
+#endif /* CONFIG_IDF_TARGET_ESP32 */
   } else if (hw_info.model == SOFTRF_MODEL_PRIME_MK2) {
     esp32_board = ESP32_TTGO_T_BEAM;
 
+#if defined(CONFIG_IDF_TARGET_ESP32)
     Wire1.begin(TTGO_V2_OLED_PIN_SDA , TTGO_V2_OLED_PIN_SCL);
     Wire1.beginTransmission(AXP192_SLAVE_ADDRESS);
     bool has_axp = (Wire1.endTransmission() == 0);
@@ -823,11 +831,16 @@ static void ESP32_setup()
 
         hw_info.revision = 12;
         hw_info.pmu = PMU_AXP2101;
+#if defined(USE_RADIOLIB)
+        /* reserved for HPD-16E */
+        lmic_pins.dio[0] = SOC_GPIO_PIN_TBEAM_RF_DIO1_V08;
+#endif /* USE_RADIOLIB */
       } else {
         WIRE_FINI(Wire1);
         hw_info.revision = 2;
       }
     }
+#endif /* CONFIG_IDF_TARGET_ESP32 */
     lmic_pins.rst  = SOC_GPIO_PIN_TBEAM_RF_RST_V05;
     lmic_pins.busy = SOC_GPIO_PIN_TBEAM_RF_BUSY_V08;
 #if defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -1165,7 +1178,10 @@ static void ESP32_setup()
     lmic_pins.busy = SOC_GPIO_PIN_S3_BUSY;
 
 #if defined(USE_RADIOLIB)
-    lmic_pins.dio[0] = SOC_GPIO_PIN_S3_DIO1;
+    if (esp32_board == ESP32_TTGO_T_BEAM_SUPREME) {
+      /* reserved for DIO 11 of HPD-16E */
+      lmic_pins.dio[0] = SOC_GPIO_PIN_S3_DIO1;
+    }
 #endif /* USE_RADIOLIB */
 
     int uSD_SS_pin = (esp32_board == ESP32_S3_DEVKIT) ?
@@ -1330,9 +1346,6 @@ static void ESP32_setup()
     lmic_pins.nss  = SOC_GPIO_PIN_HELTRK_SS;
     lmic_pins.rst  = SOC_GPIO_PIN_HELTRK_RST;
     lmic_pins.busy = SOC_GPIO_PIN_HELTRK_BUSY;
-#if defined(USE_RADIOLIB)
-    lmic_pins.dio[0] = SOC_GPIO_PIN_HELTRK_DIO1;
-#endif /* USE_RADIOLIB */
 
   } else if (esp32_board == ESP32_LILYGO_T3S3_EPD) {
 
@@ -1351,7 +1364,7 @@ static void ESP32_setup()
     lmic_pins.txe  = SOC_GPIO_PIN_T3S3_ANT_TX;
     lmic_pins.rxe  = SOC_GPIO_PIN_T3S3_ANT_RX;
 #if defined(USE_RADIOLIB)
-    lmic_pins.dio[0] = SOC_GPIO_PIN_T3S3_DIO1;
+    lmic_pins.dio[0] = SOC_GPIO_PIN_T3S3_DIO1; /* reserved for HPD-16E */
 #endif /* USE_RADIOLIB */
 
     int uSD_SS_pin = SOC_GPIO_PIN_T3S3_SD_SS;
@@ -1405,6 +1418,9 @@ static void ESP32_setup()
     lmic_pins.nss  = SOC_GPIO_PIN_C6_SS;
     lmic_pins.rst  = SOC_GPIO_PIN_C6_RST;
     lmic_pins.busy = SOC_GPIO_PIN_C6_TXE;
+#if defined(USE_RADIOLIB)
+    lmic_pins.dio[0] = SOC_GPIO_PIN_C6_CE; /* Ebyte E80 */
+#endif /* USE_RADIOLIB */
 
   } else if (esp32_board == ESP32_LILYGO_T3C6) {
 
@@ -1421,9 +1437,6 @@ static void ESP32_setup()
     lmic_pins.busy = SOC_GPIO_PIN_T3C6_BUSY;
     lmic_pins.txe  = SOC_GPIO_PIN_T3C6_ANT_TX;
     lmic_pins.rxe  = SOC_GPIO_PIN_T3C6_ANT_RX;
-#if defined(USE_RADIOLIB)
-    lmic_pins.dio[0] = SOC_GPIO_PIN_T3C6_DIO1;
-#endif /* USE_RADIOLIB */
 #endif /* CONFIG_IDF_TARGET_ESP32C6 */
   }
 
@@ -1531,7 +1544,8 @@ static void ESP32_setup()
 #elif ARDUINO_USB_CDC_ON_BOOT && \
       (defined(CONFIG_IDF_TARGET_ESP32C3) || \
        defined(CONFIG_IDF_TARGET_ESP32C6) || \
-       defined(CONFIG_IDF_TARGET_ESP32H2))
+       defined(CONFIG_IDF_TARGET_ESP32H2) || \
+       defined(CONFIG_IDF_TARGET_ESP32P4))
 
   Serial.begin(SERIAL_OUT_BR);
 
@@ -1747,7 +1761,8 @@ static void ESP32_post_init()
 
     Serial.print(F("RADIO    : "));
     Serial.println(hw_info.rf      == RF_IC_SX1262 ||
-                   hw_info.rf      == RF_IC_SX1276     ? F("PASS") : F("FAIL"));
+                   hw_info.rf      == RF_IC_SX1276 ||
+                   hw_info.rf      == RF_IC_LR1121     ? F("PASS") : F("FAIL"));
     Serial.flush();
     Serial.print(F("GNSS     : "));
     Serial.println(hw_info.gnss    != GNSS_MODULE_NONE ? F("PASS") : F("FAIL"));
@@ -2533,6 +2548,7 @@ static void* ESP32_getResetInfoPtr()
   switch (rtc_get_reset_reason(0))
   {
     case POWERON_RESET          : reset_info.reason = REASON_DEFAULT_RST; break;
+#if !defined(CONFIG_IDF_TARGET_ESP32P4)
     case DEEPSLEEP_RESET        : reset_info.reason = REASON_DEEP_SLEEP_AWAKE; break;
     case TG0WDT_SYS_RESET       : reset_info.reason = REASON_WDT_RST; break;
 #if !defined(CONFIG_IDF_TARGET_ESP32C2)
@@ -2550,7 +2566,8 @@ static void* ESP32_getResetInfoPtr()
                                   reset_info.reason = REASON_DEFAULT_RST;
       else
                                   reset_info.reason = REASON_WDT_RST;
-                                  break;
+      break;
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 #if defined(CONFIG_IDF_TARGET_ESP32)
     case SW_RESET               : reset_info.reason = REASON_SOFT_RESTART; break;
     case OWDT_RESET             : reset_info.reason = REASON_WDT_RST; break;
@@ -2570,6 +2587,7 @@ static String ESP32_getResetInfo()
   switch (rtc_get_reset_reason(0))
   {
     case POWERON_RESET          : return F("Vbat power on reset");
+#if !defined(CONFIG_IDF_TARGET_ESP32P4)
     case DEEPSLEEP_RESET        : return F("Deep Sleep reset digital core");
     case TG0WDT_SYS_RESET       : return F("Timer Group0 Watch dog reset digital core");
 #if !defined(CONFIG_IDF_TARGET_ESP32C2)
@@ -2582,6 +2600,7 @@ static String ESP32_getResetInfo()
     case RTCWDT_CPU_RESET       : return F("RTC Watch dog Reset CPU");
     case RTCWDT_BROWN_OUT_RESET : return F("Reset when the vdd voltage is not stable");
     case RTCWDT_RTC_RESET       : return F("RTC Watch dog reset digital core and rtc module");
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 #if defined(CONFIG_IDF_TARGET_ESP32)
     case SW_RESET               : return F("Software reset digital core");
     case OWDT_RESET             : return F("Legacy watch dog reset digital core");
@@ -2600,6 +2619,7 @@ static String ESP32_getResetReason()
   switch (rtc_get_reset_reason(0))
   {
     case POWERON_RESET          : return F("POWERON_RESET");
+#if !defined(CONFIG_IDF_TARGET_ESP32P4)
     case DEEPSLEEP_RESET        : return F("DEEPSLEEP_RESET");
     case TG0WDT_SYS_RESET       : return F("TG0WDT_SYS_RESET");
 #if !defined(CONFIG_IDF_TARGET_ESP32C2)
@@ -2612,6 +2632,7 @@ static String ESP32_getResetReason()
     case RTCWDT_CPU_RESET       : return F("RTCWDT_CPU_RESET");
     case RTCWDT_BROWN_OUT_RESET : return F("RTCWDT_BROWN_OUT_RESET");
     case RTCWDT_RTC_RESET       : return F("RTCWDT_RTC_RESET");
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 #if defined(CONFIG_IDF_TARGET_ESP32)
     case SW_RESET               : return F("SW_RESET");
     case OWDT_RESET             : return F("OWDT_RESET");
@@ -3792,7 +3813,7 @@ static void ESP32_Display_loop()
           itoa(disp_value, buf, 10);
 
           if (disp_value < 10) {
-            strcat_P(buf,PSTR("  "));
+            strcat_P(buf,PSTR("   "));
           } else {
             if (disp_value < 100) {
               strcat_P(buf,PSTR(" "));
@@ -3812,7 +3833,7 @@ static void ESP32_Display_loop()
           itoa(disp_value, buf, 10);
 
           if (disp_value < 10) {
-            strcat_P(buf,PSTR("  "));
+            strcat_P(buf,PSTR("   "));
           } else {
             if (disp_value < 100) {
               strcat_P(buf,PSTR(" "));
@@ -4154,7 +4175,7 @@ static void ESP32_Battery_setup()
     } else {
       calibrate_voltage(SOC_GPIO_PIN_C6_BATTERY);
     }
-#elif defined(CONFIG_IDF_TARGET_ESP32H2)
+#elif defined(CONFIG_IDF_TARGET_ESP32H2) || defined(CONFIG_IDF_TARGET_ESP32P4)
     /* TBD */
 #else
 #error "This ESP32 family build variant is not supported!"
@@ -4371,7 +4392,9 @@ static bool ESP32_Baro_setup()
     /* Try out OLED I2C bus */
     Wire.begin(TTGO_V2_OLED_PIN_SDA, TTGO_V2_OLED_PIN_SCL);
     if (hw_info.model == SOFTRF_MODEL_PRIME_MK2 && hw_info.revision >= 8) {
+#if defined(CONFIG_IDF_TARGET_ESP32)
       Wire1 = Wire;
+#endif /* CONFIG_IDF_TARGET_ESP32 */
     }
     if (!Baro_probe()) {
       if (!(hw_info.model == SOFTRF_MODEL_PRIME_MK2 && hw_info.revision >= 8)) {
@@ -5132,7 +5155,8 @@ IODev_ops_t ESP32SX_USBSerial_ops = {
 #if ARDUINO_USB_MODE && \
     (defined(CONFIG_IDF_TARGET_ESP32C3) || \
      defined(CONFIG_IDF_TARGET_ESP32C6) || \
-     defined(CONFIG_IDF_TARGET_ESP32H2))
+     defined(CONFIG_IDF_TARGET_ESP32H2) || \
+     defined(CONFIG_IDF_TARGET_ESP32P4))
 
 #define USB_TX_FIFO_SIZE (MAX_TRACKING_OBJECTS * 65 + 75 + 75 + 42 + 20)
 #define USB_RX_FIFO_SIZE (256)
@@ -5346,6 +5370,9 @@ const SoC_ops_t ESP32_ops = {
 #elif defined(CONFIG_IDF_TARGET_ESP32H2)
   SOC_ESP32H2,
   "ESP32-H2",
+#elif defined(CONFIG_IDF_TARGET_ESP32P4)
+  SOC_ESP32P4,
+  "ESP32-P4",
 #else
 #error "This ESP32 family build variant is not supported!"
 #endif /* CONFIG_IDF_TARGET_ESP32-S2-S3-C3-C6-H2 */
@@ -5388,7 +5415,8 @@ const SoC_ops_t ESP32_ops = {
 #elif ARDUINO_USB_MODE && \
       (defined(CONFIG_IDF_TARGET_ESP32C3) || \
        defined(CONFIG_IDF_TARGET_ESP32C6) || \
-       defined(CONFIG_IDF_TARGET_ESP32H2))
+       defined(CONFIG_IDF_TARGET_ESP32H2) || \
+       defined(CONFIG_IDF_TARGET_ESP32P4))
   &ESP32CX_USBSerial_ops,
 #else
   NULL,

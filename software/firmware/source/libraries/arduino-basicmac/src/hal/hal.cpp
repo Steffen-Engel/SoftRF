@@ -28,6 +28,12 @@ extern  SoftSPI RadioSPI;
 #define SPI RadioSPI
 #endif /* ARDUINO_ARCH_RENESAS */
 
+#if defined(ARDUINO_ARCH_CH32)
+extern  SPIClass RadioSPI;
+#undef  SPI
+#define SPI RadioSPI
+#endif /* ARDUINO_ARCH_CH32 */
+
 #include "../basicmac.h"
 #include "hal.h"
 #define _GNU_SOURCE 1 // For fopencookie
@@ -57,10 +63,10 @@ static void hal_io_init () {
     ASSERT(lmic_pins.nss != LMIC_UNUSED_PIN);
 
 #if defined(BRD_sx1272_radio) || defined(BRD_sx1276_radio)
-    //ASSERT(lmic_pins.dio[0] != LMIC_UNUSED_PIN);
-    //ASSERT(lmic_pins.dio[1] != LMIC_UNUSED_PIN || lmic_pins.dio[2] != LMIC_UNUSED_PIN);
+//    ASSERT(lmic_pins.dio[0] != LMIC_UNUSED_PIN);
+//    ASSERT(lmic_pins.dio[1] != LMIC_UNUSED_PIN || lmic_pins.dio[2] != LMIC_UNUSED_PIN);
 #elif defined(BRD_sx1261_radio) || defined(BRD_sx1262_radio)
-    ASSERT(lmic_pins.dio[0] == LMIC_UNUSED_PIN);
+//    ASSERT(lmic_pins.dio[0] == LMIC_UNUSED_PIN);
     ASSERT(lmic_pins.dio[1] == LMIC_UNUSED_PIN);
     ASSERT(lmic_pins.dio[2] == LMIC_UNUSED_PIN);
 #else
@@ -552,8 +558,8 @@ u1_t hal_checkTimer (u4_t time) {
     defined(__ASR6501__)  || defined(ARDUINO_ARCH_ASR650X) || \
     defined(RASPBERRY_PI) || defined(ARDUINO_ARCH_SAMD)    || \
     defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_ARCH_ASR6601) || \
-    defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350) || \
-    defined(ARDUINO_ARCH_RENESAS)
+    defined(ARDUINO_ARCH_RP2040)  || defined(ARDUINO_ARCH_RP2350)  || \
+    defined(ARDUINO_ARCH_RENESAS) || defined(ARDUINO_ARCH_CH32)
 
 // Fix for STM32 HAL based cores.
 
