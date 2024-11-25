@@ -1033,7 +1033,7 @@ static void ESP32_setup()
              * ACC_RANGE_8G
              * ACC_RANGE_16G
              * */
-            SensorQMI8658::ACC_RANGE_4G,
+            SensorQMI8658::ACC_RANGE_16G,
             /*
              * ACC_ODR_1000H
              * ACC_ODR_500Hz
@@ -1067,7 +1067,7 @@ static void ESP32_setup()
             * GYR_RANGE_512DPS
             * GYR_RANGE_1024DPS
             * */
-            SensorQMI8658::GYR_RANGE_64DPS,
+            SensorQMI8658::GYR_RANGE_256DPS,
             /*
              * GYR_ODR_7174_4Hz
              * GYR_ODR_3587_2Hz
@@ -1092,6 +1092,7 @@ static void ESP32_setup()
 
         // In 3DOF mode,
         imu_qmi8658.enableAccelerometer();
+        imu_qmi8658.enableGyroscope();
 
         hw_info.imu = IMU_QMI8658;
       }
