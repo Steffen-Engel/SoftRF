@@ -21,6 +21,10 @@
 #include <SPI.h>
 #include <Wire.h>
 
+#if defined(USE_TINYUSB)
+#include <Adafruit_TinyUSB.h>
+#endif
+
 #include "../system/SoC.h"
 #include "../driver/RF.h"
 #include "../driver/EEPROM.h"
@@ -33,6 +37,9 @@
 #include "../protocol/data/GDL90.h"
 #include "../protocol/data/D1090.h"
 
+#include <Adafruit_SPIFlash.h>
+#include "uCDB.hpp"
+
 // SX127x pin mapping
 lmic_pinmap lmic_pins = {
     .nss = SOC_GPIO_PIN_SS,
@@ -40,7 +47,7 @@ lmic_pinmap lmic_pins = {
     .rxe = LMIC_UNUSED_PIN,
     .rst = SOC_GPIO_PIN_RST,
     .dio = {LMIC_UNUSED_PIN, LMIC_UNUSED_PIN, LMIC_UNUSED_PIN},
-    .busy = LMIC_UNUSED_PIN,
+    .busy = SOC_GPIO_PIN_BUSY,
     .tcxo = LMIC_UNUSED_PIN,
 };
 
@@ -67,17 +74,103 @@ static struct rst_info reset_info = {
 static uint32_t bootCount __attribute__ ((section (".noinit")));
 static bool wdt_is_active = false;
 
+static CH32_board_id CH32_board = CH32_WCH_V307V_R1; /* default */
+
+static bool CH32_has_eeprom    = false;
+static bool CH32_has_spiflash  = false;
+static bool FATFS_is_mounted   = false;
+static bool ADB_is_open        = false;
+
+HardwareSerial Serial2(USART2);
+HardwareSerial Serial3(USART3);
+
+#if defined(USE_SOFTSPI)
+SoftSPI RadioSPI(SOC_GPIO_PIN_MOSI, SOC_GPIO_PIN_MISO, SOC_GPIO_PIN_SCK);
+SoftSPI FlashSPI(SOC_GPIO_YD_FL_MOSI, SOC_GPIO_YD_FL_MISO, SOC_GPIO_YD_FL_CLK);
+#else
+SPIClass RadioSPI;
+SPIClass FlashSPI;
+#endif /* USE_SOFTSPI */
+
+static Adafruit_SPIFlash *SPIFlash = NULL;
+
+static uint32_t spiflash_id = 0;
+
+/// Flash device list count
+enum {
+  W25Q32JV_INDEX,
+  EXTERNAL_FLASH_DEVICE_COUNT
+};
+
+static SPIFlash_Device_t possible_devices[] = {
+  [W25Q32JV_INDEX] = W25Q32JV_IQ,
+};
+
+// file system object from SdFat
+FatVolume fatfs;
+
+uCDB<FatVolume, File32> ucdb(fatfs);
+
 #if defined(EXCLUDE_EEPROM)
 eeprom_t eeprom_block;
 settings_t *settings = &eeprom_block.field.settings;
 #endif /* EXCLUDE_EEPROM */
 
+#if defined(USE_TINYUSB)
+const char *CH32_Device_Manufacturer = SOFTRF_IDENT;
+const char *CH32_Device_Model = "Academy Edition";
+const uint16_t CH32_Device_Version = SOFTRF_USB_FW_VERSION;
+
+// USB Mass Storage object
+Adafruit_USBD_MSC usb_msc;
+
+// Callback invoked when received READ10 command.
+// Copy disk's data to buffer (up to bufsize) and
+// return number of copied bytes (must be multiple of block size)
+static int32_t CH32_msc_read_cb (uint32_t lba, void* buffer, uint32_t bufsize)
+{
+  // Note: SPIFLash Bock API: readBlocks/writeBlocks/syncBlocks
+  // already include 4K sector caching internally. We don't need to cache it, yahhhh!!
+  return SPIFlash->readBlocks(lba, (uint8_t*) buffer, bufsize/512) ? bufsize : -1;
+}
+
+// Callback invoked when received WRITE10 command.
+// Process data in buffer to disk's storage and
+// return number of written bytes (must be multiple of block size)
+static int32_t CH32_msc_write_cb (uint32_t lba, uint8_t* buffer, uint32_t bufsize)
+{
+//  ledOn(SOC_GPIO_LED_USBMSC);
+
+  // Note: SPIFLash Bock API: readBlocks/writeBlocks/syncBlocks
+  // already include 4K sector caching internally. We don't need to cache it, yahhhh!!
+  return SPIFlash->writeBlocks(lba, buffer, bufsize/512) ? bufsize : -1;
+}
+
+// Callback invoked when WRITE10 command is completed (status received and accepted by host).
+// used to flush any pending cache.
+static void CH32_msc_flush_cb (void)
+{
+  // sync with flash
+  SPIFlash->syncBlocks();
+
+  // clear file system's cache to force refresh
+  fatfs.cacheClear();
+
+//  ledOff(SOC_GPIO_LED_USBMSC);
+}
+#endif /* USE_TINYUSB */
+
 #if defined(ENABLE_RECORDER)
 #include <SdFat.h>
 
-SPIClass uSD_SPI;
+SoftSpiDriver<SOC_GPIO_YD_SD_D0, SOC_GPIO_YD_SD_CMD, SOC_GPIO_YD_SD_CLK> uSD_SPI;
 
+// Speed argument is ignored for software SPI.
+#if ENABLE_DEDICATED_SPI
+#define SD_CONFIG SdSpiConfig(uSD_SS_pin, DEDICATED_SPI, SD_SCK_MHZ(8), &uSD_SPI)
+#else  // ENABLE_DEDICATED_SPI
 #define SD_CONFIG SdSpiConfig(uSD_SS_pin, SHARED_SPI, SD_SCK_MHZ(8), &uSD_SPI)
+#endif  // ENABLE_DEDICATED_SPI
 
 SdFat uSD;
 
@@ -110,13 +203,122 @@ static void CH32_setup()
   Serial_GNSS_In.setRx(SOC_GPIO_PIN_GNSS_RX);
   Serial_GNSS_In.setTx(SOC_GPIO_PIN_GNSS_TX);
 
-  SPI.setMISO(SOC_GPIO_PIN_MISO);
-  SPI.setMOSI(SOC_GPIO_PIN_MOSI);
-  SPI.setSCLK(SOC_GPIO_PIN_SCK);
-  SPI.setSSEL(SOC_GPIO_PIN_SS);
+#if !defined(USE_SOFTSPI)
+  RadioSPI.setMISO(SOC_GPIO_PIN_MISO);
+  RadioSPI.setMOSI(SOC_GPIO_PIN_MOSI);
+  RadioSPI.setSCLK(SOC_GPIO_PIN_SCK);
+#endif /* USE_SOFTSPI */
 
   Wire.setSCL(SOC_GPIO_PIN_SCL);
   Wire.setSDA(SOC_GPIO_PIN_SDA);
+
+#if defined(USE_TINYUSB)
+  USBDevice.setManufacturerDescriptor(CH32_Device_Manufacturer);
+  USBDevice.setProductDescriptor(CH32_Device_Model);
+  USBDevice.setDeviceVersion(CH32_Device_Version);
+#endif /* USE_TINYUSB */
+
+  Wire.begin();
+  Wire.beginTransmission(FT24C64_ADDRESS);
+  CH32_has_eeprom = (Wire.endTransmission() == 0);
+  Wire.end();
+
+  if (CH32_has_eeprom) {
+    CH32_board = CH32_YD_V307VCT6;
+  }
+
+  /* (Q)SPI flash init */
+  Adafruit_FlashTransport_SPI *ft = NULL;
+
+  switch (CH32_board)
+  {
+    case CH32_YD_V307VCT6:
+      pin_function(SOC_GPIO_YD_LED_BLUE,
+                   CH_PIN_DATA(CH_MODE_OUTPUT_50MHz, CH_CNF_OUTPUT_PP, 0, 0));
+      digitalWriteFast(SOC_GPIO_YD_LED_BLUE, HIGH);
+
+      possible_devices[W25Q32JV_INDEX].supports_qspi        = false;
+      possible_devices[W25Q32JV_INDEX].supports_qspi_writes = false;
+
+#if !defined(USE_SOFTSPI)
+      FlashSPI.setMISO(SOC_GPIO_YD_FL_MISO);
+      FlashSPI.setMOSI(SOC_GPIO_YD_FL_MOSI);
+      FlashSPI.setSCLK(SOC_GPIO_YD_FL_CLK);
+#endif /* USE_SOFTSPI */
+
+      ft = new Adafruit_FlashTransport_SPI(SOC_GPIO_YD_FL_SS, &FlashSPI);
+
+#if defined(ENABLE_RECORDER)
+      {
+        int uSD_SS_pin = SOC_GPIO_YD_SD_D3;
+
+#if !defined(USE_SOFTSPI) && SPI_DRIVER_SELECT != 2
+        uSD_SPI.setMISO(SOC_GPIO_YD_SD_D0);
+        uSD_SPI.setMOSI(SOC_GPIO_YD_SD_CMD);
+        uSD_SPI.setSCLK(SOC_GPIO_YD_SD_CLK);
+#endif /* USE_SOFTSPI */
+
+        pinMode(uSD_SS_pin, OUTPUT);
+        digitalWrite(uSD_SS_pin, HIGH);
+
+        uSD_is_attached = uSD.cardBegin(SD_CONFIG);
+      }
+#endif /* ENABLE_RECORDER */
+      break;
+
+    case CH32_WCH_V307V_R1:
+    default:
+      break;
+  }
+
+  if (ft != NULL) {
+    SPIFlash = new Adafruit_SPIFlash(ft);
+    CH32_has_spiflash = SPIFlash->begin(possible_devices,
+                                        EXTERNAL_FLASH_DEVICE_COUNT);
+  }
+
+  hw_info.storage = CH32_has_spiflash ? STORAGE_FLASH : STORAGE_NONE;
+
+#if defined(ENABLE_RECORDER)
+  if (uSD_is_attached && uSD.card()->cardSize() > 0) {
+    hw_info.storage = (hw_info.storage == STORAGE_FLASH) ?
+                      STORAGE_FLASH_AND_CARD : STORAGE_CARD;
+  }
+#endif /* ENABLE_RECORDER */
+
+  if (CH32_has_spiflash) {
+    spiflash_id = SPIFlash->getJEDECID();
+
+#if defined(USE_TINYUSB)
+    // Set disk vendor id, product id and revision with string up to 8, 16, 4 characters respectively
+    usb_msc.setID(CH32_Device_Manufacturer, "External Flash", "1.0");
+
+    // Set callback
+    usb_msc.setReadWriteCallback(CH32_msc_read_cb,
+                                 CH32_msc_write_cb,
+                                 CH32_msc_flush_cb);
+
+    // Set disk size, block size should be 512 regardless of spi flash page size
+    usb_msc.setCapacity(SPIFlash->size()/512, 512);
+
+    // MSC is ready for read/write
+    usb_msc.setUnitReady(true);
+
+    usb_msc.begin();
+#endif /* USE_TINYUSB */
+
+    FATFS_is_mounted = fatfs.begin(SPIFlash);
+  }
+
+#if defined(USE_RADIOLIB)
+  lmic_pins.dio[0] = SOC_GPIO_PIN_DIO1;
+#endif /* USE_RADIOLIB */
+
+  Serial.begin(SERIAL_OUT_BR, SERIAL_OUT_BITS);
+
+#if defined(USE_TINYUSB) && defined(USBCON)
+  for (int i=0; i < 40; i++) {if (Serial) break; else delay(100);}
+#endif
 }
 
 static void CH32_post_init()
@@ -127,12 +329,29 @@ static void CH32_post_init()
     Serial.println();
     Serial.flush();
 
+    Serial.print(F("Board: "));
+    Serial.println(CH32_board == CH32_YD_V307VCT6 ?
+                   "YD CH32V307VCT6" : "WCH CH32V307V-R1");
+    Serial.println();
+    Serial.flush();
+
+    Serial.print  (F("SPI FLASH JEDEC ID: "));
+    Serial.print  (spiflash_id, HEX);
+    Serial.println();
+    Serial.println();
+    Serial.flush();
+
     Serial.println(F("Built-in components:"));
 
     Serial.print(F("RADIO   : "));
-    Serial.println(hw_info.rf      == RF_IC_SX1276      ? F("PASS") : F("FAIL"));
+    Serial.println(hw_info.rf      != RF_IC_NONE        ? F("PASS") : F("FAIL"));
     Serial.print(F("GNSS    : "));
     Serial.println(hw_info.gnss    != GNSS_MODULE_NONE  ? F("PASS") : F("FAIL"));
+
+    Serial.print(F("FLASH   : "));
+    Serial.println(hw_info.storage == STORAGE_FLASH_AND_CARD ||
+                   hw_info.storage == STORAGE_FLASH     ? F("PASS") : F("N/A"));
+    Serial.flush();
 
     Serial.println();
     Serial.println(F("External components:"));
@@ -146,6 +365,41 @@ static void CH32_post_init()
     Serial.println();
     Serial.flush();
   }
+
+#if defined(ENABLE_RECORDER)
+  if (CH32_board == CH32_YD_V307VCT6)
+  {
+    if (!uSD_is_attached) {
+      Serial.println(F("WARNING: unable to attach micro-SD card."));
+    } else {
+      // The number of 512 byte sectors in the card
+      // or zero if an error occurs.
+      size_t cardSize = uSD.card()->cardSize();
+
+      if (cardSize == 0) {
+        Serial.println(F("WARNING: invalid micro-SD card size."));
+      } else {
+        uint8_t cardType = uSD.card()->type();
+
+        Serial.print(F("SD Card Type: "));
+        if(cardType == SD_CARD_TYPE_SD1){
+            Serial.println(F("V1"));
+        } else if(cardType == SD_CARD_TYPE_SD2){
+            Serial.println(F("V2"));
+        } else if(cardType == SD_CARD_TYPE_SDHC){
+            Serial.println(F("SDHC"));
+        } else {
+            Serial.println(F("UNKNOWN"));
+        }
+
+        Serial.print("SD Card Size: ");
+        Serial.print(cardSize / (2 * 1024));
+        Serial.println(" MB");
+      }
+    }
+    Serial.println();
+  }
+#endif /* ENABLE_RECORDER */
 
   Serial.println(F("Data output device(s):"));
 
@@ -226,6 +480,15 @@ static void CH32_loop()
 
 static void CH32_fini(int reason)
 {
+  if (CH32_has_spiflash) {
+#if defined(USE_TINYUSB)
+    usb_msc.setUnitReady(false);
+//  usb_msc.end(); /* N/A */
+#endif /* USE_TINYUSB */
+  }
+
+  if (SPIFlash != NULL) SPIFlash->end();
+
   NVIC_SystemReset(); /* TODO */
 }
 
@@ -365,7 +628,7 @@ static void CH32_EEPROM_extension(int cmd)
 
 static void CH32_SPI_begin()
 {
-  SPI.begin();
+  RadioSPI.begin();
 }
 
 static void CH32_swSer_begin(unsigned long baud)
@@ -532,7 +795,7 @@ static void CH32_Button_setup()
     int button_pin = SOC_GPIO_PIN_BUTTON;
 
     // Button(s) uses external pull up resistor.
-    pinMode(button_pin, INPUT);
+    pinMode(button_pin, CH32_board == CH32_YD_V307VCT6 ? INPUT_PULLUP : INPUT);
 
     button_1.init(button_pin);
 
@@ -572,10 +835,71 @@ static void CH32_Button_fini()
   if (hw_info.model == SOFTRF_MODEL_ACADEMY) {
 //  detachInterrupt(digitalPinToInterrupt(SOC_GPIO_PIN_BUTTON));
     while (digitalRead(SOC_GPIO_PIN_BUTTON) == LOW);
-    pinMode(SOC_GPIO_PIN_BUTTON, ANALOG);
+    pinMode(SOC_GPIO_PIN_BUTTON, INPUT);
   }
 #endif /* SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN */
 }
+
+#if defined(USE_TINYUSB)
+static void CH32_USB_setup() {
+#if !defined(USBCON)
+  USBSerial.begin(SERIAL_OUT_BR);
+#endif /* USBCON */
+}
+
+static void CH32_USB_loop()  {
+
+}
+
+static void CH32_USB_fini()  {
+#if !defined(USBCON)
+  USBSerial.end();
+#endif /* USBCON */
+}
+
+static int CH32_USB_available()
+{
+  int rval = 0;
+
+  if (USBSerial) {
+    rval = USBSerial.available();
+  }
+
+  return rval;
+}
+
+static int CH32_USB_read()
+{
+  int rval = -1;
+
+  if (USBSerial) {
+    rval = USBSerial.read();
+  }
+
+  return rval;
+}
+
+static size_t CH32_USB_write(const uint8_t *buffer, size_t size)
+{
+  size_t rval = size;
+
+  if (USBSerial && (size < USBSerial.availableForWrite())) {
+    rval = USBSerial.write(buffer, size);
+  }
+
+  return rval;
+}
+
+IODev_ops_t CH32_USBSerial_ops = {
+  "CH32 USBSerial",
+  CH32_USB_setup,
+  CH32_USB_loop,
+  CH32_USB_fini,
+  CH32_USB_available,
+  CH32_USB_read,
+  CH32_USB_write
+};
+#endif /* USE_TINYUSB */
 
 const SoC_ops_t CH32_ops = {
   SOC_CH32,
@@ -604,8 +928,12 @@ const SoC_ops_t CH32_ops = {
   CH32_SPI_begin,
   CH32_swSer_begin,
   CH32_swSer_enableRx,
-  NULL, /* TODO */
   NULL,
+#if defined(USE_TINYUSB)
+  &CH32_USBSerial_ops,
+#else
+  NULL,
+#endif /* USE_TINYUSB */
   NULL,
   CH32_Display_setup,
   CH32_Display_loop,

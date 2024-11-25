@@ -28,6 +28,12 @@ extern  SoftSPI RadioSPI;
 #define SPI RadioSPI
 #endif /* ARDUINO_ARCH_RENESAS || ARDUINO_ARCH_SILABS */
 
+#if defined(ARDUINO_ARCH_CH32)
+extern  SPIClass RadioSPI;
+#undef  SPI
+#define SPI RadioSPI
+#endif /* ARDUINO_ARCH_CH32 */
+
 #include "../lmic.h"
 #include "hal.h"
 #include <stdio.h>
@@ -422,7 +428,7 @@ u1_t hal_checkTimer (u4_t time) {
 }
 
 #if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_SAMD) || \
-    defined(ARDUINO_ARCH_RENESAS)
+    defined(ARDUINO_ARCH_RENESAS) || defined(ARDUINO_ARCH_CH32)
 
 // Fix for STM32 HAL based cores.
 
