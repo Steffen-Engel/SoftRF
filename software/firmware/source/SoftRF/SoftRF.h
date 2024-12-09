@@ -284,7 +284,8 @@ enum
   CIVA_CLIMB,
   CIVA_ALT150,
   CIVA_ALT200,
-  CIVA_ACTIVE
+  CIVA_ACTIVE,
+  CIVA_LAND
 };
 
 extern ufo_t ThisAircraft;
