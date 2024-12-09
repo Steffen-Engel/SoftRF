@@ -755,12 +755,21 @@ static void OLED_aerobatic()
     case CIVA_ACTIVE:
       u8x8->draw2x2String(1, 6, "ACTIVE ");
       break;
+    case CIVA_LAND:
+      u8x8->draw2x2String(1, 6, "LANDED ");
+      break;
 
     default:
       break;
     }
     prev_CIVA_Status = CIVA_Status;
   }
+
+extern bool LogActive;
+if (LogActive)
+  u8x8->drawString(1, 5, "log on");
+else
+  u8x8->drawString(1, 5, "log off");
 }
 
 

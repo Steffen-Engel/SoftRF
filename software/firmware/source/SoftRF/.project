@@ -182,6 +182,11 @@
 			<locationURI>WORKSPACE_LOC/software/firmware/source/libraries/PCF8563_Library</locationURI>
 		</link>
 		<link>
+			<name>libraries/RadioLib</name>
+			<type>2</type>
+			<locationURI>WORKSPACE_LOC/software/firmware/source/libraries/RadioLib</locationURI>
+		</link>
+		<link>
 			<name>libraries/SA818</name>
 			<type>2</type>
 			<locationURI>WORKSPACE_LOC/software/firmware/source/libraries/SA818</locationURI>
@@ -285,6 +290,11 @@
 			<name>libraries/dump978</name>
 			<type>2</type>
 			<locationURI>WORKSPACE_LOC/software/firmware/source/libraries/dump978</locationURI>
+		</link>
+		<link>
+			<name>libraries/elapsedMillis</name>
+			<type>2</type>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/libraries/elapsedMillis/1.0.6</locationURI>
 		</link>
 		<link>
 			<name>libraries/flashrom</name>

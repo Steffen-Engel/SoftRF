@@ -107,6 +107,7 @@
 #include "src/TTNHelper.h"
 #include "src/TrafficHelper.h"
 #include "src/system/Recorder.h"
+#include "src/system/CIVARecorder.h"
 
 #if defined(ENABLE_AHRS)
 #include "src/driver/AHRS.h"
@@ -266,6 +267,7 @@ void setup()
   }
 
   Recorder_setup();
+  CIVARecorder_setup();
 
   SoC->post_init();
 
@@ -321,6 +323,7 @@ void loop()
   OTA_loop();
 
   Recorder_loop();
+  CIVARecorder_loop();
 
   SoC->loop();
 
@@ -352,6 +355,7 @@ void shutdown(int reason)
   SoC->swSer_enableRx(false);
 
   Recorder_fini();
+  CIVARecorder_fini();
 
   Sound_fini();
 
@@ -457,6 +461,7 @@ void normal()
     switch(CIVA_Status)
     {
     case CIVA_GROUND:
+    case CIVA_LAND:
       if (ThisAircraft.altitude >= 30)
       {
         CIVA_Status = CIVA_CLIMB;
@@ -479,6 +484,11 @@ void normal()
         CIVA_Status = CIVA_ACTIVE;
       break;
     case CIVA_ACTIVE:
+      // maybe landed again...
+      if (ThisAircraft.altitude <= 20)
+      {
+        CIVA_Status = CIVA_LAND;
+      }
       if (((ThisAircraft.altitude >= 150) && (ThisAircraft.altitude<200))
          || ((ThisAircraft.altitude > CIVAAltitude) && (ThisAircraft.altitude<=CIVAAltitude+50))
          )
