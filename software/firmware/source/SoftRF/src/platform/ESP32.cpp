@@ -1046,7 +1046,7 @@ static void ESP32_setup()
              * ACC_ODR_LOWPOWER_11Hz
              * ACC_ODR_LOWPOWER_3H
             * */
-            SensorQMI8658::ACC_ODR_1000Hz,
+            SensorQMI8658::ACC_ODR_125Hz,
             /*
             *  LPF_MODE_0     //2.66% of ODR
             *  LPF_MODE_1     //3.63% of ODR
@@ -1079,7 +1079,7 @@ static void ESP32_setup()
              * GYR_ODR_56_05Hz
              * GYR_ODR_28_025H
              * */
-            SensorQMI8658::GYR_ODR_896_8Hz,
+            SensorQMI8658::GYR_ODR_112_1Hz,
             /*
             *  LPF_MODE_0     //2.66% of ODR
             *  LPF_MODE_1     //3.63% of ODR
@@ -1091,8 +1091,8 @@ static void ESP32_setup()
             true);
 
         // In 3DOF mode,
-        imu_qmi8658.enableAccelerometer();
         imu_qmi8658.enableGyroscope();
+        imu_qmi8658.enableAccelerometer();
 
         hw_info.imu = IMU_QMI8658;
       }
