@@ -767,7 +767,7 @@ static void OLED_aerobatic()
 
 extern bool LogActive;
 if (LogActive)
-  u8x8->drawString(1, 5, "log on");
+  u8x8->drawString(1, 5, "log on ");
 else
   u8x8->drawString(1, 5, "log off");
 }
