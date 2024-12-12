@@ -3541,6 +3541,7 @@ static byte ESP32_Display_setup()
 #if defined(USE_USB_HOST)
                            "H"
 #endif /* USE_USB_HOST */
+                           "CIVA"
                          );
       u8x8->drawString   (11, 6 + shift_y, ISO3166_CC[settings->band]);
     }
