@@ -80,14 +80,14 @@ void CIVARecorder_loop()
    * first check if it seems to be flying/moving
    *****************************************************************************/
   // detection by speed
-  if (gnss.location.isValid())
+  if (isValidGNSSFix())
   {
     speed = gnss.speed.kmph();
     if (speed >= DetectLandSpeed)
     {
       TimeNotMoving = 0;
     }
-    else if (speed < DetectTakeoffSpeed)
+    if (speed < DetectTakeoffSpeed)
     {
       TimeMoving = 0;
     }
@@ -99,8 +99,8 @@ void CIVARecorder_loop()
   if (LogActive)
   {
     // 15 Seconds not moving? End Logging, close file
-    if ((gnss.location.isValid() && (TimeNotMoving >= 15000))
-        || (!gnss.location.isValid() && (CIVA_Status == CIVA_LAND)))
+    if ((isValidGNSSFix() && (TimeNotMoving >= 15000))
+        || (!isValidGNSSFix() && (CIVA_Status == CIVA_LAND)))
     {
       // Close Logfile
       Serial.println("end logging");
@@ -111,8 +111,8 @@ void CIVARecorder_loop()
   else
   {
     // 10 Seconds moving? Create file
-    if (gnss.location.isValid() && (TimeMoving >= 10000)
-        || (!gnss.location.isValid() && (CIVA_Status == CIVA_CLIMB)))
+    if (isValidGNSSFix() && (TimeMoving >= 10000)
+        || (!isValidGNSSFix() && (CIVA_Status == CIVA_CLIMB)))
     {
       // create Logfile
       Serial.println("start logging");
@@ -124,7 +124,7 @@ void CIVARecorder_loop()
       if (LogFile)
       {
         LogFile.write("date, time, time/msec, nx/g, ny/g, nz/g, phi, psi, theta, rot_x/deg/sec, rot_y/deg/sec, rot_z/deg/s, p_cabin/Pa, p_stat/Pa, p_diff/Pa,eta_hr, eta_qr, eta_sr, eta_fl, GPS_FIX, numSat, GPS_altitude, GPS_speed, longitude, latitude\n");
-        LogTime = 0;
+        LogTime = LogInterval+1;  // force immediate write of first data set
         LogActive = true;
       }
     }
@@ -159,7 +159,7 @@ void CIVARecorder_loop()
                           lround(_rx), lround(_ry), lround(_rz),                                              // rotx, y, z //  9 10 11
                           lround(Baro_pressure()), 0, 0,                                      // 12 13 14
                           lround(Baro_altitude() - StartupAltitude), CIVA_Alarm, 0, 0, // SensorData.eta[ETA_HR], SensorData.eta[ETA_QR], SensorData.eta[ETA_SR], SensorData.eta[ETA_FLAP], // 15 16 17 18
-                          gnss.location.isValid(), gnss.satellites.value(), lround(gnss.altitude.meters()), lround(gnss.speed.kmph()), // SensorData.GPS_FIX, SensorData.GPS_numSat, SensorData.GPS_altitude, SensorData.GPS_speed,         // 19 20 21 22
+                          isValidGNSSFix(), gnss.satellites.value(), lround(gnss.altitude.meters()), lround(gnss.speed.kmph()), // SensorData.GPS_FIX, SensorData.GPS_numSat, SensorData.GPS_altitude, SensorData.GPS_speed,         // 19 20 21 22
                           lround(10000000*gnss.location.lat()), lround(10000000*gnss.location.lng())  // 23 24
                           );
       LogFile.write(loggerline);
