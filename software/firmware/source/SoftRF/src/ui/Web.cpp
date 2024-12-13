@@ -1073,7 +1073,7 @@ void Flights() {
       if (!file.isDirectory()) {
         file.getName(buf, sizeof(buf));
         filename = String(buf);
-        if (filename.endsWith(".igc") || filename.endsWith(".IGC")|| filename.endsWith(".log") || filename.endsWith(".LOG")) {
+        if (filename.endsWith(".igc") || filename.endsWith(".IGC")|| filename.endsWith(".dat") || filename.endsWith(".DAT")) {
           Filenames[numfiles].filename = (filename.startsWith("/") ? filename.substring(1) : filename);
           Filenames[numfiles].fsize    = ConvBinUnits(file.size(), 1);
           file.getModifyDateTime(&Filenames[numfiles].date, &Filenames[numfiles].time);
@@ -1164,7 +1164,7 @@ String getContentType(String filename) {
     return "application/x-gzip";
   } else if (filename.endsWith(".igc") || filename.endsWith(".IGC")) {
     return "application/octet-stream";
-  } else if (filename.endsWith(".log") || filename.endsWith(".LOG")) {
+  } else if (filename.endsWith(".dat") || filename.endsWith(".DAT")) {
     return "application/octet-stream";
   }
   return "text/plain";

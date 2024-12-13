@@ -118,7 +118,7 @@ void CIVARecorder_loop()
       Serial.println("start logging");
       char LogName[50];
        snprintf(LogName, sizeof(LogName),
-           FLIGHTS_DIR "/%04d-%02d-%02d_%02d-%02d.log",
+           FLIGHTS_DIR "/%04d-%02d-%02d_%02d-%02d.dat",
            year(), month(), day(), hour(), minute());
       LogFile = uSD.open(LogName, FILE_WRITE);
       if (LogFile)
