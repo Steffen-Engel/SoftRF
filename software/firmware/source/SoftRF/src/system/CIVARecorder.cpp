@@ -100,7 +100,7 @@ void CIVARecorder_loop()
   {
     // 15 Seconds not moving? End Logging, close file
     if ((isValidGNSSFix() && (TimeNotMoving >= 15000))
-        || (!isValidGNSSFix() && (CIVA_Status == CIVA_LAND)))
+        || (!isValidGNSSFix() && ((CIVA_Status == CIVA_GROUND) || (CIVA_Status == CIVA_LAND))))
     {
       // Close Logfile
       Serial.println("end logging");

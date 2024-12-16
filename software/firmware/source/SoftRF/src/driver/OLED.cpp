@@ -694,10 +694,10 @@ static void OLED_aerobatic()
 
     u8x8->clear();
 
-    u8x8->drawString( 2, 1, "AGL m");
+    u8x8->drawString( 2, 0, "AGL m");
 
-    u8x8->drawString(10, 1, BAT_text);
-    u8x8->drawGlyph (12, 4, '.');
+    u8x8->drawString(10, 0, BAT_text);
+    u8x8->drawGlyph (12, 2, '.');
     // force display of values
     prev_altitude     = (int32_t)   -10000;
     prev_voltage      = (uint32_t) -1;
@@ -707,11 +707,11 @@ static void OLED_aerobatic()
     OLED_display_titles = true;
   }
 
-  int32_t altitude    = Baro_altitude() - StartupAltitude;        /* metres */
+  int32_t altitude    = Baro_altitude() - StartupAltitude;        /* meters */
 
   if (prev_altitude != altitude) {
     snprintf(buf, sizeof(buf), "%4d", altitude);
-    u8x8->draw2x2String(0, 3, buf);
+    u8x8->draw2x2String(0, 1, buf);
     prev_altitude = altitude;
   }
 
@@ -726,13 +726,13 @@ static void OLED_aerobatic()
       disp_value = voltage / 10;
       disp_value = disp_value > 9 ? 9 : disp_value;
 
-      u8x8->draw2x2Glyph(10, 3, '0' + disp_value);
+      u8x8->draw2x2Glyph(10, 1, '0' + disp_value);
       disp_value = voltage % 10;
 
-      u8x8->draw2x2Glyph(13, 3, '0' + disp_value);
+      u8x8->draw2x2Glyph(13, 1, '0' + disp_value);
     } else {
-      u8x8->draw2x2Glyph(10, 3, 'N');
-      u8x8->draw2x2Glyph(13, 3, 'A');
+      u8x8->draw2x2Glyph(10, 1, 'N');
+      u8x8->draw2x2Glyph(13, 1, 'A');
     }
     prev_voltage = voltage;
   }
@@ -742,21 +742,21 @@ static void OLED_aerobatic()
     switch (CIVA_Status)
     {
     case CIVA_NONE:
-      u8x8->draw2x2String(1, 6, "UNKNOWN");
+      u8x8->draw2x2String(1, 3, "UNKNOWN");
       break;
     case CIVA_GROUND:
-      u8x8->draw2x2String(1, 6, "GROUND ");
+      u8x8->draw2x2String(1, 3, "GROUND ");
       break;
     case CIVA_CLIMB:
     case CIVA_ALT150:
     case CIVA_ALT200:
-      u8x8->draw2x2String(1, 6, "CLIMB  ");
+      u8x8->draw2x2String(1, 3, "CLIMB  ");
       break;
     case CIVA_ACTIVE:
-      u8x8->draw2x2String(1, 6, "ACTIVE ");
+      u8x8->draw2x2String(1, 3, "ACTIVE ");
       break;
     case CIVA_LAND:
-      u8x8->draw2x2String(1, 6, "LANDED ");
+      u8x8->draw2x2String(1, 3, "LANDED ");
       break;
 
     default:
@@ -765,11 +765,18 @@ static void OLED_aerobatic()
     prev_CIVA_Status = CIVA_Status;
   }
 
-extern bool LogActive;
-if (LogActive)
-  u8x8->drawString(1, 5, "log on ");
-else
-  u8x8->drawString(1, 5, "log off");
+  char line[40];
+#define STATUSLINE 6
+  extern bool LogActive;
+  snprintf(line, sizeof(line), "GPS %s SD %s log %s", isValidGNSSFix() ? "+":"-",
+                                                      hw_info.storage == STORAGE_CARD ||
+                                                        hw_info.storage == STORAGE_FLASH_AND_CARD ? "+" : "-",
+                                                      LogActive ? "+":"-");
+  u8x8->drawString( 0, STATUSLINE, line);
+
+#define STATUSLINE2 7
+  snprintf(line, sizeof(line), "GS %3d", lround(gnss.speed.kmph()));
+  u8x8->drawString( 0, STATUSLINE2, line);
 }
 
 
@@ -1164,8 +1171,8 @@ void OLED_info1()
 
       break;
     }
-
-    delay(3000);
+    if (!settings->aerobaticbox)
+      delay(3000);
   }
 }
 
@@ -1195,7 +1202,8 @@ void OLED_info2()
       break;
     }
 
-    delay(3000);
+    if (!settings->aerobaticbox)
+      delay(3000);
   }
 }
 
@@ -1238,7 +1246,8 @@ void OLED_info3(int acfts, char *reg, char *mam, char *cn)
       break;
     }
 
-    delay(3000);
+    if (!settings->aerobaticbox)
+      delay(3000);
   }
 }
 
