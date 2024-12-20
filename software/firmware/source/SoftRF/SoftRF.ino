@@ -482,6 +482,12 @@ void normal()
     case CIVA_ALT200:
       if (ThisAircraft.altitude >= CIVAAltitude)
         CIVA_Status = CIVA_ACTIVE;
+
+      // maybe landed again...
+      if (ThisAircraft.altitude <= 20)
+      {
+        CIVA_Status = CIVA_LAND;
+      }
       break;
     case CIVA_ACTIVE:
       // maybe landed again...
