@@ -1,6 +1,6 @@
 /*
  * Platform_RP2040.cpp
- * Copyright (C) 2023-2024 Linar Yusupov
+ * Copyright (C) 2023-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,10 +44,11 @@ extern "C"
 }
 #endif /* ARDUINO_ARCH_MBED */
 
-#if !defined(ARDUINO_RASPBERRY_PI_PICO_2)
+#if !defined(ARDUINO_RASPBERRY_PI_PICO_2) && \
+    !defined(ARDUINO_RASPBERRY_PI_PICO_2W)
 #include <pico_sleep.h>
 #include <pico_rosc.h>
-#endif /* ARDUINO_RASPBERRY_PI_PICO_2 */
+#endif /* ARDUINO_RASPBERRY_PI_PICO_2 or 2W */
 
 #if defined(USE_TINYUSB)
 #if defined(USE_USB_HOST)
@@ -134,10 +135,10 @@ static union {
 #endif /* USE_EXT_I2S_DAC */
 #endif /* EXCLUDE_AUDIO */
 
-#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W) || defined(ARDUINO_RASPBERRY_PI_PICO_2W)
 #include <pico/cyw43_arch.h>
 #include <boards/pico_w.h>
-#endif /* ARDUINO_RASPBERRY_PI_PICO_W */
+#endif /* ARDUINO_RASPBERRY_PI_PICO_W or 2W */
 
 Adafruit_INA219 ina219(INA219_ADDRESS_ALT);
 
@@ -503,7 +504,9 @@ static void RP2040_fini()
 #if defined(ARDUINO_RASPBERRY_PI_PICO_W)
   if (RP2040_board == RP2040_RPIPICO_W) {
     if (cyw43_is_initialized(&cyw43_state)) cyw43_arch_deinit();
+#if !(ARDUINO_PICO_MAJOR == 4 && ARDUINO_PICO_MINOR == 3 && ARDUINO_PICO_REVISION == 0)
     pinMode(CYW43_PIN_WL_REG_ON, INPUT_PULLDOWN);
+#endif
   }
 #endif /* ARDUINO_RASPBERRY_PI_PICO_W */
 
@@ -527,7 +530,8 @@ static void RP2040_fini()
   USBDevice.detach();
 #endif /* USE_TINYUSB */
 
-#if !defined(ARDUINO_RASPBERRY_PI_PICO_2)
+#if !defined(ARDUINO_RASPBERRY_PI_PICO_2) && \
+    !defined(ARDUINO_RASPBERRY_PI_PICO_2W)
   sleep_run_from_xosc();
 
 #if SOC_GPIO_PIN_KEY1 != SOC_UNUSED_PIN
@@ -545,7 +549,7 @@ static void RP2040_fini()
 
   // back from dormant state
   rosc_enable();
-#endif /* ARDUINO_RASPBERRY_PI_PICO_2 */
+#endif /* ARDUINO_RASPBERRY_PI_PICO_2 or 2W */
 
 #if PICO_SDK_VERSION_MAJOR < 2
   clocks_init();
@@ -1790,8 +1794,18 @@ IODev_ops_t RP2040_USBSerial_ops = {
 };
 
 const SoC_ops_t RP2040_ops = {
+#if defined(PICO_RP2350)
+#if defined(PICO_RISCV)
+  SOC_RP2350_RISC,
+  "RP2350-RISC",
+#else
+  SOC_RP2350_ARM,
+  "RP2350-ARM",
+#endif /* PICO_RISCV */
+#else
   SOC_RP2040,
   "RP2040",
+#endif /* PICO_RP2350 */
   RP2040_setup,
   RP2040_post_init,
   RP2040_loop,

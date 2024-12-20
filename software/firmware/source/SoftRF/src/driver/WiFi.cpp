@@ -1,6 +1,6 @@
 /*
  * WiFiHelper.cpp
- * Copyright (C) 2016-2024 Linar Yusupov
+ * Copyright (C) 2016-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -230,7 +230,8 @@ void WiFi_setup()
     host_name += String((0xAEAB00+settings->CIVA_HMD_ID), HEX);
   }
 
-  if (SoC->id == SOC_ESP8266 || SoC->id == SOC_RP2040) {
+  if (SoC->id == SOC_ESP8266    || SoC->id == SOC_RP2040 ||
+      SoC->id == SOC_RP2350_ARM || SoC->id == SOC_RP2350_RISC) {
     WiFi.mode(WIFI_STA);
     if (SoC->WiFi_hostname(host_name) == false) {
       return;

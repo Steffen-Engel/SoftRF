@@ -1,6 +1,6 @@
 /*
  * Platform_EFR32.h
- * Copyright (C) 2024 Linar Yusupov
+ * Copyright (C) 2024-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -161,9 +161,9 @@ struct rst_info {
 #define EXCLUDE_OLED_049
 //#define EXCLUDE_OLED_BARO_PAGE
 
-//#define USE_BASICMAC
+#define USE_BASICMAC
 //#define EXCLUDE_SX1276         //  -  3 kb
-//#define USE_RADIOLIB
+#define USE_RADIOLIB
 
 #define USE_TIME_SLOTS
 #define USE_OGN_ENCRYPTION

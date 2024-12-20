@@ -1,6 +1,6 @@
 /*
  * Platform_RP2XXX.h
- * Copyright (C) 2022-2024 Linar Yusupov
+ * Copyright (C) 2022-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,6 +69,7 @@ enum RP2xxx_board_id {
   RP2040_RPIPICO_W,
   RP2040_WEACT,
   RP2350_RPIPICO_2,
+  RP2350_RPIPICO_2W,
 };
 
 struct rst_info {
@@ -109,6 +110,8 @@ struct rst_info {
 #define SOC_GPIO_PIN_MISO     (12u)
 #define SOC_GPIO_PIN_SCK      (10u)
 #define SOC_GPIO_PIN_SS       (13u)
+
+#define RadioSPI              SPI1
 
 /* NRF905 */
 #define SOC_GPIO_PIN_TXE      SOC_UNUSED_PIN
@@ -154,9 +157,10 @@ struct rst_info {
 
 #define SOC_ADC_VOLTAGE_DIV   (5.0 / 3)
 
-#elif defined(ARDUINO_RASPBERRY_PI_PICO)   || \
-      defined(ARDUINO_RASPBERRY_PI_PICO_2) || \
-      defined(ARDUINO_RASPBERRY_PI_PICO_W) || \
+#elif defined(ARDUINO_RASPBERRY_PI_PICO)    || \
+      defined(ARDUINO_RASPBERRY_PI_PICO_2)  || \
+      defined(ARDUINO_RASPBERRY_PI_PICO_W)  || \
+      defined(ARDUINO_RASPBERRY_PI_PICO_2W) || \
       defined(ARDUINO_NANO_RP2040_CONNECT)
 
 /* Console I/O */
@@ -182,6 +186,8 @@ struct rst_info {
 #define SOC_GPIO_PIN_MISO     (12u)
 #define SOC_GPIO_PIN_SCK      (10u)
 #define SOC_GPIO_PIN_SS       (3u)
+
+#define RadioSPI              SPI1
 
 /* NRF905 */
 #define SOC_GPIO_PIN_TXE      SOC_UNUSED_PIN
@@ -228,7 +234,8 @@ struct rst_info {
 #error "This RP2040 build variant is not supported!"
 #endif
 
-#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W) || \
+    defined(ARDUINO_RASPBERRY_PI_PICO_2W)
 #define EXCLUDE_OTA
 #define USE_WIFI_NINA         false
 #define USE_WIFI_CUSTOM       true
@@ -268,7 +275,7 @@ struct rst_info {
 #define EXCLUDE_BLUETOOTH
 #endif /* ARDUINO_NANO_RP2040_CONNECT */
 #endif /* ARDUINO_ARCH_MBED */
-#endif /* ARDUINO_RASPBERRY_PI_PICO_W */
+#endif /* ARDUINO_RASPBERRY_PI_PICO_W or 2W */
 
 #define EXCLUDE_CC13XX
 #define EXCLUDE_TEST_MODE
@@ -324,7 +331,9 @@ struct rst_info {
 #endif /* ARDUINO_ARCH_MBED */
 
 #define USE_BASICMAC
-//#define USE_RADIOLIB
+#if defined(ARDUINO_GENERIC_RP2040)
+#define USE_RADIOLIB
+#endif /* ARDUINO_GENERIC_RP2040 */
 
 #define USE_TIME_SLOTS
 

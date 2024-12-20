@@ -1,6 +1,6 @@
 /*
  * SkyWatch.h
- * Copyright (C) 2019-2024 Linar Yusupov
+ * Copyright (C) 2019-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,8 +23,8 @@
 #include <Arduino.h>
 #endif /* ARDUINO */
 
-#define SKYWATCH_FIRMWARE_VERSION  "1.1"
-#define SKYWATCH_USB_FW_VERSION    0x0101
+#define SKYWATCH_FIRMWARE_VERSION  "1.2"
+#define SKYWATCH_USB_FW_VERSION    0x0102
 #define SKYWATCH_IDENT    "SkyWatch"
 #define WEBTOP_IDENT      "WebTop"
 #define SOFTRF_IDENT      "SoftRF"

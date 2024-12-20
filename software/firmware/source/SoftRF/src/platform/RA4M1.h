@@ -1,6 +1,6 @@
 /*
  * Platform_RA4M1.h
- * Copyright (C) 2024 Linar Yusupov
+ * Copyright (C) 2024-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -124,7 +124,7 @@ extern  SoftSPI RadioSPI;
 
 /* SX1276 */
 #define SOC_GPIO_PIN_RST      PIN_D9
-#define SOC_GPIO_PIN_BUSY     SOC_UNUSED_PIN
+#define SOC_GPIO_PIN_BUSY     LMIC_UNUSED_PIN
 #define SOC_GPIO_PIN_DIO1     PIN_D6
 
 /* RF antenna switch */
@@ -206,6 +206,9 @@ extern  SoftSPI RadioSPI;
 
 //#define USE_BASICMAC
 //#define EXCLUDE_SX1276         //  -  3 kb
+#if defined(ARDUINO_UNOR4_MINIMA)
+#define USE_RADIOLIB
+#endif /* ARDUINO_UNOR4_MINIMA */
 
 #if defined(EXCLUDE_WIFI)
 #define USE_OLED                 /* -1.5K HEAP */

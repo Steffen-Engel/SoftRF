@@ -1,6 +1,6 @@
 /*
  * Platform_nRF52.cpp
- * Copyright (C) 2020-2024 Linar Yusupov
+ * Copyright (C) 2020-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -145,6 +145,7 @@ static bool RTC_sync           = false;
 static bool FATFS_is_mounted   = false;
 static bool ADB_is_open        = false;
 static bool screen_saver       = false;
+static bool nRF52_has_vff      = false; /* very first fix */
 
 #if !defined(ARDUINO_ARCH_MBED)
 RTC_Date fw_build_date_time = RTC_Date(__DATE__, __TIME__);
@@ -636,6 +637,32 @@ Adafruit_NeoPixel T114_Pixels = Adafruit_NeoPixel(2, SOC_GPIO_PIN_T114_LED,
 ExtensionIOXL9555 *xl9555 = nullptr;
 bool nRF52_has_extension  = false;
 #endif /* ARDUINO_ARCH_MBED */
+
+#if defined(ENABLE_NFC)
+#include <NFC.h>
+
+extern "C" int nfcpins_enable(void);
+
+void nfc_func(void *context, nfc_t2t_event_t event,
+              const uint8_t *data, size_t dataLength)
+{
+    (void) context;
+
+    switch (event)
+    {
+        case NFC_T2T_EVENT_FIELD_ON:
+            Serial.println("******NFC_T2T_EVENT_FIELD_ON******");
+            break;
+
+        case NFC_T2T_EVENT_FIELD_OFF:
+            Serial.println("------NFC_T2T_EVENT_FIELD_OFF------");
+            break;
+
+        default:
+            break;
+    }
+}
+#endif /* ENABLE_NFC */
 
 static void nRF52_setup()
 {
@@ -1348,6 +1375,26 @@ static void nRF52_setup()
       break;
   }
 #endif /* EXCLUDE_WIFI */
+
+#if defined(ENABLE_NFC)
+  if (nRF52_board == NRF52_LILYGO_TECHO_REV_0 ||
+      nRF52_board == NRF52_LILYGO_TECHO_REV_1 ||
+      nRF52_board == NRF52_LILYGO_TECHO_REV_2 ||
+      nRF52_board == NRF52_LILYGO_TULTIMA) {
+    if ((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) != (UICR_NFCPINS_PROTECT_NFC << UICR_NFCPINS_PROTECT_Pos)) {
+      Serial.println("*** NFC pins are disabled ***");
+      // nfcpins_enable();
+    } else {
+      String NFC_name = SOFTRF_IDENT;
+      NFC_name += "-";
+      NFC_name += String(SoC->getChipId() & 0x00FFFFFFU, HEX);
+
+      NFC.setTXTmessage((NFC_name+"-NFC").c_str(), "en");
+      NFC.start();
+      NFC.registerCallback(nfc_func);
+    }
+  }
+#endif /* ENABLE_NFC */
 }
 
 static void nRF52_post_init()
@@ -1735,6 +1782,24 @@ static void nRF52_loop()
     IMU_Time_Marker = millis();
   }
 #endif /* EXCLUDE_IMU */
+
+  if (nRF52_board      == NRF52_SEEED_T1000E &&
+      settings->volume != BUZZER_OFF         &&
+      settings->mode   == SOFTRF_MODE_NORMAL &&
+      nRF52_has_vff    == false              &&
+      isValidFix()     == true) {
+    uint8_t v = settings->volume;
+
+    SoC->Sound_tone(1046, v); delay(200); SoC->Sound_tone(0, v);
+    SoC->Sound_tone(1175, v); delay(200); SoC->Sound_tone(0, v);
+    SoC->Sound_tone(1318, v); delay(200); SoC->Sound_tone(0, v);
+    SoC->Sound_tone(1397, v); delay(400); SoC->Sound_tone(0, v);
+                              delay(200);
+    SoC->Sound_tone(1046, v); delay(200); SoC->Sound_tone(0, v);
+    SoC->Sound_tone(1397, v); delay(400); SoC->Sound_tone(0, v);
+
+    nRF52_has_vff = true;
+  }
 }
 
 static void nRF52_fini(int reason)

@@ -1,6 +1,6 @@
 /*
  * Platform_ESP8266.h
- * Copyright (C) 2018-2024 Linar Yusupov
+ * Copyright (C) 2018-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -103,6 +103,7 @@ extern Adafruit_NeoPixel strip;
 
 #define USE_NMEALIB
 //#define USE_BASICMAC
+//#define USE_RADIOLIB
 
 #define EXCLUDE_GNSS_UBLOX
 #define EXCLUDE_GNSS_SONY

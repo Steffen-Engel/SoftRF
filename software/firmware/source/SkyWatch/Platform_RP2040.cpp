@@ -1,6 +1,6 @@
 /*
  * Platform_RP2040.cpp
- * Copyright (C) 2023-2024 Linar Yusupov
+ * Copyright (C) 2023-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,9 +45,10 @@ extern "C"
 }
 #endif /* ARDUINO_ARCH_MBED */
 
-#if !defined(ARDUINO_RASPBERRY_PI_PICO_2)
+#if !defined(ARDUINO_RASPBERRY_PI_PICO_2) && \
+    !defined(ARDUINO_RASPBERRY_PI_PICO_2W)
 #include <pico_sleep.h>
-#endif /* ARDUINO_RASPBERRY_PI_PICO_2 */
+#endif /* ARDUINO_RASPBERRY_PI_PICO_2 or 2W */
 
 #if defined(USE_TINYUSB)
 #if defined(USE_USB_HOST)
@@ -870,8 +871,18 @@ IODev_ops_t RP2040_USBSerial_ops = {
 };
 
 const SoC_ops_t RP2040_ops = {
+#if defined(PICO_RP2350)
+#if defined(PICO_RISCV)
+  SOC_RP2350_RISC,
+  "RP2350-RISC",
+#else
+  SOC_RP2350_ARM,
+  "RP2350-ARM",
+#endif /* PICO_RISCV */
+#else
   SOC_RP2040,
   "RP2040",
+#endif /* PICO_RP2350 */
   RP2040_setup,
   RP2040_post_init,
   RP2040_loop,

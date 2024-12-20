@@ -1,6 +1,6 @@
 /*
  * Platform_ESP8266.cpp
- * Copyright (C) 2018-2024 Linar Yusupov
+ * Copyright (C) 2018-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,6 +72,10 @@ void ICACHE_FLASH_ATTR user_init()
 static void ESP8266_setup()
 {
   Serial.begin(SERIAL_OUT_BR, SERIAL_OUT_BITS);
+
+#if defined(USE_RADIOLIB)
+  lmic_pins.dio[0] = SOC_GPIO_PIN_DIO0;
+#endif /* USE_RADIOLIB */
 }
 
 static void ESP8266_post_init()

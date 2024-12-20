@@ -7,7 +7,7 @@
  *    Development -  https://github.com/3s1d/fanet-stm32
  *    Deprecated  -  https://github.com/3s1d/fanet
  *
- * Copyright (C) 2017-2024 Linar Yusupov
+ * Copyright (C) 2017-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,7 +69,7 @@ const uint8_t aircraft_type_to_fanet[] PROGMEM = {
 	FANET_AIRCRAFT_TYPE_GLIDER,
 	FANET_AIRCRAFT_TYPE_POWERED,
 	FANET_AIRCRAFT_TYPE_HELICOPTER,
-	FANET_AIRCRAFT_TYPE_OTHER,
+	FANET_AIRCRAFT_TYPE_PARAGLIDER,
 	FANET_AIRCRAFT_TYPE_POWERED,
 	FANET_AIRCRAFT_TYPE_HANGGLIDER,
 	FANET_AIRCRAFT_TYPE_PARAGLIDER,

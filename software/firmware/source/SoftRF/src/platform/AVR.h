@@ -1,6 +1,6 @@
 /*
  * Platform_AVR.h
- * Copyright (C) 2021-2024 Linar Yusupov
+ * Copyright (C) 2021-2025 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -110,7 +110,7 @@ struct rst_info {
 
 /* SX1276 */
 #define SOC_GPIO_PIN_RST      9              // PH6
-#define SOC_GPIO_PIN_BUSY     SOC_UNUSED_PIN
+#define SOC_GPIO_PIN_BUSY     LMIC_UNUSED_PIN
 #define SOC_GPIO_PIN_DIO1     6              // PH3
 
 /* RF antenna switch */
@@ -159,6 +159,10 @@ struct rst_info {
 #define EXCLUDE_LED_RING         //  -    kb
 //#define EXCLUDE_SOUND
 #define EXCLUDE_IMU
+
+//#define USE_BASICMAC
+//#define EXCLUDE_SX1276         //  -  3 kb
+//#define USE_RADIOLIB
 
 //#define USE_OLED               //       kb
 #define EXCLUDE_OLED_049
