@@ -21,6 +21,14 @@
 
 #include "SoC.h"
 
+#if !defined(ENABLE_RECORDER)
+void CIVARecorder_setup()   {}
+void CIVARecorder_loop()    {}
+void CIVARecorder_fini()    {}
+bool LogActive = false;
+
+#else
+
 #include <TimeLib.h>
 #include <SdFat.h>
 #include <elapsedMillis.h>
@@ -180,12 +188,4 @@ void CIVARecorder_fini()
   }
 }
 
-
-
-
-
-
-
-
-
-
+#endif
