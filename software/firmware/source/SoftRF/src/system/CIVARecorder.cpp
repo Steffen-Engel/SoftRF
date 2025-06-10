@@ -21,12 +21,11 @@
 
 #include "SoC.h"
 
-#if !defined(ENABLE_RECORDER)
+#if !defined(CONFIG_IDF_TARGET_ESP32S3)
 void CIVARecorder_setup()   {}
 void CIVARecorder_loop()    {}
 void CIVARecorder_fini()    {}
 bool LogActive = false;
-
 #else
 
 #include <TimeLib.h>
