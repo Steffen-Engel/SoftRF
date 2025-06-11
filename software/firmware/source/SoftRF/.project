@@ -34,12 +34,12 @@
 		<link>
 			<name>core/core</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/cores/esp32</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/cores/esp32</locationURI>
 		</link>
 		<link>
 			<name>core/variant</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/variants/esp32</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/variants/esp32</locationURI>
 		</link>
 		<link>
 			<name>libraries/ADC</name>
@@ -79,17 +79,17 @@
 		<link>
 			<name>libraries/ArduinoOTA</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/ArduinoOTA</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/ArduinoOTA</locationURI>
 		</link>
 		<link>
 			<name>libraries/BLE</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/BLE</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/BLE</locationURI>
 		</link>
 		<link>
 			<name>libraries/BluetoothSerial</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/BluetoothSerial</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/BluetoothSerial</locationURI>
 		</link>
 		<link>
 			<name>libraries/CRC</name>
@@ -99,7 +99,7 @@
 		<link>
 			<name>libraries/EEPROM</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/EEPROM</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/EEPROM</locationURI>
 		</link>
 		<link>
 			<name>libraries/ESP32_I2C_Bus</name>
@@ -109,17 +109,17 @@
 		<link>
 			<name>libraries/ESPmDNS</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/ESPmDNS</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/ESPmDNS</locationURI>
 		</link>
 		<link>
 			<name>libraries/FFat</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/FFat</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/FFat</locationURI>
 		</link>
 		<link>
 			<name>libraries/FS</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/FS</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/FS</locationURI>
 		</link>
 		<link>
 			<name>libraries/FlightRecorder</name>
@@ -134,7 +134,7 @@
 		<link>
 			<name>libraries/HTTPClient</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/HTTPClient</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/HTTPClient</locationURI>
 		</link>
 		<link>
 			<name>libraries/IniFile</name>
@@ -189,17 +189,17 @@
 		<link>
 			<name>libraries/SD</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/SD</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/SD</locationURI>
 		</link>
 		<link>
 			<name>libraries/SPI</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/SPI</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/SPI</locationURI>
 		</link>
 		<link>
 			<name>libraries/SPIFFS</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/SPIFFS</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/SPIFFS</locationURI>
 		</link>
 		<link>
 			<name>libraries/SdFat</name>
@@ -234,22 +234,22 @@
 		<link>
 			<name>libraries/Update</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/Update</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/Update</locationURI>
 		</link>
 		<link>
 			<name>libraries/WebServer</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/WebServer</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/WebServer</locationURI>
 		</link>
 		<link>
 			<name>libraries/WiFi</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/WiFi</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/WiFi</locationURI>
 		</link>
 		<link>
 			<name>libraries/WiFiClientSecure</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/WiFiClientSecure</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/WiFiClientSecure</locationURI>
 		</link>
 		<link>
 			<name>libraries/WiFiWebServer</name>
@@ -259,7 +259,7 @@
 		<link>
 			<name>libraries/Wire</name>
 			<type>2</type>
-			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/1.0.6/libraries/Wire</locationURI>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/2.0.17/libraries/Wire</locationURI>
 		</link>
 		<link>
 			<name>libraries/XPowersLib</name>
