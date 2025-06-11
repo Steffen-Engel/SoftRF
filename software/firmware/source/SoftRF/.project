@@ -72,6 +72,11 @@
 			<locationURI>WORKSPACE_LOC/software/firmware/source/libraries/Adafruit_MPL3115A2_Library</locationURI>
 		</link>
 		<link>
+			<name>libraries/Adafruit_SPIFlash</name>
+			<type>2</type>
+			<locationURI>WORKSPACE_LOC/software/firmware/source/libraries/Adafruit_SPIFlash</locationURI>
+		</link>
+		<link>
 			<name>libraries/ArduinoJson</name>
 			<type>2</type>
 			<locationURI>WORKSPACE_LOC/software/firmware/source/libraries/ArduinoJson</locationURI>
