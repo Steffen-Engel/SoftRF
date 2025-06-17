@@ -257,7 +257,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildProperties="" cleanCommand="rm -f" description="" id="io.sloeber.core.sketch.0.767982369" name="T-Beam_MKIII" parent="io.sloeber.core.configuration.release">
+				<configuration artifactName="${ProjName}" buildProperties="" cleanCommand="rm -f" description="" id="io.sloeber.core.sketch.0.767982369" name="T-Beam_MKIII" parent="io.sloeber.core.configuration.release" prebuildStep="copy ..\partitions_MKIII.csv partitions.csv">
 					<folderInfo id="io.sloeber.core.sketch.0.767982369." name="/" resourcePath="">
 						<toolChain id="io.sloeber.core.toolChain.release.620600236" name="Arduino Toolchain (Sloeber edition)" superClass="io.sloeber.core.toolChain.release">
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="io.sloeber.targetplatform.1543124685" name="Arduino Target" osList="all" superClass="io.sloeber.targetplatform"/>
