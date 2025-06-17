@@ -1,4 +1,6 @@
 # ESP-IDF Partition Table
+# Partition Table for TBema MKIII
+#
 # Name,   Type, SubType, Offset,  Size, Flags
 # bootloader.bin,,          0x1000, 32K
 # partition table,,         0x8000, 4K
@@ -14,4 +16,5 @@ ota_0    , app , ota_0   ,  0x00010000, 0x00200000,
 ota_1    , app , ota_1   ,  0x00210000, 0x00200000,
 uf2      , app , factory ,  0x00410000, 0x00040000,
 ffat     , data, fat     ,  0x00450000, 0x002b0000,
-spiffs   , data, spiffs  ,  0x00700000, 0x00100000,
+spiffs   , data, spiffs  ,  0x00700000, 0x000F0000,
+coredump , data, coredump,  0x007F0000, 0x00010000,
