@@ -311,6 +311,10 @@ size_t RF_Encode(ufo_t *fop)
 
 bool RF_Transmit(size_t size, bool wait)
 {
+  if (settings->aerobaticbox && (settings->aircraft_type == AIRCRAFT_TYPE_STATIC))
+  {
+    return false;
+  }
   if (rf_chip && (size > 0)) {
     RF_tx_size = size;
 
