@@ -176,7 +176,7 @@ bool ogntp_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
 
       fop->stealth = 0;
 
-      sprintf(UDPpacketBuffer, "$PHMD0,%6x,%.4f,%c,%.4f,%c,%3.1f,%3.1f,%3.1f,%d,%3.1f,%3.1f*",
+      sprintf(UDPpacketBuffer, "$PHMD0,%6x,%.4f,%c,%.4f,%c,%3.1f,%3.1f,%3.1f,%d,%3.1f,%3.1f,%3d*",
             fop->addr,
             fabs(nmeaMathDegreeToNdeg(fop->latitude)), ((fop->latitude >= 0.0) ? 'N' : 'S'),
             fabs(nmeaMathDegreeToNdeg(fop->longitude)), ((fop->longitude >= 0.0) ? 'E' : 'W'),
@@ -185,7 +185,8 @@ bool ogntp_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
             fop->speed,  // speed
             ogn_rx_pkt.Packet.CIVA.PenaltyAlarm,
             0.1*ogn_rx_pkt.Packet.CIVA.max_g,     // max pos g
-            0.1*ogn_rx_pkt.Packet.CIVA.max_neg_g  // max neg g
+            0.1*ogn_rx_pkt.Packet.CIVA.max_neg_g,  // max neg g
+            RF_last_rssi
             );
       NMEA_add_checksum(UDPpacketBuffer, 150);
       SoC->WiFi_transmit_UDP(NMEA_UDP_PORT, (byte *) UDPpacketBuffer, strlen(UDPpacketBuffer));
