@@ -301,7 +301,7 @@ void handleSettings() {
 <tr>\
 <th align=left>CIVA HMD Device ID</th>\
 <td align=right>\
-<INPUT type='number' name='CIVA_ID' min='0' max='200' value='%d'>\
+<INPUT type='number' name='CIVA_ID' min='0' max='255' value='%d'>\
 </td>\
 </tr>\
 <tr>\
