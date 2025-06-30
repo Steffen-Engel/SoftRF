@@ -221,12 +221,13 @@ void WiFi_setup()
 {
   // Set Hostname.
   host_name += "-";
-  if (!settings->aerobaticbox)
+  host_name += String((SoC->getChipId() & 0xFFFFFF), HEX);
+
+
+
+  if (settings->aerobaticbox)
   {
-    host_name += String((SoC->getChipId() & 0xFFFFFF), HEX);
-  }
-  else
-  {
+	host_name = "SoftRF-";
     host_name += String((0xAEAB00+settings->CIVA_HMD_ID), HEX);
   }
 

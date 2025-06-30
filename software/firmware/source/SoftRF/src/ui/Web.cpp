@@ -150,9 +150,10 @@ Copyright (C) 2015-2025 &nbsp;&nbsp;&nbsp; Linar Yusupov\
 
 void handleSettings() {
 
-  size_t size = 5570;
+  size_t size = 5470;
   char *offset;
   size_t len = 0;
+size += 100;
   char *Settings_temp = (char *) malloc(size);
 
   if (Settings_temp == NULL) {
@@ -904,8 +905,9 @@ void handleRoot() {
 
 void handleInput() {
 
-  size_t size = 1800;
+  size_t size = 1700;
 
+  size += 100; // for CIVA specialties
   char *Input_temp = (char *) malloc(size);
   if (Input_temp == NULL) {
     return;
