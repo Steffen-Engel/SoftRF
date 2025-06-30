@@ -52,15 +52,7 @@ Exp_SoftwareSerial swSer(SOC_GPIO_PIN_GNSS_RX, SOC_GPIO_PIN_GNSS_TX, false, 256)
 SoftwareSerial swSer;
 #endif
 
-// Parameter 1 = number of pixels in strip
-// Parameter 2 = Arduino pin number (most are valid)
-// Parameter 3 = pixel type flags, add together as needed:
-//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
-//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIX_NUM, SOC_GPIO_PIN_LED,
-                              NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel *strip;
 
 void ICACHE_FLASH_ATTR user_init()
 {   
@@ -76,6 +68,16 @@ static void ESP8266_setup()
 #if defined(USE_RADIOLIB)
   lmic_pins.dio[0] = SOC_GPIO_PIN_DIO0;
 #endif /* USE_RADIOLIB */
+
+  // Parameter 1 = number of pixels in strip
+  // Parameter 2 = Arduino pin number (most are valid)
+  // Parameter 3 = pixel type flags, add together as needed:
+  //   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+  //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
+  //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
+  //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
+
+  strip = new Adafruit_NeoPixel(PIX_NUM, SOC_GPIO_PIN_LED, NEO_GRB + NEO_KHZ800);
 }
 
 static void ESP8266_post_init()
@@ -90,7 +92,7 @@ static void ESP8266_loop()
 
 static void ESP8266_fini(int reason)
 {
-
+  if (strip) delete strip;
 }
 
 static void ESP8266_reset()
@@ -158,6 +160,8 @@ static void ESP8266_Sound_test(int var)
       tone(SOC_GPIO_PIN_BUZZER, 440, 500);
     }
     delay(600);
+    noTone(SOC_GPIO_PIN_BUZZER);
+    pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
 
 //    Serial_GNSS_In.enableRx(true);
   }
@@ -166,7 +170,12 @@ static void ESP8266_Sound_test(int var)
 static void ESP8266_Sound_tone(int hz, uint8_t volume)
 {
   if (SOC_GPIO_PIN_BUZZER != SOC_UNUSED_PIN && volume != BUZZER_OFF) {
-    tone(SOC_GPIO_PIN_BUZZER, hz, ALARM_TONE_MS);
+    if (hz > 0) {
+      tone(SOC_GPIO_PIN_BUZZER, hz, ALARM_TONE_MS);
+    } else {
+      noTone(SOC_GPIO_PIN_BUZZER);
+      pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
+    }
   }
 }
 

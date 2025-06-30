@@ -164,16 +164,16 @@ struct rst_info {
       defined(ARDUINO_NANO_RP2040_CONNECT)
 
 /* Console I/O */
-#define SOC_GPIO_PIN_CONS_RX  (5u)
-#define SOC_GPIO_PIN_CONS_TX  (4u)
+#define SOC_GPIO_PIN_CONS_RX  ( 5u) // "RX"
+#define SOC_GPIO_PIN_CONS_TX  ( 4u) // "TX"
 
 /* Waveshare Pico-GPS-L76B (MTK) */
-#define SOC_GPIO_PIN_GNSS_RX  (1u)  // (5u) , H2
-#define SOC_GPIO_PIN_GNSS_TX  (0u)  // (4u) , H1
-#define SOC_GPIO_PIN_GNSS_PPS (16u) // R20 (NC by default)
+#define SOC_GPIO_PIN_GNSS_RX  ( 1u) // D3, (5u) , H2
+#define SOC_GPIO_PIN_GNSS_TX  ( 0u) // D9, (4u) , H1
+#define SOC_GPIO_PIN_GNSS_PPS (16u) // R20      (NC by default)
 #define SOC_GPIO_PIN_GNSS_RST SOC_UNUSED_PIN // NA
-#define SOC_GPIO_PIN_GNSS_SBY (17u) // STANDBY
-#define SOC_GPIO_PIN_GNSS_FON (14u) // FORCE_ON
+#define SOC_GPIO_PIN_GNSS_SBY (17u) // STANDBY  (NC by default)
+#define SOC_GPIO_PIN_GNSS_FON (14u) // FORCE_ON (NC by default)
 
 /* SPI0 */
 #define SOC_GPIO_PIN_MOSI0    (19u)
@@ -182,10 +182,10 @@ struct rst_info {
 #define SOC_GPIO_PIN_SS0      (17u)
 
 /* Waveshare Pico-LoRa-SX1262-868M, SPI1 */
-#define SOC_GPIO_PIN_MOSI     (11u)
-#define SOC_GPIO_PIN_MISO     (12u)
-#define SOC_GPIO_PIN_SCK      (10u)
-#define SOC_GPIO_PIN_SS       (3u)
+#define SOC_GPIO_PIN_MOSI     (11u) // D7
+#define SOC_GPIO_PIN_MISO     (12u) // D6
+#define SOC_GPIO_PIN_SCK      (10u) // D5
+#define SOC_GPIO_PIN_SS       ( 3u) // D8
 
 #define RadioSPI              SPI1
 
@@ -195,9 +195,9 @@ struct rst_info {
 #define SOC_GPIO_PIN_PWR      SOC_UNUSED_PIN
 
 /* Waveshare Pico-LoRa-SX1262-868M, SX1262 */
-#define SOC_GPIO_PIN_RST      (15u)
-#define SOC_GPIO_PIN_BUSY     (2u)
-#define SOC_GPIO_PIN_DIO1     (20u) // may cause conflict with SDA
+#define SOC_GPIO_PIN_RST      (15u) // D2
+#define SOC_GPIO_PIN_BUSY     ( 2u) // D0
+#define SOC_GPIO_PIN_DIO1     (20u) // D4, may cause conflict with SDA
 
 /* Waveshare Pico-LoRa-SX1262-868M, RF antenna switch */
 #define SOC_GPIO_PIN_ANT_RXTX (22u) // RXEN
@@ -210,23 +210,23 @@ struct rst_info {
 #define SOC_GPIO_PIN_SDA1     (26u)
 #define SOC_GPIO_PIN_SCL1     (27u)
 
-#define SOC_GPIO_PIN_LED      SOC_UNUSED_PIN
+#define SOC_GPIO_PIN_LED      (13u) // D1
 #define SOC_GPIO_PIN_VBUS     (24u) // Pico
 #define SOC_GPIO_PIN_VSYS     (29u) // Pico
 #define SOC_GPIO_PIN_PS       (23u) // Pico
 #define SOC_GPIO_PIN_BUTTON   (23u) // WeAct
 #define SOC_GPIO_PIN_CYW43_EN (25u) // Pico W
 
-#define SOC_GPIO_PIN_STATUS   PIN_LED // Pico/WeAct - 25, W - 32 (CYW43 GPIO 0)
-#define SOC_GPIO_PIN_BATTERY  SOC_GPIO_PIN_VSYS
-#define SOC_GPIO_PIN_BUZZER   SOC_UNUSED_PIN
+#define SOC_GPIO_PIN_STATUS   PIN_LED // Pico/WeAct - 25, W - 64 (CYW43 GPIO 0)
+#define SOC_GPIO_PIN_BATTERY  SOC_GPIO_PIN_VSYS // A0, (8u)
+#define SOC_GPIO_PIN_BUZZER   ( 9u) // D10
 
 /* Waveshare Pico-LoRa-SX1262-868M */
 #define SOC_GPIO_RADIO_LED_RX SOC_UNUSED_PIN
 #define SOC_GPIO_RADIO_LED_TX SOC_UNUSED_PIN
 
-#define SOC_GPIO_PIN_USBH_DP  (6u)  // Pin used as D+ for host, D- = D+ + 1
-#define SOC_GPIO_PIN_USBH_DN  (7u)
+#define SOC_GPIO_PIN_USBH_DP  ( 6u) // Pin used as D+ for host, D- = D+ + 1
+#define SOC_GPIO_PIN_USBH_DN  ( 7u)
 
 #define SOC_ADC_VOLTAGE_DIV   (3.0) // 20K + 10K voltage divider of VSYS
 
@@ -243,9 +243,6 @@ struct rst_info {
 #define Serial_setDebugOutput(x) ({})
 #define WIFI_STA_TIMEOUT      20000
 #define NMEA_TCP_SERVICE
-#if PICO_SDK_VERSION_MAJOR == 2
-#define EXCLUDE_BLUETOOTH
-#endif /* PICO_SDK_VERSION_MAJOR */
 /* Experimental */
 //#define ENABLE_BT_VOICE
 #else
@@ -304,7 +301,6 @@ struct rst_info {
 #define EXCLUDE_UATM             //  -    kb
 #define EXCLUDE_MAVLINK          //  -    kb
 //#define EXCLUDE_EGM96          //  -    kb
-#define EXCLUDE_LED_RING         //  -    kb
 //#define EXCLUDE_SOUND
 
 #define USE_OLED                 //       kb
@@ -318,10 +314,16 @@ struct rst_info {
 //#define USE_USB_HOST
 #endif /* USE_TINYUSB */
 
+#define EXCLUDE_ETHERNET
+
 #if !defined(ARDUINO_ARCH_MBED)
 #define USE_BOOTSEL_BUTTON
+#if defined(ARDUINO_GENERIC_RP2040)
+#define EXCLUDE_LED_RING
+#endif /* ARDUINO_GENERIC_RP2040 */
 #else
 #define EXCLUDE_EEPROM
+#define EXCLUDE_LED_RING
 
 #if defined(USE_ARDUINOBLE)
 #define STR_HELPER(x) #x
@@ -333,6 +335,13 @@ struct rst_info {
 #define USE_BASICMAC
 #if defined(ARDUINO_GENERIC_RP2040)
 #define USE_RADIOLIB
+//#define USE_RADIOHEAD
+//#define EXCLUDE_LR11XX
+#define EXCLUDE_CC1101
+#define EXCLUDE_SI443X
+#define EXCLUDE_SI446X
+#define EXCLUDE_SX1231
+#define EXCLUDE_SX1280
 #endif /* ARDUINO_GENERIC_RP2040 */
 
 #define USE_TIME_SLOTS

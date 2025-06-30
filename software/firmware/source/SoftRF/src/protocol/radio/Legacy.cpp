@@ -538,28 +538,33 @@ bool legacy_decode(void *legacy_pkt, ufo_t *this_aircraft, ufo_t *fop) {
 
     /* TODO */
 
+#if 0
+    if (pkt->tstamp == ( timestamp    & 0xF) ||
+        pkt->tstamp == ((timestamp-1) & 0xF) ||
+        pkt->tstamp == ((timestamp+1) & 0xF)) {
+      return true;
+    } else {
+      return false;
+    }
+#else
     return true;
+#endif
 }
 
-#if defined(USE_INTERLEAVING)
-static bool use_v6_on_tx = true;
-#endif /* USE_INTERLEAVING */
+extern Slots_descr_t RF_Time_Slots;
 
 size_t legacy_encode(void *legacy_pkt, ufo_t *this_aircraft) {
 
 #if !defined(EXCLUDE_AIR6) && defined(USE_INTERLEAVING)
-    if (use_v6_on_tx) {
-      use_v6_on_tx = false;
+    if (RF_Time_Slots.current == 0) {
       return legacy_v6_encode(legacy_pkt, this_aircraft);
     }
-
-    use_v6_on_tx = true;
 #endif /* USE_INTERLEAVING */
 
     const uint32_t xxtea_key[4] = LEGACY_KEY5;
     uint32_t key_v7[4];
 
-    legacy_v7_packet_t *pkt = (legacy_v7_packet_t *) legacy_pkt;
+    volatile legacy_v7_packet_t *pkt = (legacy_v7_packet_t *) legacy_pkt;
     uint32_t *wpkt     = (uint32_t *) legacy_pkt;
 
     uint32_t id        = this_aircraft->addr;
@@ -619,6 +624,9 @@ size_t legacy_encode(void *legacy_pkt, ufo_t *this_aircraft) {
  * Volunteer contributors are welcome:
  * https://pastebin.com/YB1ppAbt
  */
+    pkt->hp            = 0x1d; /* 10 m */
+    pkt->vp            = 0x11; /* 20 m */
+
     pkt->_unk1         = 0;
     pkt->_unk2         = 0;
     pkt->_unk3         = 3;

@@ -57,10 +57,12 @@
 #undef  SerialOutput
 #define SerialOutput            Serial0
 #endif /* ARDUINO_USB_CDC_ON_BOOT */
-#elif defined(CONFIG_IDF_TARGET_ESP32C2) || \
-      defined(CONFIG_IDF_TARGET_ESP32C3) || \
-      defined(CONFIG_IDF_TARGET_ESP32C6) || \
-      defined(CONFIG_IDF_TARGET_ESP32H2) || \
+#elif defined(CONFIG_IDF_TARGET_ESP32C2)  || \
+      defined(CONFIG_IDF_TARGET_ESP32C3)  || \
+      defined(CONFIG_IDF_TARGET_ESP32C5)  || \
+      defined(CONFIG_IDF_TARGET_ESP32C6)  || \
+      defined(CONFIG_IDF_TARGET_ESP32C61) || \
+      defined(CONFIG_IDF_TARGET_ESP32H2)  || \
       defined(CONFIG_IDF_TARGET_ESP32P4)
 #if ARDUINO_USB_CDC_ON_BOOT
 #define UATSerial               Serial0
@@ -92,10 +94,14 @@
  * NeoPixelBus is already "flickering-free" on ESP32 (with I2S or RMT)
  * but the "Core" needs update onto the most recent one
  */
-#if defined(CONFIG_IDF_TARGET_ESP32C2)
+#if defined(CONFIG_IDF_TARGET_ESP32C2) || defined(CONFIG_IDF_TARGET_ESP32S2)
 #define EXCLUDE_LED_RING
-#elif !defined(CONFIG_IDF_TARGET_ESP32C6) && \
-      !defined(CONFIG_IDF_TARGET_ESP32H2) && \
+#elif !defined(CONFIG_IDF_TARGET_ESP32C3)  && \
+      !defined(CONFIG_IDF_TARGET_ESP32C5)  && \
+      !defined(CONFIG_IDF_TARGET_ESP32S3)  && \
+      !defined(CONFIG_IDF_TARGET_ESP32C6)  && \
+      !defined(CONFIG_IDF_TARGET_ESP32C61) && \
+      !defined(CONFIG_IDF_TARGET_ESP32H2)  && \
       !defined(CONFIG_IDF_TARGET_ESP32P4)
 #define USE_NEOPIXELBUS_LIBRARY
 #else
@@ -114,18 +120,26 @@
 #define color_t                 RgbColor
 
 extern NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip;
-#else /* USE_ADAFRUIT_NEO_LIBRARY */
+#endif /* USE_NEOPIXELBUS_LIBRARY */
+
+#if defined(USE_ADAFRUIT_NEO_LIBRARY)
 #include <Adafruit_NeoPixel.h>
 
-#define uni_begin()             strip.begin()
-#define uni_show()              strip.show()
-#define uni_setPixelColor(i, c) strip.setPixelColor(i, c)
-#define uni_numPixels()         strip.numPixels()
-#define uni_Color(r,g,b)        strip.Color(r,g,b)
 #define color_t                 uint32_t
+extern Adafruit_NeoPixel *strip;
 
-extern Adafruit_NeoPixel strip;
-#endif /* USE_NEOPIXELBUS_LIBRARY */
+static inline void uni_begin(void) { if (strip) strip->begin(); }
+static inline void uni_show(void)  { if (strip) strip->show();  }
+static inline void uni_setPixelColor(uint16_t i, color_t c) {
+  if (strip) strip->setPixelColor(i, c);
+}
+static inline uint16_t uni_numPixels() {
+  if (strip) return strip->numPixels(); else return 0;
+}
+static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
+  return Adafruit_NeoPixel::Color(r,g,b);
+}
+#endif /* USE_ADAFRUIT_NEO_LIBRARY */
 #endif /* EXCLUDE_LED_RING */
 
 #define LEDC_CHANNEL_BUZZER     0
@@ -142,17 +156,23 @@ extern Adafruit_NeoPixel strip;
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
 #define SOC_GPIO_PIN_LED        7
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-#define SOC_GPIO_PIN_LED        SOC_UNUSED_PIN /* TBD 14? */
+#define SOC_GPIO_PIN_LED        2 /* 48 ? */
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
 #define SOC_GPIO_PIN_LED        SOC_UNUSED_PIN /* TBD */
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
 #define SOC_GPIO_PIN_LED        19 /* D1 */
+#undef  LED_STATE_ON
+#define LED_STATE_ON            LOW
+#elif defined(CONFIG_IDF_TARGET_ESP32C5)
+#define SOC_GPIO_PIN_LED        SOC_UNUSED_PIN /* TBD */
 #elif defined(CONFIG_IDF_TARGET_ESP32C6)
 #define SOC_GPIO_PIN_LED        3 /* D1 */
+#elif defined(CONFIG_IDF_TARGET_ESP32C61)
+#define SOC_GPIO_PIN_LED        SOC_UNUSED_PIN /* TBD */
 #elif defined(CONFIG_IDF_TARGET_ESP32H2)
 #define SOC_GPIO_PIN_LED        SOC_UNUSED_PIN /* TBD */
 #elif defined(CONFIG_IDF_TARGET_ESP32P4)
-#define SOC_GPIO_PIN_LED        SOC_UNUSED_PIN /* TBD */
+#define SOC_GPIO_PIN_LED        1
 #else
 #error "This ESP32 family build variant is not supported!"
 #endif
@@ -163,6 +183,14 @@ extern Adafruit_NeoPixel strip;
                                 SOC_GPIO_PIN_T3C6_LED :                 \
                                hw_info.model == SOFTRF_MODEL_INK       ?\
                                 SOC_GPIO_PIN_T3S3_LED :                 \
+                               hw_info.model == SOFTRF_MODEL_STANDALONE && \
+                               hw_info.revision == STD_EDN_REV_BPICOW  ?\
+                                SOC_GPIO_PIN_BPIPW_STATUS :             \
+                               hw_info.model == SOFTRF_MODEL_GIZMO     ?\
+                                SOC_GPIO_PIN_M2_LED :                   \
+                               hw_info.model == SOFTRF_MODEL_NANO    && \
+                               hw_info.revision == 1                   ?\
+                                SOC_GPIO_PIN_ELRS_LED :                 \
                                hw_info.model != SOFTRF_MODEL_PRIME_MK2 ?\
                                 SOC_UNUSED_PIN :                        \
                                 (hw_info.revision == 2 ?                \
@@ -185,7 +213,12 @@ extern Adafruit_NeoPixel strip;
                                   SOC_GPIO_PIN_T3C6_GNSS_PPS :            \
                                 (hw_info.model == SOFTRF_MODEL_INK ?      \
                                   SOC_GPIO_PIN_T3S3_GNSS_PPS :            \
-                                  SOC_UNUSED_PIN)))))
+                                (hw_info.model == SOFTRF_MODEL_GIZMO ?    \
+                                  SOC_GPIO_PIN_M2_GNSS_PPS :              \
+                                (hw_info.model == SOFTRF_MODEL_STANDALONE && \
+                                 hw_info.revision == STD_EDN_REV_WT99P4C5 ?\
+                                  SOC_GPIO_PIN_P4_GNSS_PPS :              \
+                                  SOC_UNUSED_PIN)))))))
 
 #define SOC_GPIO_PIN_BUZZER   (hw_info.model == SOFTRF_MODEL_PRIME_MK2 ? \
                                 SOC_UNUSED_PIN :                         \
@@ -193,7 +226,13 @@ extern Adafruit_NeoPixel strip;
                                 (esp32_board == ESP32_C3_DEVKIT ?        \
                                 SOC_GPIO_PIN_C3_BUZZER :                 \
                                 (esp32_board == ESP32_C6_DEVKIT ?        \
-                                SOC_GPIO_PIN_C6_BUZZER : SOC_UNUSED_PIN))))
+                                SOC_GPIO_PIN_C6_BUZZER :                 \
+                                (esp32_board == ESP32_BANANA_PICOW ?     \
+                                SOC_GPIO_PIN_BPIPW_BUZZER :              \
+                                (esp32_board == ESP32_ELECROW_TN_M2 ?    \
+                                SOC_GPIO_PIN_M2_BUZZER :                 \
+                                (esp32_board == ESP32_P4_DEVKIT ?        \
+                                SOC_GPIO_PIN_P4_BUZZER : SOC_UNUSED_PIN)))))))
 
 #define SOC_GPIO_PIN_CIVA_BUZZER   (hw_info.model == SOFTRF_MODEL_PRIME_MK2 ? \
                                     13 : hw_info.model == SOFTRF_MODEL_PRIME_MK3 ? 45 : 255)
@@ -264,7 +303,12 @@ extern Adafruit_NeoPixel strip;
 #include "iomap/Heltec_Tracker.h"
 #include "iomap/WT0132C6.h"
 #include "iomap/LilyGO_T3C6.h"
-#include "iomap/LilyGO_T3S3_EPD.h"
+#include "iomap/LilyGO_T3S3.h"
+#include "iomap/Banana_PicoW.h"
+#include "iomap/Elecrow_ThinkNode_M2.h"
+#include "iomap/Generic_ELRS_C3.h"
+#include "iomap/Ebyte_EoRa_HUB_900TB.h"
+#include "iomap/WT99P4C5.h"
 
 enum rst_reason {
   REASON_DEFAULT_RST      = 0,  /* normal startup by power on */
@@ -281,7 +325,9 @@ enum esp32_board_id {
   ESP32_S3_DEVKIT,
   ESP32_C2_DEVKIT,
   ESP32_C3_DEVKIT,
+  ESP32_C5_DEVKIT,
   ESP32_C6_DEVKIT,
+  ESP32_C61_DEVKIT,
   ESP32_H2_DEVKIT,
   ESP32_P4_DEVKIT,
   ESP32_TTGO_V2_OLED,
@@ -294,6 +340,11 @@ enum esp32_board_id {
   ESP32_HELTEC_TRACKER,
   ESP32_LILYGO_T3C6,
   ESP32_LILYGO_T3S3_EPD,
+  ESP32_LILYGO_T3S3_OLED,
+  ESP32_BANANA_PICOW,
+  ESP32_ELECROW_TN_M2,
+  ESP32_RADIOMASTER_XR1,
+  ESP32_EBYTE_HUB_900TB,
 };
 
 enum ep_model_id {
@@ -312,6 +363,8 @@ enum softrf_usb_pid {
   SOFTRF_USB_PID_HAM        = 0x818F,
   SOFTRF_USB_PID_MIDI       = 0x81A0,
   SOFTRF_USB_PID_INK        = 0x820A,
+  SOFTRF_USB_PID_BANANA     = 0x812B,
+  SOFTRF_USB_PID_GIZMO      = 0x82D9,
 };
 
 struct rst_info {
@@ -335,6 +388,7 @@ struct rst_info {
 /* Zbit Semiconductor, Inc. */
 #define ZBIT_ID                 0x5E
 #define ZBIT_ZB25VQ32B          0x4016
+#define ZBIT_ZB25VQ128A         0x4018
 
 /* Shanghai Fudan Microelectronics Group Co., Ltd. */
 #define FMICRO_ID               0xA1
@@ -347,8 +401,6 @@ struct rst_info {
 #define MPU9250_ADDRESS         (0x68)
 #define MPU9250_REG_PWR_MGMT_1  (0x6B)
 #define MPU9250_REG_WHOAMI      (0x75)
-#define QMI8658_REG_RESET       (0x60)
-#define QMI8658_REG_WHOAMI      (0x00)
 
 /* Disable brownout detection (avoid unexpected reset on some boards) */
 #define ESP32_DISABLE_BROWNOUT_DETECTOR 0
@@ -361,6 +413,31 @@ struct rst_info {
 #define USE_TFT
 #define USE_NMEA_CFG
 #define USE_BASICMAC
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#define USE_RADIOLIB
+//#define EXCLUDE_LR11XX
+#define EXCLUDE_CC1101
+#define EXCLUDE_SI443X
+#define EXCLUDE_SI446X
+#define EXCLUDE_SX1231
+#define EXCLUDE_SX1280
+#elif defined(CONFIG_IDF_TARGET_ESP32C3) || \
+      defined(CONFIG_IDF_TARGET_ESP32C5) || \
+      defined(CONFIG_IDF_TARGET_ESP32C6) || \
+      defined(CONFIG_IDF_TARGET_ESP32C61)
+#if ARDUINO_USB_CDC_ON_BOOT
+//#define USE_RADIOLIB
+#else
+#define USE_RADIOLIB
+//#define USE_RADIOHEAD
+#endif /* ARDUINO_USB_CDC_ON_BOOT */
+//#define EXCLUDE_LR11XX
+#define EXCLUDE_CC1101
+#define EXCLUDE_SI443X
+#define EXCLUDE_SI446X
+#define EXCLUDE_SX1231
+#define EXCLUDE_SX1280
+#endif /* S3 C3 C6 */
 
 #define USE_TIME_SLOTS
 
@@ -388,6 +465,8 @@ struct rst_info {
 #define EXCLUDE_BME680
 #define EXCLUDE_BME280AUX
 
+#define EXCLUDE_ETHERNET
+
 #if defined(CONFIG_IDF_TARGET_ESP32)
 //#define ENABLE_BT_VOICE
 //#define USE_NIMBLE
@@ -397,7 +476,6 @@ struct rst_info {
 
 #if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32S3)
 #define EXCLUDE_NRF905
-#define EXCLUDE_LED_RING
 
 /* Experimental */
 //#define USE_ADAFRUIT_MSC
@@ -433,16 +511,20 @@ extern ESP32_USBSerial_device_t ESP32_USB_Serial;
 extern const USB_Device_List_t supported_USB_devices[];
 
 #endif /* USE_USB_HOST */
-#elif defined(CONFIG_IDF_TARGET_ESP32C2) || \
-      defined(CONFIG_IDF_TARGET_ESP32C3) || \
-      defined(CONFIG_IDF_TARGET_ESP32C6) || \
-      defined(CONFIG_IDF_TARGET_ESP32H2) || \
+#elif defined(CONFIG_IDF_TARGET_ESP32C2)  || \
+      defined(CONFIG_IDF_TARGET_ESP32C3)  || \
+      defined(CONFIG_IDF_TARGET_ESP32C5)  || \
+      defined(CONFIG_IDF_TARGET_ESP32C6)  || \
+      defined(CONFIG_IDF_TARGET_ESP32C61) || \
+      defined(CONFIG_IDF_TARGET_ESP32H2)  || \
       defined(CONFIG_IDF_TARGET_ESP32P4)
 #undef USE_OLED
 #undef USE_TFT
-#if defined(CONFIG_IDF_TARGET_ESP32C2) || \
-    defined(CONFIG_IDF_TARGET_ESP32C6) || \
-    defined(CONFIG_IDF_TARGET_ESP32H2) || \
+#if defined(CONFIG_IDF_TARGET_ESP32C2)  || \
+    defined(CONFIG_IDF_TARGET_ESP32C5)  || \
+    defined(CONFIG_IDF_TARGET_ESP32C6)  || \
+    defined(CONFIG_IDF_TARGET_ESP32C61) || \
+    defined(CONFIG_IDF_TARGET_ESP32H2)  || \
     defined(CONFIG_IDF_TARGET_ESP32P4)
 #define EXCLUDE_EGM96
 #define EXCLUDE_TEST_MODE
@@ -450,13 +532,16 @@ extern const USB_Device_List_t supported_USB_devices[];
 #undef USE_NMEALIB
 #undef USE_BLE_MIDI
 #undef ENABLE_PROL
-//#define USE_NIMBLE
+#if defined(CONFIG_IDF_TARGET_ESP32C5) || defined(CONFIG_IDF_TARGET_ESP32C6)
+#define USE_NIMBLE
+#else
 #define USE_ARDUINOBLE
-#if defined(CONFIG_IDF_TARGET_ESP32C6)
-//#define USE_RADIOLIB
 #endif /* C6 */
-#endif /* C2 || C6 || H2 */
-#endif /* SX || CX || H2 */
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+#undef EXCLUDE_ETHERNET
+#endif /* P4 */
+#endif /* C2 || C6 || H2 || P4 */
+#endif /* SX || CX || H2 || P4 */
 #endif /* CONFIG_IDF_TARGET_ESP32 */
 
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
@@ -465,7 +550,6 @@ extern const USB_Device_List_t supported_USB_devices[];
 #define USE_SA8X8
 /* Experimental */
 #define ENABLE_REMOTE_ID
-#define USE_RADIOLIB
 //#define EXCLUDE_VOICE_MESSAGE
 //#define USE_ARDUINOBLE
 //#undef USE_BLE_MIDI
@@ -485,9 +569,12 @@ extern const USB_Device_List_t supported_USB_devices[];
 #endif /* H2 */
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
+#define USE_U10_EXT
+#define ENABLE_RECORDER
 #define EXCLUDE_BLUETOOTH
-#define EXCLUDE_WIFI
-#undef NMEA_TCP_SERVICE
+//#define EXCLUDE_WIFI
+//#undef NMEA_TCP_SERVICE
+//#define EXCLUDE_VOICE_MESSAGE
 #endif /* P4 */
 
 #define POWER_SAVING_WIFI_TIMEOUT 600000UL /* 10 minutes */
@@ -497,11 +584,9 @@ extern const USB_Device_List_t supported_USB_devices[];
 #define PMK2_SLEEP_MODE 3      //  60 uA : axp.shutdown()
 
 #if defined(USE_OLED)
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
-#define U8X8_OLED_I2C_BUS_TYPE  U8X8_SSD1306_128X64_NONAME_HW_I2C
-#define ENABLE_OLED_TEXT_PAGE
-#else
 #define U8X8_OLED_I2C_BUS_TYPE  U8X8_SSD1306_128X64_NONAME_2ND_HW_I2C
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#define ENABLE_OLED_TEXT_PAGE
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
 #endif /* USE_OLED */
 

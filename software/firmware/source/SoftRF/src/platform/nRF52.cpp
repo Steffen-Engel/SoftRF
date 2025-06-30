@@ -16,18 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF52840)
+#if defined(ARDUINO_ARCH_NRF52)  || defined(ARDUINO_ARCH_NRF52840) || \
+   (defined(ARDUINO_ARCH_ZEPHYR) && defined(NRF52840_XXAA))
 
 #include <SPI.h>
 #include <Wire.h>
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
 #include <pcf8563.h>
 #include <Adafruit_SPIFlash.h>
 #include "Adafruit_TinyUSB.h"
 #include <Adafruit_SleepyDog.h>
 #endif /* ARDUINO_ARCH_MBED */
+#if !defined(ARDUINO_ARCH_ZEPHYR)
 #include <ArduinoJson.h>
+
 #include "nrf_wdt.h"
+#endif /* ARDUINO_ARCH_ZEPHYR */
 
 #include "../system/SoC.h"
 #include "../driver/RF.h"
@@ -42,7 +46,9 @@
 #include "../protocol/data/NMEA.h"
 #include "../protocol/data/GDL90.h"
 #include "../protocol/data/D1090.h"
+#if !defined(ARDUINO_ARCH_ZEPHYR)
 #include "../protocol/data/JSON.h"
+#endif /* ARDUINO_ARCH_ZEPHYR */
 #include "../system/Time.h"
 
 #include "uCDB.hpp"
@@ -63,6 +69,12 @@
 #include <TFT_eSPI.h>
 #endif /* USE_TFT */
 
+#if defined(USE_OLED)
+#include "../driver/OLED.h"
+
+extern U8X8 u8x8_i2c;
+#endif /* USE_OLED */
+
 typedef volatile uint32_t REG32;
 #define pREG32 (REG32 *)
 
@@ -82,6 +94,7 @@ lmic_pinmap lmic_pins = {
     .tcxo = LMIC_UNUSED_PIN,
 };
 
+#if !defined(EXCLUDE_LED_RING)
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
 // Parameter 3 = pixel type flags, add together as needed:
@@ -90,7 +103,8 @@ lmic_pinmap lmic_pins = {
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(PIX_NUM, SOC_GPIO_PIN_LED,
-                              NEO_GRB + NEO_KHZ800);
+                                            NEO_GRB + NEO_KHZ800);
+#endif /* EXCLUDE_LED_RING */
 
 #if defined(EXCLUDE_WIFI)
 char UDPpacketBuffer[4]; // Dummy definition to satisfy build sequence
@@ -132,9 +146,10 @@ const prototype_entry_t techo_prototype_boards[] = {
   { 0xf4e0f04ded1892da, NRF52_LILYGO_TECHO_REV_1, EP_GDEH0154D67, 0 }, /* green  */
   { 0x65ab5994ea2c9094, NRF52_LILYGO_TECHO_REV_1, EP_GDEH0154D67, 0 }, /* blue   */
   { 0x6460429ea6fb7e39, NRF52_NORDIC_PCA10059,    EP_UNKNOWN,     0 },
+/*{ 0x0b0e14e96a3beb79, NRF52_ELECROW_TN_M1,      EP_GDEH0154D67, 0 },*/
 };
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
 PCF8563_Class *rtc = nullptr;
 I2CBus        *i2c = nullptr;
 #endif /* ARDUINO_ARCH_MBED */
@@ -147,7 +162,7 @@ static bool ADB_is_open        = false;
 static bool screen_saver       = false;
 static bool nRF52_has_vff      = false; /* very first fix */
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
 RTC_Date fw_build_date_time = RTC_Date(__DATE__, __TIME__);
 
 static TaskHandle_t EPD_Task_Handle = NULL;
@@ -161,7 +176,9 @@ static TaskHandle_t EPD_Task_Handle = NULL;
 #define PIN_LED4  0 /* TBD */
 #endif /* ARDUINO_ARCH_MBED */
 
-#if !defined(ARDUINO_NRF52840_PCA10056) && !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_NRF52840_PCA10056) && \
+    !defined(ARDUINO_ARCH_MBED)         && \
+    !defined(ARDUINO_ARCH_ZEPHYR)
 #error "This nRF52 build variant is not supported!"
 #endif
 
@@ -199,22 +216,26 @@ GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>   epd_bn (GxEPD2_150_BN(
                                                           SOC_GPIO_PIN_EPD_DC,
                                                           SOC_GPIO_PIN_EPD_RST,
                                                           SOC_GPIO_PIN_EPD_BUSY));
+#if !defined(EXCLUDE_WIP)
 GxEPD2_BW<GxEPD2_371_T03, GxEPD2_371_T03::HEIGHT> epd_t3 (GxEPD2_371_T03(
                                                           SOC_GPIO_PIN_EPD_TULTIMA_SS,
                                                           SOC_GPIO_PIN_EPD_TULTIMA_DC,
                                                           SOC_GPIO_PIN_EPD_TULTIMA_RST,
                                                           SOC_GPIO_PIN_EPD_TULTIMA_BUSY));
+#endif /* EXCLUDE_WIP */
 GxEPD2_GFX *display;
 #endif /* USE_EPAPER */
 
 #if defined(USE_TFT)
 static TFT_eSPI *tft = NULL;
 
+#if !defined(USE_OLED)
 static const char SoftRF_text1[]  = "SoftRF";
 static const char ID_text[]       = "ID";
 static const char PROTOCOL_text[] = "PROTOCOL";
 static const char RX_text[]       = "RX";
 static const char TX_text[]       = "TX";
+#endif /* USE_OLED */
 
 static bool TFT_display_frontpage = false;
 
@@ -230,8 +251,9 @@ static void TFT_backlight_adjust(uint32_t pin, uint8_t level)
 }
 #endif /* USE_TFT */
 
-#if !defined(ARDUINO_ARCH_MBED)
-static Adafruit_SPIFlash *SPIFlash = NULL;
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
+static Adafruit_FlashTransport_QSPI *FlashTrans = NULL;
+static Adafruit_SPIFlash            *SPIFlash   = NULL;
 
 #define SFLASH_CMD_READ_CONFIG  0x15
 
@@ -242,15 +264,25 @@ static uint8_t mx25_status_config[3] = {0x00, 0x00, 0x00};
 enum {
   MX25R1635F_INDEX,
   ZD25WQ16B_INDEX,
+
+  GD25Q64C_INDEX,
+  P25Q16H_INDEX,
+
   W25Q128JV_INDEX,
+
   EXTERNAL_FLASH_DEVICE_COUNT
 };
 
 /// List of all possible flash devices used by nRF52840 boards
 static SPIFlash_Device_t possible_devices[] = {
-  // LilyGO T-Echo
+  // LilyGO T-Echo, Elecrow ThinkNode M1
   [MX25R1635F_INDEX] = MX25R1635F,
+  // LilyGO T-Echo
   [ZD25WQ16B_INDEX]  = ZD25WQ16B,
+  // Seeed T1000-E
+  [GD25Q64C_INDEX]   = GD25Q64C,
+  // Seeed Wio L1
+  [P25Q16H_INDEX]    = P25Q16H,
   // LilyGO T-Ultima
   [W25Q128JV_INDEX]  = W25Q128JV_PM,
 };
@@ -264,7 +296,9 @@ FatVolume fatfs;
 
 #define NRF52_JSON_BUFFER_SIZE  1024
 
+#if !defined(ARDUINO_ARCH_ZEPHYR)
 StaticJsonBuffer<NRF52_JSON_BUFFER_SIZE> nRF52_jsonBuffer;
+#endif /* ARDUINO_ARCH_ZEPHYR */
 
 #if defined(USE_WEBUSB_SERIAL) || defined(USE_WEBUSB_SETTINGS)
 // USB WebUSB object
@@ -291,7 +325,7 @@ MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI_USB);
 #endif /* USE_USB_MIDI */
 
 ui_settings_t ui_settings = {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
     .units        = UNITS_METRIC,
     .zoom         = ZOOM_MEDIUM,
     .protocol     = PROTOCOL_NMEA,
@@ -315,9 +349,20 @@ ui_settings_t *ui;
 #include <MPU9250.h>
 #include <ICM_20948.h>
 #include <QMA6100P.h>
-MPU9250       imu_1;
-ICM_20948_I2C imu_2;
-QMA6100P      imu_3;
+#if !defined(EXCLUDE_BHI260)
+#include <SensorBHI260AP.hpp>
+#include <bosch/BoschSensorDataHelper.hpp>
+#endif /* EXCLUDE_BHI260 */
+
+MPU9250         imu_1;
+ICM_20948_I2C   imu_2;
+QMA6100P        imu_3;
+#if !defined(EXCLUDE_BHI260)
+SensorBHI260AP  imu_4;
+
+SensorXYZ bhi_accel(SensorBHI260AP::ACCEL_PASSTHROUGH, imu_4);
+// SensorXYZ bhi_gyro(SensorBHI260AP::GYRO_PASSTHROUGH, imu_4);
+#endif /* EXCLUDE_BHI260 */
 
 static bool nRF52_has_imu = false;
 static unsigned long IMU_Time_Marker = 0;
@@ -325,7 +370,7 @@ static unsigned long IMU_Time_Marker = 0;
 extern float IMU_g;
 #endif /* EXCLUDE_IMU */
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
 uCDB<FatVolume, File32> ucdb(fatfs);
 
 // Callback invoked when received READ10 command.
@@ -343,7 +388,9 @@ static int32_t nRF52_msc_read_cb (uint32_t lba, void* buffer, uint32_t bufsize)
 // return number of written bytes (must be multiple of block size)
 static int32_t nRF52_msc_write_cb (uint32_t lba, uint8_t* buffer, uint32_t bufsize)
 {
-  ledOn(SOC_GPIO_LED_USBMSC);
+  if (SOC_GPIO_LED_USBMSC != SOC_UNUSED_PIN) {
+      digitalWrite(SOC_GPIO_LED_USBMSC, LED_STATE_ON);
+  }
 
   // Note: SPIFLash Bock API: readBlocks/writeBlocks/syncBlocks
   // already include 4K sector caching internally. We don't need to cache it, yahhhh!!
@@ -360,7 +407,9 @@ static void nRF52_msc_flush_cb (void)
   // clear file system's cache to force refresh
   fatfs.cacheClear();
 
-  ledOff(SOC_GPIO_LED_USBMSC);
+  if (SOC_GPIO_LED_USBMSC != SOC_UNUSED_PIN) {
+      digitalWrite(SOC_GPIO_LED_USBMSC, 1-LED_STATE_ON);
+  }
 }
 #endif /* ARDUINO_ARCH_MBED */
 
@@ -632,10 +681,12 @@ Adafruit_NeoPixel T114_Pixels = Adafruit_NeoPixel(2, SOC_GPIO_PIN_T114_LED,
                                                   NEO_GRB + NEO_KHZ800);
 #endif /* EXCLUDE_LED_RING */
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
 #include <ExtensionIOXL9555.hpp>
 ExtensionIOXL9555 *xl9555 = nullptr;
 bool nRF52_has_extension  = false;
+
+#include <SenseCAP.h>
 #endif /* ARDUINO_ARCH_MBED */
 
 #if defined(ENABLE_NFC)
@@ -651,11 +702,15 @@ void nfc_func(void *context, nfc_t2t_event_t event,
     switch (event)
     {
         case NFC_T2T_EVENT_FIELD_ON:
+#if 0
             Serial.println("******NFC_T2T_EVENT_FIELD_ON******");
+#endif
             break;
 
         case NFC_T2T_EVENT_FIELD_OFF:
+#if 0
             Serial.println("------NFC_T2T_EVENT_FIELD_OFF------");
+#endif
             break;
 
         default:
@@ -664,11 +719,53 @@ void nfc_func(void *context, nfc_t2t_event_t event,
 }
 #endif /* ENABLE_NFC */
 
+static bool nRF52_bl_check(const char* signature)
+{
+  int  i, j;
+  bool match    = false;
+  uint8_t* data = (uint8_t*) 0x000F4000UL;
+  int length    = 0xFE000 - 0xF4000 - 2048 ; /* 38 KB */
+  int str_len   = strlen(signature);
+
+  for (i = 0; i < length - str_len; i++) {
+    if (data[i] == signature[0]) {
+      match = true;
+      for (j = 1; j < str_len; j++) {
+        if (data[i + j] != signature[j]) {
+            match = false;
+            break;
+        }
+      }
+      if (match) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+static void nRF52_system_off()
+{
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
+  uint8_t sd_en;
+  (void) sd_softdevice_is_enabled(&sd_en);
+
+  // Enter System OFF state
+  if ( sd_en ) {
+    sd_power_system_off();
+  } else {
+    NRF_POWER->SYSTEMOFF = 1;
+  }
+#else
+  NRF_POWER->SYSTEMOFF = 1;
+#endif /* ARDUINO_ARCH_MBED */
+}
+
 static void nRF52_setup()
 {
   ui = &ui_settings;
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   uint32_t reset_reason = readResetReason();
 #else
   uint32_t reset_reason = 0; /* TBD */
@@ -717,6 +814,15 @@ static void nRF52_setup()
   pinMode(PIN_LED3, INPUT);
   pinMode(PIN_LED4, INPUT);
 
+#if 0
+  nRF52_board = nRF52_bl_check("TECHOBOOT")   ? NRF52_LILYGO_TECHO_REV_2 :
+                nRF52_bl_check("T1000-E")     ? NRF52_SEEED_T1000E       :
+                nRF52_bl_check("HT-n5262")    ? NRF52_HELTEC_T114        :
+                nRF52_bl_check("ELECROWBOOT") ? NRF52_ELECROW_TN_M1      :
+                nRF52_bl_check("XIAO")        ? NRF52_SEEED_WIO_L1       : /* TBD */
+                nRF52_board;
+#endif
+
   for (int i=0; i < sizeof(techo_prototype_boards) / sizeof(prototype_entry_t); i++) {
     if (techo_prototype_boards[i].id == ((uint64_t) DEVICE_ID_HIGH << 32 | (uint64_t) DEVICE_ID_LOW)) {
       nRF52_board   = techo_prototype_boards[i].rev;
@@ -727,6 +833,9 @@ static void nRF52_setup()
 
   pinMode(SOC_GPIO_PIN_3V3_PWR, INPUT);
   pinMode(SOC_GPIO_PIN_IO_PWR,  INPUT_PULLUP);
+  if (nRF52_board == NRF52_LILYGO_TECHO_REV_1) {
+    pinMode(SOC_GPIO_PIN_TECHO_REV_1_3V3_PWR,  INPUT_PULLUP);
+  }
 
 #if !defined(EXCLUDE_PMU)
   nRF52_has_pmu = sy6970.init(Wire,
@@ -787,12 +896,15 @@ static void nRF52_setup()
     // digitalWrite(OTG_ENABLE_PIN, HIGH);
   } else {
     Wire.end();
+  }
+#endif /* EXCLUDE_PMU */
 
+  if (nRF52_board != NRF52_LILYGO_TULTIMA) {
 #if !defined(EXCLUDE_IMU)
     pinMode(SOC_GPIO_PIN_T1000_ACC_EN, INPUT_PULLUP);
     delay(5);
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
     Wire.setPins(SOC_GPIO_PIN_T1000_SDA, SOC_GPIO_PIN_T1000_SCL);
 #endif /* ARDUINO_ARCH_MBED */
     Wire.begin();
@@ -812,33 +924,29 @@ static void nRF52_setup()
           reset_reason & POWER_RESETREAS_RESETPIN_Msk) {
         NRF_POWER->GPREGRET = DFU_MAGIC_SKIP;
         pinMode(SOC_GPIO_PIN_IO_PWR, INPUT);
-#if !defined(ARDUINO_ARCH_MBED)
-        pinMode(SOC_GPIO_PIN_T1000_BUTTON, INPUT_SENSE_HIGH);
-
-        uint8_t sd_en;
-        (void) sd_softdevice_is_enabled(&sd_en);
-
-        // Enter System OFF state
-        if ( sd_en ) {
-          sd_power_system_off();
-        } else {
-          NRF_POWER->SYSTEMOFF = 1;
-        }
-#else
-        NRF_POWER->SYSTEMOFF = 1;
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
+        pinMode(SOC_GPIO_PIN_T1000_BUTTON, INPUT_PULLDOWN_SENSE /* INPUT_SENSE_HIGH */);
 #endif /* ARDUINO_ARCH_MBED */
+        nRF52_system_off();
       }
+
+      pinMode(SOC_GPIO_PIN_SFL_T1000_EN, OUTPUT);
+      digitalWrite(SOC_GPIO_PIN_SFL_T1000_EN, HIGH);
+
+      // pinMode(SOC_GPIO_LED_T1000_RED, OUTPUT);
+      // digitalWrite(SOC_GPIO_LED_T1000_RED, HIGH);
     }
 #endif /* EXCLUDE_IMU */
   }
-#endif /* EXCLUDE_PMU */
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   switch (nRF52_board)
   {
+#if !defined(EXCLUDE_WIP)
     case NRF52_LILYGO_TULTIMA:
       Wire.setPins(SOC_GPIO_PIN_TULTIMA_SDA, SOC_GPIO_PIN_TULTIMA_SCL);
       break;
+#endif /* EXCLUDE_WIP */
     case NRF52_SEEED_T1000E:
       Wire.setPins(SOC_GPIO_PIN_T1000_SDA, SOC_GPIO_PIN_T1000_SCL);
 #if !defined(EXCLUDE_IMU)
@@ -846,9 +954,13 @@ static void nRF52_setup()
       delay(100);
 #endif /* EXCLUDE_IMU */
       break;
+    case NRF52_SEEED_WIO_L1:
+      Wire.setPins(SOC_GPIO_PIN_L1_OLED_SDA, SOC_GPIO_PIN_L1_OLED_SCL); /* TBD */
+      break;
     case NRF52_LILYGO_TECHO_REV_0:
     case NRF52_LILYGO_TECHO_REV_1:
     case NRF52_LILYGO_TECHO_REV_2:
+    case NRF52_ELECROW_TN_M1:
     case NRF52_NORDIC_PCA10059:
       digitalWrite(SOC_GPIO_PIN_IO_PWR, HIGH);
       pinMode(SOC_GPIO_PIN_IO_PWR, OUTPUT); /* VDD_POWR is ON */
@@ -874,7 +986,7 @@ static void nRF52_setup()
   }
 
 #if !defined(EXCLUDE_IMU)
-  if (nRF52_board == NRF52_LILYGO_TECHO_REV_2) { /* T-Echo or T114 */
+  if (nRF52_board == NRF52_LILYGO_TECHO_REV_2) { /* T-Echo, T114 or M1 */
     /* MPU9250 or ICM20948 start-up time for register R/W is 11-100 ms */
     delay(90);
 
@@ -883,15 +995,18 @@ static void nRF52_setup()
     if (nRF52_has_imu == false) {
       Wire.beginTransmission(ICM20948_ADDRESS);
       nRF52_has_imu = (Wire.endTransmission() == 0);
+      if (nRF52_has_imu == false) {
+        Wire.beginTransmission(BHI260AP_ADDRESS_L);
+        nRF52_has_imu = (Wire.endTransmission() == 0);
+      }
     }
   }
 #endif /* EXCLUDE_IMU */
 
   Wire.end();
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   /* (Q)SPI flash init */
-  Adafruit_FlashTransport_QSPI *ft = NULL;
 
   switch (nRF52_board)
   {
@@ -902,35 +1017,81 @@ static void nRF52_setup()
     case NRF52_LILYGO_TECHO_REV_1:
     case NRF52_LILYGO_TECHO_REV_2:
     case NRF52_HELTEC_T114:
-      ft = new Adafruit_FlashTransport_QSPI(SOC_GPIO_PIN_SFL_SCK,
-                                            SOC_GPIO_PIN_SFL_SS,
-                                            SOC_GPIO_PIN_SFL_MOSI,
-                                            SOC_GPIO_PIN_SFL_MISO,
-                                            SOC_GPIO_PIN_SFL_WP,
-                                            SOC_GPIO_PIN_SFL_HOLD);
+    case NRF52_ELECROW_TN_M1:
+      FlashTrans = new Adafruit_FlashTransport_QSPI(SOC_GPIO_PIN_SFL_SCK,
+                                                    SOC_GPIO_PIN_SFL_SS,
+                                                    SOC_GPIO_PIN_SFL_MOSI,
+                                                    SOC_GPIO_PIN_SFL_MISO,
+                                                    SOC_GPIO_PIN_SFL_WP,
+                                                    SOC_GPIO_PIN_SFL_HOLD);
       break;
-    case NRF52_LILYGO_TULTIMA:
-      ft = new Adafruit_FlashTransport_QSPI(SOC_GPIO_PIN_SFL_TULTIMA_SCK,
-                                            SOC_GPIO_PIN_SFL_TULTIMA_SS,
-                                            SOC_GPIO_PIN_SFL_TULTIMA_MOSI,
-                                            SOC_GPIO_PIN_SFL_TULTIMA_MISO,
-                                            SOC_GPIO_PIN_SFL_TULTIMA_WP,
-                                            SOC_GPIO_PIN_SFL_TULTIMA_HOLD);
-      break;
-    case NRF52_NORDIC_PCA10059:
     case NRF52_SEEED_T1000E:
+      FlashTrans = new Adafruit_FlashTransport_QSPI(SOC_GPIO_PIN_SFL_T1000_SCK,
+                                                    SOC_GPIO_PIN_SFL_T1000_SS,
+                                                    SOC_GPIO_PIN_SFL_T1000_MOSI,
+                                                    SOC_GPIO_PIN_SFL_T1000_MISO,
+                                                    SOC_GPIO_PIN_SFL_T1000_WP,
+                                                    SOC_GPIO_PIN_SFL_T1000_HOLD);
+      break;
+    case NRF52_SEEED_WIO_L1:
+      FlashTrans = new Adafruit_FlashTransport_QSPI(SOC_GPIO_PIN_SFL_L1_SCK,
+                                                    SOC_GPIO_PIN_SFL_L1_SS,
+                                                    SOC_GPIO_PIN_SFL_L1_MOSI,
+                                                    SOC_GPIO_PIN_SFL_L1_MISO,
+                                                    SOC_GPIO_PIN_SFL_L1_WP,
+                                                    SOC_GPIO_PIN_SFL_L1_HOLD);
+      break;
+#if !defined(EXCLUDE_WIP)
+    case NRF52_LILYGO_TULTIMA:
+      FlashTrans = new Adafruit_FlashTransport_QSPI(SOC_GPIO_PIN_SFL_TULTIMA_SCK,
+                                                    SOC_GPIO_PIN_SFL_TULTIMA_SS,
+                                                    SOC_GPIO_PIN_SFL_TULTIMA_MOSI,
+                                                    SOC_GPIO_PIN_SFL_TULTIMA_MISO,
+                                                    SOC_GPIO_PIN_SFL_TULTIMA_WP,
+                                                    SOC_GPIO_PIN_SFL_TULTIMA_HOLD);
+      break;
+#endif /* EXCLUDE_WIP */
+    case NRF52_NORDIC_PCA10059:
     default:
       break;
   }
 
-  if (ft != NULL) {
-    SPIFlash = new Adafruit_SPIFlash(ft);
+  if (FlashTrans != NULL) {
+    FlashTrans->begin();
+    FlashTrans->runCommand(0xAB); /* RDP/RES */
+    FlashTrans->end();
+
+    SPIFlash = new Adafruit_SPIFlash(FlashTrans);
     nRF52_has_spiflash = SPIFlash->begin(possible_devices,
                                          EXTERNAL_FLASH_DEVICE_COUNT);
   }
 #endif /* ARDUINO_ARCH_MBED */
 
   hw_info.storage = nRF52_has_spiflash ? STORAGE_FLASH : STORAGE_NONE;
+
+  if (nRF52_board == NRF52_LILYGO_TECHO_REV_2) { /* T-Echo, T114 or M1 */
+    pinMode(SOC_GPIO_PIN_M1_BUZZER, INPUT);
+    int buzzer_high_impedance = digitalRead(SOC_GPIO_PIN_M1_BUZZER);
+    pinMode(SOC_GPIO_PIN_M1_BUZZER, INPUT_PULLUP);
+    delay(1);
+    int buzzer_pullup = digitalRead(SOC_GPIO_PIN_M1_BUZZER);
+    pinMode(SOC_GPIO_PIN_M1_BUZZER, INPUT);
+
+    if (buzzer_high_impedance == LOW && buzzer_pullup == LOW) {
+      nRF52_board        = NRF52_ELECROW_TN_M1;
+      hw_info.model      = SOFTRF_MODEL_HANDHELD;
+      nRF52_Device_Model = "Handheld Edition";
+
+      if (reset_reason & POWER_RESETREAS_VBUS_Msk) {
+        NRF_POWER->GPREGRET = DFU_MAGIC_SKIP;
+        pinMode(SOC_GPIO_PIN_IO_PWR, INPUT);
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
+        pinMode(SOC_GPIO_PIN_M1_BUTTON1, INPUT_PULLUP_SENSE);
+#endif /* ARDUINO_ARCH_MBED */
+        nRF52_system_off();
+      }
+    }
+  }
 
 #if defined(USE_TFT)
   if (nRF52_board        == NRF52_LILYGO_TECHO_REV_2 /* default */ &&
@@ -946,30 +1107,35 @@ static void nRF52_setup()
     if (reset_reason & POWER_RESETREAS_VBUS_Msk) {
       NRF_POWER->GPREGRET = DFU_MAGIC_SKIP;
       pinMode(SOC_GPIO_PIN_IO_PWR, INPUT);
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
       pinMode(SOC_GPIO_PIN_T114_BUTTON, INPUT_PULLUP_SENSE);
-
-      uint8_t sd_en;
-      (void) sd_softdevice_is_enabled(&sd_en);
-
-      // Enter System OFF state
-      if ( sd_en ) {
-        sd_power_system_off();
-      } else {
-        NRF_POWER->SYSTEMOFF = 1;
-      }
-#else
-      NRF_POWER->SYSTEMOFF = 1;
 #endif /* ARDUINO_ARCH_MBED */
+      nRF52_system_off();
     }
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
     /* external bus */
     Wire.setPins(SOC_GPIO_PIN_T114_SDA_EXT, SOC_GPIO_PIN_T114_SCL_EXT);
 #endif /* ARDUINO_ARCH_MBED */
   }
 #endif /* USE_TFT */
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if defined(USE_OLED)
+  if (nRF52_board == NRF52_SEEED_WIO_L1) {
+    hw_info.model      = SOFTRF_MODEL_DECENT;
+    nRF52_Device_Model = "Decent Edition";
+
+    if (reset_reason & POWER_RESETREAS_VBUS_Msk) {
+      NRF_POWER->GPREGRET = DFU_MAGIC_SKIP;
+      pinMode(SOC_GPIO_PIN_IO_PWR, INPUT);
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
+      pinMode(SOC_GPIO_PIN_L1_BUTTON, INPUT_PULLUP_SENSE);
+#endif /* ARDUINO_ARCH_MBED */
+      nRF52_system_off();
+    }
+  }
+#endif /* USE_OLED */
+
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   USBDevice.setID(nRF52_USB_VID, nRF52_USB_PID);
   USBDevice.setManufacturerDescriptor(nRF52_Device_Manufacturer);
   USBDevice.setProductDescriptor(nRF52_Device_Model);
@@ -979,9 +1145,11 @@ static void nRF52_setup()
 #if defined(USE_TINYUSB)
   switch (nRF52_board)
   {
+#if !defined(EXCLUDE_WIP)
     case NRF52_LILYGO_TULTIMA:
       /* TBD */
       break;
+#endif /* EXCLUDE_WIP */
     case NRF52_SEEED_T1000E:
       Serial1.setPins(SOC_GPIO_PIN_CONS_T1000_RX, SOC_GPIO_PIN_CONS_T1000_TX);
 #if defined(EXCLUDE_WIFI)
@@ -989,6 +1157,8 @@ static void nRF52_setup()
 #endif /* EXCLUDE_WIFI */
       break;
     case NRF52_HELTEC_T114:
+    case NRF52_ELECROW_TN_M1:
+    case NRF52_SEEED_WIO_L1:
       Serial1.setPins(SOC_GPIO_PIN_CONS_T114_RX, SOC_GPIO_PIN_CONS_T114_TX);
 #if defined(EXCLUDE_WIFI)
       Serial1.begin(SERIAL_OUT_BR, SERIAL_OUT_BITS);
@@ -1009,8 +1179,9 @@ static void nRF52_setup()
 
   switch (nRF52_board)
   {
+#if !defined(EXCLUDE_WIP)
     case NRF52_LILYGO_TULTIMA:
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
       xl9555 = new ExtensionIOXL9555(Wire,
                                      SOC_GPIO_PIN_TULTIMA_SDA,
                                      SOC_GPIO_PIN_TULTIMA_SCL,
@@ -1045,6 +1216,7 @@ static void nRF52_setup()
 #endif /* ARDUINO_ARCH_MBED */
       /* TBD */
       break;
+#endif /* EXCLUDE_WIP */
 
     case NRF52_SEEED_T1000E:
       pinMode(SOC_GPIO_PIN_T1000_3V3_EN, OUTPUT);
@@ -1067,6 +1239,18 @@ static void nRF52_setup()
 
       digitalWrite(SOC_GPIO_PIN_T114_ADC_EN, HIGH);
       pinMode(SOC_GPIO_PIN_T114_ADC_EN, OUTPUT);
+      break;
+
+    case NRF52_ELECROW_TN_M1:
+      /* TBD */
+      // digitalWrite(SOC_GPIO_PIN_M1_DIO3, HIGH);
+      // pinMode(SOC_GPIO_PIN_M1_DIO3, OUTPUT);
+      break;
+
+    case NRF52_SEEED_WIO_L1:
+      digitalWrite(SOC_GPIO_PIN_L1_VBAT_EN, HIGH);
+      pinMode(SOC_GPIO_PIN_L1_VBAT_EN, OUTPUT);
+      /* TBD */
       break;
 
     case NRF52_LILYGO_TECHO_REV_0:
@@ -1139,6 +1323,7 @@ static void nRF52_setup()
       hw_info.revision = 2;
       break;
 
+#if !defined(EXCLUDE_WIP)
     case NRF52_LILYGO_TULTIMA:
       lmic_pins.nss  = SOC_GPIO_PIN_TULTIMA_SS;
       lmic_pins.rst  = SOC_GPIO_PIN_TULTIMA_RST;
@@ -1170,6 +1355,7 @@ static void nRF52_setup()
 
       hw_info.revision = 3; /* Unknown */
       break;
+#endif /* EXCLUDE_WIP */
 
     case NRF52_SEEED_T1000E:
       digitalWrite(SOC_GPIO_PIN_GNSS_T1000_EN, HIGH);
@@ -1221,6 +1407,47 @@ static void nRF52_setup()
       hw_info.revision = 3; /* Unknown */
       break;
 
+    case NRF52_ELECROW_TN_M1:
+      /* Wake up Quectel L76K GNSS */
+      digitalWrite(SOC_GPIO_PIN_GNSS_M1_RST, HIGH);
+      pinMode(SOC_GPIO_PIN_GNSS_M1_RST, OUTPUT);
+      digitalWrite(SOC_GPIO_PIN_GNSS_M1_WKE, HIGH);
+      pinMode(SOC_GPIO_PIN_GNSS_M1_WKE, OUTPUT);
+
+      pinMode(SOC_GPIO_LED_M1_RED_PWR,      OUTPUT);
+      digitalWrite(SOC_GPIO_LED_M1_RED_PWR, HIGH);
+
+      pinMode(SOC_GPIO_LED_M1_RED,  OUTPUT);
+      pinMode(SOC_GPIO_LED_M1_BLUE, OUTPUT);
+
+      digitalWrite(SOC_GPIO_LED_M1_RED,    LED_STATE_ON);
+      digitalWrite(SOC_GPIO_LED_M1_BLUE, 1-LED_STATE_ON);
+
+      lmic_pins.nss  = SOC_GPIO_PIN_M1_SS;
+      lmic_pins.rst  = SOC_GPIO_PIN_M1_RST;
+      lmic_pins.busy = SOC_GPIO_PIN_M1_BUSY;
+
+      hw_info.revision = 3; /* Unknown */
+      break;
+
+    case NRF52_SEEED_WIO_L1:
+      /* Wake up Quectel L76K GNSS */
+      digitalWrite(SOC_GPIO_PIN_GNSS_L1_WKE, HIGH);
+      pinMode(SOC_GPIO_PIN_GNSS_L1_WKE, OUTPUT);
+
+      pinMode(SOC_GPIO_LED_L1_GREEN, OUTPUT);
+      // pinMode(SOC_GPIO_LED_L1_BLUE,  OUTPUT);
+
+      digitalWrite(SOC_GPIO_LED_L1_GREEN, LED_STATE_ON);
+      // digitalWrite(SOC_GPIO_LED_L1_BLUE,  LED_STATE_ON);
+
+      lmic_pins.nss  = SOC_GPIO_PIN_L1_SS;
+      lmic_pins.rst  = SOC_GPIO_PIN_L1_RST;
+      lmic_pins.busy = SOC_GPIO_PIN_L1_BUSY;
+
+      hw_info.revision = 3; /* Unknown */
+      break;
+
     case NRF52_NORDIC_PCA10059:
     default:
       pinMode(SOC_GPIO_LED_PCA10059_STATUS, OUTPUT);
@@ -1237,7 +1464,7 @@ static void nRF52_setup()
       break;
   }
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   i2c = new I2CBus(Wire);
 
   if (nRF52_has_rtc && (i2c != nullptr)) {
@@ -1263,6 +1490,20 @@ static void nRF52_setup()
           hw_info.imu = IMU_MPU9250;
           hw_info.mag = MAG_AK8963;
           IMU_Time_Marker = millis();
+#if !defined(EXCLUDE_BHI260)
+        } else if (imu_4.begin(Wire, BHI260AP_ADDRESS_L,
+                              SOC_GPIO_PIN_SDA, SOC_GPIO_PIN_SCL)) {
+          float sample_rate = 100.0;      /* Read out data measured at 100Hz */
+          uint32_t report_latency_ms = 0; /* Report immediately */
+
+          // Enable acceleration
+          bhi_accel.enable(sample_rate, report_latency_ms);
+          // Enable gyroscope
+          // bhi_gyro.enable(sample_rate, report_latency_ms);
+
+          hw_info.imu = IMU_BHI260AP;
+          IMU_Time_Marker = millis();
+#endif /* EXCLUDE_BHI260 */
         } else {
           bool ad0 = (ICM20948_ADDRESS == 0x69) ? true : false;
 
@@ -1279,9 +1520,11 @@ static void nRF52_setup()
         }
         break;
 
+#if !defined(EXCLUDE_WIP)
       case NRF52_LILYGO_TULTIMA:
         /* TBD */
         break;
+#endif /* EXCLUDE_WIP */
 
       case NRF52_SEEED_T1000E:
         Wire.begin();
@@ -1305,7 +1548,7 @@ static void nRF52_setup()
   }
 #endif /* EXCLUDE_IMU */
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   if (nRF52_has_spiflash) {
     spiflash_id = SPIFlash->getJEDECID();
 
@@ -1356,9 +1599,11 @@ static void nRF52_setup()
 #if !defined(EXCLUDE_WIFI)
   switch (nRF52_board)
   {
+#if !defined(EXCLUDE_WIP)
     case NRF52_LILYGO_TULTIMA:
       /* TBD */
       break;
+#endif /* EXCLUDE_WIP */
     case NRF52_LILYGO_TECHO_REV_0:
     case NRF52_LILYGO_TECHO_REV_1:
     case NRF52_LILYGO_TECHO_REV_2:
@@ -1384,14 +1629,6 @@ static void nRF52_setup()
     if ((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) != (UICR_NFCPINS_PROTECT_NFC << UICR_NFCPINS_PROTECT_Pos)) {
       Serial.println("*** NFC pins are disabled ***");
       // nfcpins_enable();
-    } else {
-      String NFC_name = SOFTRF_IDENT;
-      NFC_name += "-";
-      NFC_name += String(SoC->getChipId() & 0x00FFFFFFU, HEX);
-
-      NFC.setTXTmessage((NFC_name+"-NFC").c_str(), "en");
-      NFC.start();
-      NFC.registerCallback(nfc_func);
     }
   }
 #endif /* ENABLE_NFC */
@@ -1399,10 +1636,42 @@ static void nRF52_setup()
 
 static void nRF52_post_init()
 {
+  uint32_t variant = NRF_FICR->INFO.VARIANT;
+  char bc_high     = (variant >> 8) & 0xFF;
+  char bc_low      = (variant     ) & 0xFF;
+  const char *rev  = "UNKNOWN";
+
+  switch (bc_high)
+  {
+    case 'A': rev = "Engineering A"; break;
+    case 'B': rev = "Engineering B"; break;
+    case 'C':
+      if (bc_low == 'A')
+              rev = "Engineering C";
+      else
+              rev = "1";
+      break;
+    case 'D':
+      if (bc_low == 'A')
+              rev = "Engineering D";
+      else
+              rev = "2";
+      break;
+    case 'F': rev = "3";             break;
+    default:                         break;
+  }
+
+#if 0
+  Serial.println();
+  Serial.print  (F("MCU Revision: "));
+  Serial.println(rev);
+#endif
+
   if (nRF52_board == NRF52_LILYGO_TECHO_REV_0 ||
       nRF52_board == NRF52_LILYGO_TECHO_REV_1 ||
       nRF52_board == NRF52_LILYGO_TECHO_REV_2 ||
-      nRF52_board == NRF52_LILYGO_TULTIMA) {
+      nRF52_board == NRF52_LILYGO_TULTIMA     ||
+      nRF52_board == NRF52_ELECROW_TN_M1) {
 
 #if 0
     char strbuf[32];
@@ -1423,8 +1692,9 @@ static void nRF52_post_init()
 #endif
 
     Serial.println();
-    Serial.print  (F("LilyGO T-"));
-    Serial.print  (nRF52_board == NRF52_LILYGO_TULTIMA ? F("Ultima") : F("Echo"));
+    Serial.print  (nRF52_board == NRF52_ELECROW_TN_M1  ? F("Elecrow ") : F("LilyGO T-"));
+    Serial.print  (nRF52_board == NRF52_LILYGO_TULTIMA ? F("Ultima") :
+                   nRF52_board == NRF52_ELECROW_TN_M1  ? F("TN-M1")  :   F("Echo"));
     Serial.print  (F(" ("));
     Serial.print  (hw_info.revision > 2 ?
                    Hardware_Rev[3] : Hardware_Rev[hw_info.revision]);
@@ -1478,7 +1748,8 @@ static void nRF52_post_init()
       Serial.println(F("External components:"));
       Serial.print(F("IMU     : "));
       Serial.println(hw_info.imu   == IMU_MPU9250  ||
-                     hw_info.imu   == IMU_ICM20948     ? F("PASS") : F("N/A"));
+                     hw_info.imu   == IMU_ICM20948 ||
+                     hw_info.imu   == IMU_BHI260AP     ? F("PASS") : F("N/A"));
     } else {
       Serial.print(F("IMU     : "));
       Serial.println(hw_info.imu   == IMU_BHI260AP     ? F("PASS") : F("FAIL"));
@@ -1491,6 +1762,7 @@ static void nRF52_post_init()
     Serial.println();
     Serial.flush();
 
+#if !defined(EXCLUDE_WIP)
     if (nRF52_board == NRF52_LILYGO_TULTIMA) {
 #if defined(USE_EXT_I2S_DAC)
       char filename[MAX_FILENAME_LEN];
@@ -1502,6 +1774,21 @@ static void nRF52_post_init()
       }
 #endif /* USE_EXT_I2S_DAC */
     }
+#endif /* EXCLUDE_WIP */
+
+#if defined(ENABLE_NFC) && defined(EXCLUDE_BLUETOOTH)
+    if ((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) == (UICR_NFCPINS_PROTECT_NFC << UICR_NFCPINS_PROTECT_Pos)) {
+      String NFC_name = SOFTRF_IDENT;
+      char id_06x[8];
+      snprintf(id_06x, sizeof(id_06x),"%06x", SoC->getChipId() & 0x00FFFFFFU);
+      NFC_name += "-";
+      NFC_name += String(id_06x);
+
+      NFC.setTXTmessage((NFC_name+"-NFC").c_str(), "en");
+      NFC.start();
+      NFC.registerCallback(nfc_func);
+    }
+#endif /* ENABLE_NFC */
 
   } else if (nRF52_board == NRF52_HELTEC_T114) {
     Serial.println();
@@ -1535,6 +1822,12 @@ static void nRF52_post_init()
     Serial.flush();
 
   } else if (nRF52_board == NRF52_SEEED_T1000E) {
+#if 0
+    Serial.println();
+    Serial.print  (F("SPI FLASH JEDEC ID: "));
+    Serial.print  (spiflash_id, HEX);           Serial.print(" ");
+#endif
+
     Serial.println();
     Serial.println(F("Seeed T1000-E Power-on Self Test"));
     Serial.println();
@@ -1548,12 +1841,32 @@ static void nRF52_post_init()
     Serial.print(F("GNSS    : "));
     Serial.println(hw_info.gnss  == GNSS_MODULE_AG33 ? F("PASS") : F("FAIL"));
     Serial.flush();
+    Serial.print(F("FLASH   : "));
+    Serial.println(hw_info.storage == STORAGE_FLASH  ? F("PASS") : F("FAIL"));
+    Serial.flush();
 
 #if !defined(EXCLUDE_IMU)
     Serial.print(F("IMU     : "));
     Serial.println(hw_info.imu   == ACC_QMA6100P     ? F("PASS") : F("FAIL"));
     Serial.flush();
 #endif /* EXCLUDE_IMU */
+
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
+    analogReference(AR_INTERNAL_3_0);
+    analogReadResolution(10);
+    delay(1);
+
+    Serial.print(F("TEMP    : "));
+    Serial.print((float) t1000e_ntc_sample() / 10.0f);
+    Serial.println(F(" Celsius"));
+    Serial.print(F("LIGHT   : "));
+    Serial.print(t1000e_lux_sample());
+    Serial.println(F(" %"));
+    Serial.print(F("BATTERY : "));
+    Serial.print(t1000e_bat_sample());
+    Serial.println(F(" %"));
+    Serial.flush();
+#endif /* !MBED && !ZEPHYR */
 
     Serial.println();
     Serial.println(F("Power-on Self Test is complete."));
@@ -1605,14 +1918,16 @@ static void nRF52_post_init()
 #if defined(USE_EPAPER)
   if (nRF52_board == NRF52_LILYGO_TECHO_REV_0 ||
       nRF52_board == NRF52_LILYGO_TECHO_REV_1 ||
-      nRF52_board == NRF52_LILYGO_TECHO_REV_2) {
+      nRF52_board == NRF52_LILYGO_TECHO_REV_2 ||
+      nRF52_board == NRF52_ELECROW_TN_M1) {
     /* EPD back light on */
-    digitalWrite(SOC_GPIO_PIN_EPD_BLGT, HIGH);
+    uint8_t bl_state = digitalRead(SOC_GPIO_PIN_EPD_BLGT);
+    if (bl_state == LOW) digitalWrite(SOC_GPIO_PIN_EPD_BLGT, HIGH);
 
     EPD_info1();
 
     /* EPD back light off */
-    digitalWrite(SOC_GPIO_PIN_EPD_BLGT, LOW);
+    if (bl_state == LOW) digitalWrite(SOC_GPIO_PIN_EPD_BLGT, LOW);
 
     char key[8];
     char out[64];
@@ -1667,11 +1982,18 @@ static void nRF52_post_init()
     EPD_info2(acfts, reg, mam, cn);
   }
 #endif /* USE_EPAPER */
+
+#if defined(USE_OLED)
+  if (hw_info.display == DISPLAY_OLED_1_3 ||
+      hw_info.display == DISPLAY_OLED_TTGO) {
+    OLED_info1();
+  }
+#endif /* USE_OLED */
 }
 
 static void nRF52_loop()
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   // Reload the watchdog
   if (nrf_wdt_started(NRF_WDT)) {
     Watchdog.reset();
@@ -1713,7 +2035,9 @@ static void nRF52_loop()
           Serial.println(F("Restart is in progress. Please, wait..."));
           Serial.println();
           Serial.flush();
+#if !defined(EXCLUDE_EEPROM)
           EEPROM_store();
+#endif /* EXCLUDE_EEPROM */
           RF_Shutdown();
           SoC->reset();
         }
@@ -1781,12 +2105,40 @@ static void nRF52_loop()
     IMU_g = sqrtf(a_x*a_x + a_y*a_y + a_z*a_z);
     IMU_Time_Marker = millis();
   }
+
+#if !defined(EXCLUDE_BHI260)
+  if (hw_info.imu == IMU_BHI260AP &&
+      (millis() - IMU_Time_Marker) > IMU_UPDATE_INTERVAL) {
+    // Update sensor fifo
+    imu_4.update();
+
+    if (bhi_accel.hasUpdated()) {
+      float a_x = bhi_accel.getX();
+      float a_y = bhi_accel.getY();
+      float a_z = bhi_accel.getZ();
+#if 0
+      Serial.print("{ACCEL: ");
+      Serial.print(a_x);
+      Serial.print(",");
+      Serial.print(a_y);
+      Serial.print(",");
+      Serial.print(a_z);
+      Serial.println("}");
+#endif
+      IMU_g = sqrtf(a_x*a_x + a_y*a_y + a_z*a_z); /* TBD */
+    }
+
+    IMU_Time_Marker = millis();
+  }
+#endif /* EXCLUDE_BHI260 */
 #endif /* EXCLUDE_IMU */
 
-  if (nRF52_board      == NRF52_SEEED_T1000E &&
-      settings->volume != BUZZER_OFF         &&
-      settings->mode   == SOFTRF_MODE_NORMAL &&
-      nRF52_has_vff    == false              &&
+  if ((nRF52_board     == NRF52_SEEED_T1000E   ||
+       nRF52_board     == NRF52_ELECROW_TN_M1  ||
+       nRF52_board     == NRF52_SEEED_WIO_L1)  &&
+      settings->volume != BUZZER_OFF           &&
+      settings->mode   == SOFTRF_MODE_NORMAL   &&
+      nRF52_has_vff    == false                &&
       isValidFix()     == true) {
     uint8_t v = settings->volume;
 
@@ -1804,15 +2156,16 @@ static void nRF52_loop()
 
 static void nRF52_fini(int reason)
 {
-  uint8_t sd_en;
-
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   if (nRF52_has_spiflash) {
     usb_msc.setUnitReady(false);
 //  usb_msc.end(); /* N/A */
   }
 
-  if (SPIFlash != NULL) SPIFlash->end();
+  if (SPIFlash != NULL) {
+    FlashTrans->runCommand(0xB9); /* DP */
+    SPIFlash->end();
+  }
 #endif /* ARDUINO_ARCH_MBED */
 
 #if !defined(EXCLUDE_IMU)
@@ -1828,6 +2181,13 @@ static void nRF52_fini(int reason)
   if (hw_info.imu == ACC_QMA6100P) {
     imu_3.enableAccel(false);
   }
+
+#if !defined(EXCLUDE_BHI260)
+  if (hw_info.imu == IMU_BHI260AP) {
+    /* TBD */
+    // imu_4.deinit();
+  }
+#endif /* EXCLUDE_BHI260 */
 #endif /* EXCLUDE_IMU */
 
   switch (nRF52_board)
@@ -1882,34 +2242,37 @@ static void nRF52_fini(int reason)
       pinMode(SOC_GPIO_LED_TECHO_REV_1_RED,   INPUT);
       pinMode(SOC_GPIO_LED_TECHO_REV_1_BLUE,  INPUT);
 
-      pinMode(SOC_GPIO_PIN_IO_PWR,    INPUT);
       pinMode(SOC_GPIO_PIN_SFL_WP,    INPUT);
       pinMode(SOC_GPIO_PIN_SFL_HOLD,  INPUT);
       pinMode(SOC_GPIO_PIN_SFL_SS,    INPUT);
+      pinMode(SOC_GPIO_PIN_IO_PWR,    INPUT);
+      /* Cut 3.3V power off on modded REV_1 board */
+      pinMode(SOC_GPIO_PIN_TECHO_REV_1_3V3_PWR, INPUT_PULLDOWN);
       break;
 
     case NRF52_LILYGO_TECHO_REV_2:
+      digitalWrite(SOC_GPIO_PIN_GNSS_WKE, LOW);
+
       ledOff(SOC_GPIO_LED_TECHO_REV_2_GREEN);
       ledOff(SOC_GPIO_LED_TECHO_REV_2_RED);
       ledOff(SOC_GPIO_LED_TECHO_REV_2_BLUE);
 
-      pinMode(SOC_GPIO_LED_TECHO_REV_2_GREEN, INPUT);
-      pinMode(SOC_GPIO_LED_TECHO_REV_2_RED,   INPUT);
-      pinMode(SOC_GPIO_LED_TECHO_REV_2_BLUE,  INPUT);
+      pinMode(SOC_GPIO_LED_TECHO_REV_2_GREEN, INPUT_PULLUP);
+      pinMode(SOC_GPIO_LED_TECHO_REV_2_RED,   INPUT_PULLUP);
+      pinMode(SOC_GPIO_LED_TECHO_REV_2_BLUE,  INPUT_PULLUP);
 
-      pinMode(SOC_GPIO_PIN_IO_PWR,    INPUT);
       pinMode(SOC_GPIO_PIN_SFL_HOLD,  INPUT);
       pinMode(SOC_GPIO_PIN_SFL_WP,    INPUT);
       pinMode(SOC_GPIO_PIN_SFL_SS,    INPUT);
-      pinMode(SOC_GPIO_PIN_GNSS_WKE,  INPUT);
       pinMode(SOC_GPIO_PIN_GNSS_RST,  INPUT);
+      pinMode(SOC_GPIO_PIN_IO_PWR,    INPUT);
       /* Cut 3.3V power off on REV_2 board */
-      pinMode(SOC_GPIO_PIN_3V3_PWR, INPUT_PULLDOWN);
+      // pinMode(SOC_GPIO_PIN_3V3_PWR,   INPUT_PULLDOWN);
       break;
 
     case NRF52_HELTEC_T114:
-      digitalWrite(SOC_GPIO_PIN_GNSS_T114_RST, INPUT);
-      digitalWrite(SOC_GPIO_PIN_GNSS_T114_WKE, INPUT);
+      pinMode(SOC_GPIO_PIN_GNSS_T114_RST, INPUT);
+      digitalWrite(SOC_GPIO_PIN_GNSS_T114_WKE, LOW);
 
       ledOff(SOC_GPIO_LED_T114_GREEN);
       pinMode(SOC_GPIO_LED_T114_GREEN, INPUT);
@@ -1924,8 +2287,9 @@ static void nRF52_fini(int reason)
       pinMode(SOC_GPIO_PIN_SFL_SS,    INPUT);
       break;
 
+#if !defined(EXCLUDE_WIP)
     case NRF52_LILYGO_TULTIMA:
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
       if (nRF52_has_extension) {
         xl9555->pinMode(ExtensionIOXL9555::I2C_EXP_PIN_GNSS_TULTIMA_PWR, INPUT);
         xl9555->pinMode(ExtensionIOXL9555::I2C_EXP_PIN_SENS_TULTIMA_PWR, INPUT);
@@ -1938,6 +2302,7 @@ static void nRF52_fini(int reason)
       }
 #endif /* ARDUINO_ARCH_MBED */
       break;
+#endif /* EXCLUDE_WIP */
 
     case NRF52_SEEED_T1000E:
       pinMode(SOC_GPIO_PIN_GNSS_T1000_RINT, INPUT_PULLDOWN);
@@ -1955,7 +2320,41 @@ static void nRF52_fini(int reason)
       pinMode(SOC_GPIO_PIN_T1000_SS,        INPUT_PULLUP);
 
       digitalWrite(SOC_GPIO_LED_T1000_GREEN, 1-LED_STATE_ON);
+      pinMode(SOC_GPIO_PIN_SFL_T1000_EN,    INPUT);
       pinMode(SOC_GPIO_LED_T1000_GREEN,     INPUT);
+      break;
+
+    case NRF52_ELECROW_TN_M1:
+      digitalWrite(SOC_GPIO_PIN_GNSS_M1_WKE, LOW);
+
+      digitalWrite(SOC_GPIO_LED_M1_RED,  1-LED_STATE_ON);
+      digitalWrite(SOC_GPIO_LED_M1_BLUE, 1-LED_STATE_ON);
+
+      pinMode(SOC_GPIO_LED_M1_RED,       INPUT);
+      pinMode(SOC_GPIO_LED_M1_BLUE,      INPUT);
+      pinMode(SOC_GPIO_LED_M1_RED_PWR,   INPUT);
+
+      pinMode(SOC_GPIO_PIN_IO_M1_PWR,    INPUT);
+      pinMode(SOC_GPIO_PIN_SFL_M1_HOLD,  INPUT);
+      pinMode(SOC_GPIO_PIN_SFL_M1_WP,    INPUT);
+      pinMode(SOC_GPIO_PIN_SFL_M1_SS,    INPUT);
+      pinMode(SOC_GPIO_PIN_GNSS_M1_RST,  INPUT);
+      break;
+
+    case NRF52_SEEED_WIO_L1:
+      digitalWrite(SOC_GPIO_PIN_GNSS_L1_WKE, LOW);
+
+      digitalWrite(SOC_GPIO_LED_L1_GREEN, 1-LED_STATE_ON);
+      // digitalWrite(SOC_GPIO_LED_L1_BLUE,  1-LED_STATE_ON);
+
+      pinMode(SOC_GPIO_LED_L1_GREEN,     INPUT);
+      // pinMode(SOC_GPIO_LED_L1_BLUE,      INPUT);
+
+      pinMode(SOC_GPIO_PIN_SFL_L1_HOLD,  INPUT);
+      pinMode(SOC_GPIO_PIN_SFL_L1_WP,    INPUT);
+      pinMode(SOC_GPIO_PIN_SFL_L1_SS,    INPUT);
+
+      pinMode(SOC_GPIO_PIN_L1_VBAT_EN,   INPUT);
       break;
 
     case NRF52_NORDIC_PCA10059:
@@ -1979,12 +2378,17 @@ static void nRF52_fini(int reason)
 
   // pinMode(SOC_GPIO_PIN_BATTERY, INPUT);
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   if (i2c != nullptr) Wire.end();
 #endif /* ARDUINO_ARCH_MBED */
 
-  pinMode(SOC_GPIO_PIN_SDA,  INPUT);
-  pinMode(SOC_GPIO_PIN_SCL,  INPUT);
+  if (nRF52_board == NRF52_HELTEC_T114) {
+    pinMode(SOC_GPIO_PIN_T114_SDA_EXT,  INPUT);
+    pinMode(SOC_GPIO_PIN_T114_SCL_EXT,  INPUT);
+  } else {
+    pinMode(SOC_GPIO_PIN_SDA,           INPUT);
+    pinMode(SOC_GPIO_PIN_SCL,           INPUT);
+  }
 
   // pinMode(SOC_GPIO_PIN_MOSI, INPUT);
   // pinMode(SOC_GPIO_PIN_MISO, INPUT);
@@ -2000,9 +2404,11 @@ static void nRF52_fini(int reason)
 
   switch (nRF52_board)
   {
+#if !defined(EXCLUDE_WIP)
     case NRF52_LILYGO_TULTIMA:
       mode_button_pin = SOC_GPIO_PIN_TULTIMA_BUTTON1;
       break;
+#endif /* EXCLUDE_WIP */
 
     case NRF52_SEEED_T1000E:
       mode_button_pin = SOC_GPIO_PIN_T1000_BUTTON;
@@ -2010,6 +2416,14 @@ static void nRF52_fini(int reason)
 
     case NRF52_HELTEC_T114:
       mode_button_pin = SOC_GPIO_PIN_T114_BUTTON;
+      break;
+
+    case NRF52_ELECROW_TN_M1:
+      mode_button_pin = SOC_GPIO_PIN_M1_BUTTON1;
+      break;
+
+    case NRF52_SEEED_WIO_L1:
+      mode_button_pin = SOC_GPIO_PIN_L1_BUTTON;
       break;
 
     case NRF52_LILYGO_TECHO_REV_0:
@@ -2022,7 +2436,9 @@ static void nRF52_fini(int reason)
   }
 
   // pinMode(SOC_GPIO_PIN_PAD,    INPUT);
-  pinMode(mode_button_pin, nRF52_board == NRF52_LILYGO_TECHO_REV_1 ? INPUT_PULLUP : INPUT);
+  pinMode(mode_button_pin, nRF52_board == NRF52_LILYGO_TECHO_REV_1 ? INPUT_PULLUP   :
+                           nRF52_board == NRF52_SEEED_T1000E       ? INPUT_PULLDOWN :
+                           INPUT);
   while (digitalRead(mode_button_pin) == (nRF52_board == NRF52_SEEED_T1000E ? HIGH : LOW));
   delay(100);
 
@@ -2039,15 +2455,15 @@ static void nRF52_fini(int reason)
   case SOFTRF_SHUTDOWN_BUTTON:
   case SOFTRF_SHUTDOWN_LOWBAT:
     NRF_POWER->GPREGRET = DFU_MAGIC_SKIP;
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
     pinMode(mode_button_pin, nRF52_board == NRF52_SEEED_T1000E ?
-                             INPUT_SENSE_HIGH :
-                             INPUT_PULLUP_SENSE /* INPUT_SENSE_LOW */);
+                             INPUT_PULLDOWN_SENSE /* INPUT_SENSE_HIGH */ :
+                             INPUT_PULLUP_SENSE   /* INPUT_SENSE_LOW  */);
 #endif /* ARDUINO_ARCH_MBED */
     break;
 #if defined(USE_SERIAL_DEEP_SLEEP)
   case SOFTRF_SHUTDOWN_NMEA:
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
     pinMode(SOC_GPIO_PIN_CONS_RX, INPUT_PULLUP_SENSE /* INPUT_SENSE_LOW */);
 #endif /* ARDUINO_ARCH_MBED */
     break;
@@ -2058,23 +2474,12 @@ static void nRF52_fini(int reason)
 
   Serial.end();
 
-#if !defined(ARDUINO_ARCH_MBED)
-  (void) sd_softdevice_is_enabled(&sd_en);
-
-  // Enter System OFF state
-  if ( sd_en ) {
-    sd_power_system_off();
-  } else {
-    NRF_POWER->SYSTEMOFF = 1;
-  }
-#else
-  NRF_POWER->SYSTEMOFF = 1;
-#endif /* ARDUINO_ARCH_MBED */
+  nRF52_system_off();
 }
 
 static void nRF52_reset()
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   if (nrf_wdt_started(NRF_WDT)) {
     // When WDT is active - CRV, RREN and CONFIG are blocked
     // There is no way to stop/disable watchdog using source code
@@ -2168,7 +2573,7 @@ static String nRF52_getResetReason()
 
 static uint32_t nRF52_getFreeHeap()
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   return dbgHeapTotal() - dbgHeapUsed();
 #else
   return 0; /* TBD */
@@ -2218,6 +2623,9 @@ static void nRF52_Sound_test(int var)
     tone(SOC_GPIO_PIN_BUZZER, 640,  500); delay(500);
     tone(SOC_GPIO_PIN_BUZZER, 840,  500); delay(500);
     tone(SOC_GPIO_PIN_BUZZER, 1040, 500); delay(600);
+
+    noTone(SOC_GPIO_PIN_BUZZER);
+    pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
   }
 #endif /* USE_PWM_SOUND */
 }
@@ -2235,6 +2643,7 @@ static void nRF52_Sound_tone(int hz, uint8_t volume)
       tone(SOC_GPIO_PIN_BUZZER, hz, ALARM_TONE_MS);
     } else {
       noTone(SOC_GPIO_PIN_BUZZER);
+      pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
     }
   }
 #endif /* USE_PWM_SOUND */
@@ -2274,11 +2683,13 @@ static void nRF52_WiFi_transmit_UDP(int port, byte *buf, size_t size)
 
 static bool nRF52_EEPROM_begin(size_t size)
 {
+#if !defined(EXCLUDE_EEPROM)
   if (size > EEPROM.length()) {
     return false;
   }
 
   EEPROM.begin();
+#endif /* EXCLUDE_EEPROM */
 
   return true;
 }
@@ -2290,9 +2701,11 @@ static void nRF52_EEPROM_extension(int cmd)
   switch (cmd)
   {
     case EEPROM_EXT_STORE:
+#if !defined(EXCLUDE_EEPROM)
       for (int i=0; i<sizeof(ui_settings_t); i++) {
         EEPROM.write(sizeof(eeprom_t) + i, raw[i]);
       }
+#endif /* EXCLUDE_EEPROM */
       return;
     case EEPROM_EXT_DEFAULTS:
       ui->adapter      = 0;
@@ -2316,11 +2729,12 @@ static void nRF52_EEPROM_extension(int cmd)
       break;
     case EEPROM_EXT_LOAD:
     default:
+#if !defined(EXCLUDE_EEPROM)
       for (int i=0; i<sizeof(ui_settings_t); i++) {
         raw[i] = EEPROM.read(sizeof(eeprom_t) + i);
       }
-
-#if !defined(ARDUINO_ARCH_MBED)
+#endif /* EXCLUDE_EEPROM */
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
       if ( nRF52_has_spiflash && FATFS_is_mounted ) {
         File32 file = fatfs.open(SETTINGS_JSON_PATH, FILE_READ);
 
@@ -2436,18 +2850,25 @@ static void nRF52_EEPROM_extension(int cmd)
 
 static void nRF52_SPI_begin()
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   switch (nRF52_board)
   {
+#if !defined(EXCLUDE_WIP)
     case NRF52_LILYGO_TULTIMA:
       SPI.setPins(SOC_GPIO_PIN_TULTIMA_MISO,
                   SOC_GPIO_PIN_TULTIMA_SCK,
                   SOC_GPIO_PIN_TULTIMA_MOSI);
       break;
+#endif /* EXCLUDE_WIP */
     case NRF52_SEEED_T1000E:
       SPI.setPins(SOC_GPIO_PIN_T1000_MISO,
                   SOC_GPIO_PIN_T1000_SCK,
                   SOC_GPIO_PIN_T1000_MOSI);
+      break;
+    case NRF52_SEEED_WIO_L1:
+      SPI.setPins(SOC_GPIO_PIN_L1_MISO,
+                  SOC_GPIO_PIN_L1_SCK,
+                  SOC_GPIO_PIN_L1_MOSI);
       break;
     case NRF52_NORDIC_PCA10059:
       SPI.setPins(SOC_GPIO_PIN_PCA10059_MISO,
@@ -2458,6 +2879,7 @@ static void nRF52_SPI_begin()
     case NRF52_LILYGO_TECHO_REV_1:
     case NRF52_LILYGO_TECHO_REV_2:
     case NRF52_HELTEC_T114:
+    case NRF52_ELECROW_TN_M1:
     default:
       SPI.setPins(SOC_GPIO_PIN_TECHO_REV_0_MISO,
                   SOC_GPIO_PIN_TECHO_REV_0_SCK,
@@ -2471,13 +2893,15 @@ static void nRF52_SPI_begin()
 
 static void nRF52_swSer_begin(unsigned long baud)
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   switch (nRF52_board)
   {
+#if !defined(EXCLUDE_WIP)
     case NRF52_LILYGO_TULTIMA:
       Serial_GNSS_In.setPins(SOC_GPIO_PIN_GNSS_TULTIMA_RX,
                              SOC_GPIO_PIN_GNSS_TULTIMA_TX);
       break;
+#endif /* EXCLUDE_WIP */
     case NRF52_SEEED_T1000E:
       Serial_GNSS_In.setPins(SOC_GPIO_PIN_GNSS_T1000_RX,
                              SOC_GPIO_PIN_GNSS_T1000_TX);
@@ -2487,10 +2911,15 @@ static void nRF52_swSer_begin(unsigned long baud)
       Serial_GNSS_In.setPins(SOC_GPIO_PIN_GNSS_T114_RX,
                              SOC_GPIO_PIN_GNSS_T114_TX);
       break;
+    case NRF52_SEEED_WIO_L1:
+      Serial_GNSS_In.setPins(SOC_GPIO_PIN_GNSS_L1_RX,
+                             SOC_GPIO_PIN_GNSS_L1_TX);
+      break;
     case NRF52_LILYGO_TECHO_REV_0:
     case NRF52_LILYGO_TECHO_REV_1:
     case NRF52_LILYGO_TECHO_REV_2:
     case NRF52_NORDIC_PCA10059:
+    case NRF52_ELECROW_TN_M1:
     default:
       Serial_GNSS_In.setPins(SOC_GPIO_PIN_GNSS_RX, SOC_GPIO_PIN_GNSS_TX);
       break;
@@ -2513,7 +2942,7 @@ static void nRF52_swSer_enableRx(boolean arg)
   /* NONE */
 }
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
 SemaphoreHandle_t Display_Semaphore;
 #endif /* ARDUINO_ARCH_MBED */
 unsigned long TaskInfoTime;
@@ -2612,6 +3041,7 @@ static nRF52_display_id nRF52_EPD_ident()
  *  00 00 00 FF 00 00 40 01 00 00 00 - D67 SYX 2118
  *  00 00 00 FF 00 00 40 01 00 00 00 - D67 SYX 2129
  *  00 00 00 00 00 00 00 00 00 00 00 - DEPG0150BN
+ *  00 00 40 20 10 00 40 03 00 00 00 - TBD (M1)
  *
  *  0x2E:
  *  00 00 00 00 00 00 00 00 00 00    - C1
@@ -2619,6 +3049,7 @@ static nRF52_display_id nRF52_EPD_ident()
  *  00 05 00 9A 00 55 35 37 14 0C    - D67 SYX 2118
  *  00 00 00 00 00 00 00 00 00 00    - D67 SYX 2129
  *  00 00 00 00 00 00 00 00 00 00    - DEPG0150BN
+ *  00 00 00 00 00 00 00 00 00 00    - TBD (M1)
  */
 #endif
 
@@ -2641,6 +3072,16 @@ static nRF52_display_id nRF52_EPD_ident()
 
 #endif /* USE_EPAPER */
 
+#if defined(USE_OLED)
+bool nRF52_OLED_probe_func()
+{
+  /* SH1106 I2C OLED probing */
+  Wire.begin();
+  Wire.beginTransmission(SH1106_OLED_I2C_ADDR_ALT);
+  return (Wire.endTransmission() == 0);
+}
+#endif /* USE_OLED */
+
 static byte nRF52_Display_setup()
 {
   byte rval = DISPLAY_NONE;
@@ -2648,6 +3089,11 @@ static byte nRF52_Display_setup()
   if (nRF52_board == NRF52_NORDIC_PCA10059 ||
       nRF52_board == NRF52_SEEED_T1000E) {
       /* Nothing to do */
+  } else if (nRF52_board == NRF52_SEEED_WIO_L1) {
+#if defined(USE_OLED)
+    u8x8_i2c.setI2CAddress(SH1106_OLED_I2C_ADDR_ALT << 1);
+    rval = OLED_setup();
+#endif /* USE_OLED */
   } else if (nRF52_board == NRF52_HELTEC_T114) {
 #if defined(USE_TFT)
 #if SPI_INTERFACES_COUNT == 1
@@ -2698,15 +3144,18 @@ static byte nRF52_Display_setup()
 #if SPI_INTERFACES_COUNT >= 2
     switch (nRF52_board)
     {
+#if !defined(EXCLUDE_WIP)
       case NRF52_LILYGO_TULTIMA:
         SPI1.setPins(SOC_GPIO_PIN_EPD_TULTIMA_MISO,
                      SOC_GPIO_PIN_EPD_TULTIMA_SCK,
                      SOC_GPIO_PIN_EPD_TULTIMA_MOSI);
         nRF52_display = EP_GDEY037T03;
         break;
+#endif /* EXCLUDE_WIP */
       case NRF52_LILYGO_TECHO_REV_0:
       case NRF52_LILYGO_TECHO_REV_1:
       case NRF52_LILYGO_TECHO_REV_2:
+      case NRF52_ELECROW_TN_M1:
       default:
         SPI1.setPins(SOC_GPIO_PIN_EPD_MISO,
                      SOC_GPIO_PIN_EPD_SCK,
@@ -2727,9 +3176,11 @@ static byte nRF52_Display_setup()
     case EP_DEPG0150BN:
       display = &epd_bn;
       break;
+#if !defined(EXCLUDE_WIP)
     case EP_GDEY037T03:
       display = &epd_t3;
       break;
+#endif /* EXCLUDE_WIP */
     case EP_GDEH0154D67:
     default:
       display = &epd_d67;
@@ -2757,8 +3208,8 @@ static byte nRF52_Display_setup()
 
     /* EPD back light off */
     pinMode(SOC_GPIO_PIN_EPD_BLGT, OUTPUT);
-    digitalWrite(SOC_GPIO_PIN_EPD_BLGT, LOW);
-
+    digitalWrite(SOC_GPIO_PIN_EPD_BLGT, nRF52_board == NRF52_ELECROW_TN_M1 ?
+                                        HIGH : LOW);
 #endif /* USE_EPAPER */
   }
 
@@ -2902,6 +3353,14 @@ static void nRF52_Display_loop()
 #endif /* LV_HOR_RES == 135 */
 #endif /* USE_TFT */
 
+#if defined(USE_OLED)
+  case DISPLAY_OLED_1_3:
+  case DISPLAY_OLED_TTGO:
+  case DISPLAY_OLED_HELTEC:
+    OLED_loop();
+    break;
+#endif /* USE_OLED */
+
   case DISPLAY_NONE:
   default:
     break;
@@ -3008,13 +3467,21 @@ static void nRF52_Display_fini(int reason)
     break;
 #endif /* USE_TFT */
 
+#if defined(USE_OLED)
+  case DISPLAY_OLED_1_3:
+  case DISPLAY_OLED_TTGO:
+  case DISPLAY_OLED_HELTEC:
+    OLED_fini(reason);
+    break;
+#endif /* USE_OLED */
+
   case DISPLAY_NONE:
   default:
     break;
   }
 }
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
 static bool nRF52_Display_lock()
 {
   bool rval = false;
@@ -3051,19 +3518,23 @@ static float nRF52_Battery_param(uint8_t param)
   switch (param)
   {
   case BATTERY_PARAM_THRESHOLD:
-    rval = hw_info.model == SOFTRF_MODEL_BADGE ? BATTERY_THRESHOLD_LIPO   :
-           hw_info.model == SOFTRF_MODEL_NEO   ? BATTERY_THRESHOLD_LIPO   :
-           hw_info.model == SOFTRF_MODEL_CARD  ? BATTERY_THRESHOLD_LIPO   :
-           hw_info.model == SOFTRF_MODEL_COZY  ? BATTERY_THRESHOLD_LIPO   :
-                                                 BATTERY_THRESHOLD_NIMHX2;
+    rval = hw_info.model == SOFTRF_MODEL_BADGE    ? BATTERY_THRESHOLD_LIPO   :
+           hw_info.model == SOFTRF_MODEL_NEO      ? BATTERY_THRESHOLD_LIPO   :
+           hw_info.model == SOFTRF_MODEL_CARD     ? BATTERY_THRESHOLD_LIPO   :
+           hw_info.model == SOFTRF_MODEL_COZY     ? BATTERY_THRESHOLD_LIPO   :
+           hw_info.model == SOFTRF_MODEL_HANDHELD ? BATTERY_THRESHOLD_LIPO   :
+           hw_info.model == SOFTRF_MODEL_DECENT   ? BATTERY_THRESHOLD_LIPO   :
+                                                    BATTERY_THRESHOLD_NIMHX2;
     break;
 
   case BATTERY_PARAM_CUTOFF:
-    rval = hw_info.model == SOFTRF_MODEL_BADGE ? BATTERY_CUTOFF_LIPO   :
-           hw_info.model == SOFTRF_MODEL_NEO   ? BATTERY_CUTOFF_LIPO   :
-           hw_info.model == SOFTRF_MODEL_CARD  ? BATTERY_CUTOFF_LIPO   :
-           hw_info.model == SOFTRF_MODEL_COZY  ? BATTERY_CUTOFF_LIPO   :
-                                                 BATTERY_CUTOFF_NIMHX2;
+    rval = hw_info.model == SOFTRF_MODEL_BADGE    ? BATTERY_CUTOFF_LIPO   :
+           hw_info.model == SOFTRF_MODEL_NEO      ? BATTERY_CUTOFF_LIPO   :
+           hw_info.model == SOFTRF_MODEL_CARD     ? BATTERY_CUTOFF_LIPO   :
+           hw_info.model == SOFTRF_MODEL_COZY     ? BATTERY_CUTOFF_LIPO   :
+           hw_info.model == SOFTRF_MODEL_HANDHELD ? BATTERY_CUTOFF_LIPO   :
+           hw_info.model == SOFTRF_MODEL_DECENT   ? BATTERY_CUTOFF_LIPO   :
+                                                    BATTERY_CUTOFF_NIMHX2;
     break;
 
   case BATTERY_PARAM_CHARGE:
@@ -3099,12 +3570,14 @@ static float nRF52_Battery_param(uint8_t param)
     case PMU_NONE:
     default:
       // Set the analog reference to 3.0V (default = 3.6V)
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
       analogReference(AR_INTERNAL_3_0);
 #endif /* ARDUINO_ARCH_MBED */
 
       // Set the resolution to 12-bit (0..4095)
+#if !defined(ARDUINO_ARCH_ZEPHYR)
       analogReadResolution(12); // Can be 8, 10, 12 or 14
+#endif /* AARDUINO_ARCH_ZEPHYR */
 
       // Let the ADC settle
       delay(1);
@@ -3118,6 +3591,14 @@ static float nRF52_Battery_param(uint8_t param)
         case NRF52_HELTEC_T114:
           bat_adc_pin = SOC_GPIO_PIN_T114_BATTERY;
           mult        = SOC_ADC_T114_VOLTAGE_DIV;
+          break;
+        case NRF52_ELECROW_TN_M1:
+          bat_adc_pin = SOC_GPIO_PIN_M1_BATTERY;
+          mult        = SOC_ADC_VOLTAGE_DIV;
+          break;
+        case NRF52_SEEED_WIO_L1:
+          bat_adc_pin = SOC_GPIO_PIN_L1_BATTERY;
+          mult        = SOC_ADC_VOLTAGE_DIV;
           break;
         case NRF52_LILYGO_TECHO_REV_0:
         case NRF52_LILYGO_TECHO_REV_1:
@@ -3133,10 +3614,12 @@ static float nRF52_Battery_param(uint8_t param)
       voltage = analogRead(bat_adc_pin);
 
       // Set the ADC back to the default settings
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
       analogReference(AR_DEFAULT);
 #endif /* ARDUINO_ARCH_MBED */
+#if !defined(ARDUINO_ARCH_ZEPHYR)
       analogReadResolution(10);
+#endif /* AARDUINO_ARCH_ZEPHYR */
 
       // Convert the raw value to compensated mv, taking the resistor-
       // divider into account (providing the actual LIPO voltage)
@@ -3177,14 +3660,14 @@ static void nRF52_UATModule_restart()
 
 static void nRF52_WDT_setup()
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   Watchdog.enable(12000);
 #endif /* ARDUINO_ARCH_MBED */
 }
 
 static void nRF52_WDT_fini()
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   // cannot disable nRF's WDT
   if (nrf_wdt_started(NRF_WDT)) {
     Watchdog.reset();
@@ -3218,7 +3701,14 @@ void handleEvent(AceButton* button, uint8_t eventType,
       } else if (button == &button_2) {
         EPD_Up();
       }
-#endif
+#endif /* USE_EPAPER */
+#if defined(USE_OLED)
+      if (button == &button_1 &&
+         (hw_info.display == DISPLAY_OLED_1_3 ||
+          hw_info.display == DISPLAY_OLED_TTGO)) {
+        OLED_Next_Page();
+      }
+#endif /* USE_OLED */
       break;
     case AceButton::kEventDoubleClicked:
 #if defined(USE_EPAPER)
@@ -3240,6 +3730,10 @@ void handleEvent(AceButton* button, uint8_t eventType,
           // case NRF52_LILYGO_TULTIMA:
           //  up_button_pin = SOC_GPIO_PIN_TULTIMA_BUTTON2;
           //  break;
+
+          case NRF52_ELECROW_TN_M1:
+            up_button_pin = SOC_GPIO_PIN_M1_BUTTON2;
+            break;
 
           case NRF52_LILYGO_TECHO_REV_0:
           case NRF52_LILYGO_TECHO_REV_1:
@@ -3279,10 +3773,12 @@ static void nRF52_Button_setup()
 
   switch (nRF52_board)
   {
+#if !defined(EXCLUDE_WIP)
     case NRF52_LILYGO_TULTIMA:
       mode_button_pin = SOC_GPIO_PIN_TULTIMA_BUTTON1;
       // up_button_pin   = SOC_GPIO_PIN_TULTIMA_BUTTON2;
       break;
+#endif /* EXCLUDE_WIP */
 
     case NRF52_SEEED_T1000E:
       mode_button_pin = SOC_GPIO_PIN_T1000_BUTTON;
@@ -3290,6 +3786,15 @@ static void nRF52_Button_setup()
 
     case NRF52_HELTEC_T114:
       mode_button_pin = SOC_GPIO_PIN_T114_BUTTON;
+      break;
+
+    case NRF52_ELECROW_TN_M1:
+      mode_button_pin = SOC_GPIO_PIN_M1_BUTTON1;
+      up_button_pin   = SOC_GPIO_PIN_M1_BUTTON2;
+      break;
+
+    case NRF52_SEEED_WIO_L1:
+      mode_button_pin = SOC_GPIO_PIN_L1_BUTTON;
       break;
 
     case NRF52_LILYGO_TECHO_REV_0:
@@ -3303,7 +3808,9 @@ static void nRF52_Button_setup()
   }
 
   // Button(s) uses external pull up resistor.
-  pinMode(mode_button_pin, nRF52_board == NRF52_LILYGO_TECHO_REV_1 ? INPUT_PULLUP : INPUT);
+  pinMode(mode_button_pin, nRF52_board == NRF52_LILYGO_TECHO_REV_1 ? INPUT_PULLUP   :
+                           nRF52_board == NRF52_SEEED_T1000E       ? INPUT_PULLDOWN :
+                           INPUT);
   if (up_button_pin >= 0) { pinMode(up_button_pin, INPUT); }
 
   button_1.init(mode_button_pin, nRF52_board == NRF52_SEEED_T1000E ? LOW : HIGH);
@@ -3349,6 +3856,7 @@ static void nRF52_Button_loop()
     case NRF52_LILYGO_TECHO_REV_2:
     case NRF52_NORDIC_PCA10059:
     case NRF52_LILYGO_TULTIMA:
+    case NRF52_ELECROW_TN_M1:
       button_2.check();
       break;
     default:
@@ -3368,6 +3876,9 @@ static void nRF52_Button_fini()
     case NRF52_NORDIC_PCA10059:
       detachInterrupt(digitalPinToInterrupt(SOC_GPIO_PIN_PAD));
       break;
+    case NRF52_ELECROW_TN_M1:
+      detachInterrupt(digitalPinToInterrupt(SOC_GPIO_PIN_M1_BUTTON2));
+      break;
     // case NRF52_LILYGO_TULTIMA:
     //  detachInterrupt(digitalPinToInterrupt(SOC_GPIO_PIN_TULTIMA_BUTTON2));
     //  break;
@@ -3385,7 +3896,7 @@ void line_state_callback(bool connected)
 
 static void nRF52_USB_setup()
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   if (USBSerial && USBSerial != Serial) {
     USBSerial.begin(SERIAL_OUT_BR, SERIAL_OUT_BITS);
   }
@@ -3408,7 +3919,7 @@ static void nRF52_USB_loop()
 
 static void nRF52_USB_fini()
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   if (USBSerial && USBSerial != Serial) {
     USBSerial.end();
   }
@@ -3494,7 +4005,7 @@ IODev_ops_t nRF52_USBSerial_ops = {
 
 static bool nRF52_ADB_setup()
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   if (FATFS_is_mounted) {
     const char *fileName;
 
@@ -3524,7 +4035,7 @@ static bool nRF52_ADB_setup()
 
 static bool nRF52_ADB_fini()
 {
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   if (ADB_is_open) {
     ucdb.close();
     ADB_is_open = false;
@@ -3552,7 +4063,7 @@ static bool nRF52_ADB_query(uint8_t type, uint32_t id, char *buf, size_t size)
     return rval;
   }
 
-#if !defined(ARDUINO_ARCH_MBED)
+#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
   snprintf(key, sizeof(key),"%06X", id);
 
   rt = ucdb.findKey(key, strlen(key));

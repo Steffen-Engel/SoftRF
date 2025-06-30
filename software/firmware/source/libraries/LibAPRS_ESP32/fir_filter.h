@@ -5,9 +5,11 @@
 #include <Arduino.h>
 #endif /* ARDUINO */
 
-#if defined(RASPBERRY_PI)
+#if defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)
 #include <raspi/raspi.h>
+#ifndef INPUT_PULLUP
 #define INPUT_PULLUP INPUT
+#endif
 #endif /* RASPBERRY_PI */
 
 #include <stdint.h>

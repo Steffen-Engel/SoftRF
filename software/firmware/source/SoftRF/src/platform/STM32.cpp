@@ -796,6 +796,8 @@ static void STM32_Sound_test(int var)
     tone(SOC_GPIO_PIN_BUZZER, 640,  500); delay(500);
     tone(SOC_GPIO_PIN_BUZZER, 840,  500); delay(500);
     tone(SOC_GPIO_PIN_BUZZER, 1040, 500); delay(600);
+    noTone(SOC_GPIO_PIN_BUZZER);
+    pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
   }
 }
 
@@ -806,6 +808,7 @@ static void STM32_Sound_tone(int hz, uint8_t volume)
       tone(SOC_GPIO_PIN_BUZZER, hz, ALARM_TONE_MS);
     } else {
       noTone(SOC_GPIO_PIN_BUZZER);
+      pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
     }
   }
 }

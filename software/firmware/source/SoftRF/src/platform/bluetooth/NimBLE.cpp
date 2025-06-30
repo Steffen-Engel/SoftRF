@@ -21,7 +21,7 @@
 
 #include "../../system/SoC.h"
 
-#if defined(USE_NIMBLE)
+#if defined(USE_NIMBLE) && !defined(EXCLUDE_BLUETOOTH)
 /*
  *  BLE code is based on Neil Kolban example for IDF:
  *    https://github.com/nkolban/esp32-snippets/blob/master/cpp_utils/tests/BLE%20Tests/SampleNotify.cpp
@@ -32,7 +32,9 @@
 #include <NimBLEServer.h>
 #include <NimBLEUtils.h>
 
+#if !defined(CONFIG_IDF_TARGET_ESP32P4)
 #include "esp_gap_bt_api.h"
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 
 #include "../../driver/EEPROM.h"
 #include "../../driver/Bluetooth.h"
@@ -40,6 +42,7 @@
 #include "../../driver/Battery.h"
 
 #include <core_version.h>
+#include <cbuf.h>
 
 NimBLEServer* pServer = NULL;
 NimBLECharacteristic* pUARTCharacteristic = NULL;
@@ -97,8 +100,10 @@ class UARTCallbacks: public BLECharacteristicCallbacks {
 
 static void ESP32_Bluetooth_setup()
 {
+  char id_06x[8];
+  snprintf(id_06x, sizeof(id_06x),"%06x", SoC->getChipId() & 0x00FFFFFFU);
   BT_name += "-";
-  BT_name += String(SoC->getChipId() & 0x00FFFFFFU, HEX);
+  BT_name += String(id_06x);
 
   switch (settings->bluetooth)
   {
@@ -186,6 +191,10 @@ static void ESP32_Bluetooth_setup()
                                   hw_info.model == SOFTRF_MODEL_PRIME_MK3  ? "Prime Mark III"     :
                                   hw_info.model == SOFTRF_MODEL_HAM        ? "Ham Edition"        :
                                   hw_info.model == SOFTRF_MODEL_MIDI       ? "Midi Edition"       :
+                                  hw_info.model == SOFTRF_MODEL_ECO        ? "Eco Edition"        :
+                                  hw_info.model == SOFTRF_MODEL_INK        ? "Ink Edition"        :
+                                  hw_info.model == SOFTRF_MODEL_GIZMO      ? "Gizmo Edition"      :
+                                  hw_info.model == SOFTRF_MODEL_NANO       ? "Nano Edition"       :
                                   "Unknown";
       char SerialNum[9];
       snprintf(SerialNum, sizeof(SerialNum), "%08X", SoC->getChipId());
@@ -244,9 +253,14 @@ static void ESP32_Bluetooth_setup()
 #endif /* USE_BLE_MIDI */
       pAdvertising->setAdvertisementData(BLEAdvData);
 #endif
+#if defined(ESP_IDF_VERSION_MAJOR) && ESP_IDF_VERSION_MAJOR >= 5
+      pAdvertising->enableScanResponse(true);
+      pAdvertising->setPreferredParams(0x06, 0x12);
+#else
       pAdvertising->setScanResponse(true);
       pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
       pAdvertising->setMaxPreferred(0x12);
+#endif /* ESP_IDF_VERSION_MAJOR */
       NimBLEDevice::startAdvertising();
 
       BLE_Advertising_TimeMarker = millis();

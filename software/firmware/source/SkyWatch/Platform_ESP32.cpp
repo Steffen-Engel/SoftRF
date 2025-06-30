@@ -22,9 +22,13 @@
 #include <SPI.h>
 #include <esp_err.h>
 #include <esp_wifi.h>
-#if !defined(CONFIG_IDF_TARGET_ESP32C6)
+#if !defined(CONFIG_IDF_TARGET_ESP32C5)  && \
+    !defined(CONFIG_IDF_TARGET_ESP32C6)  && \
+    !defined(CONFIG_IDF_TARGET_ESP32C61) && \
+    !defined(CONFIG_IDF_TARGET_ESP32H2)  && \
+    !defined(CONFIG_IDF_TARGET_ESP32P4)
 #include <soc/rtc_cntl_reg.h>
-#endif /* CONFIG_IDF_TARGET_ESP32C6 */
+#endif /* CONFIG_IDF_TARGET_ESP32C5 || C6 || H2 || P4 */
 #include <rom/spi_flash.h>
 #include <soc/adc_channel.h>
 #include <flashchips.h>
@@ -43,20 +47,25 @@
 #include <battery.h>
 #include <sqlite3.h>
 #include <SD.h>
+#include <bma.h>
 
 //#include "driver/i2s.h"
 
 #include <esp_wifi.h>
-#if !defined(CONFIG_IDF_TARGET_ESP32S2)
+#if !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32P4)
 #include <esp_bt.h>
 #endif /* CONFIG_IDF_TARGET_ESP32S2 */
 
 #if defined(ESP_IDF_VERSION_MAJOR) && ESP_IDF_VERSION_MAJOR>=5
-#if defined(CONFIG_IDF_TARGET_ESP32C6)
+#if defined(CONFIG_IDF_TARGET_ESP32C5) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6) || \
+    defined(CONFIG_IDF_TARGET_ESP32P4)
 #define CONFIG_IDF_TARGET_ESP32 0
 #endif /* CONFIG_IDF_TARGET_ESP32C6 */
 #include <esp_mac.h>
-#if defined(CONFIG_IDF_TARGET_ESP32C6)
+#if defined(CONFIG_IDF_TARGET_ESP32C5) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6) || \
+    defined(CONFIG_IDF_TARGET_ESP32P4)
 #undef CONFIG_IDF_TARGET_ESP32
 #endif /* CONFIG_IDF_TARGET_ESP32C6 */
 #endif /* ESP_IDF_VERSION_MAJOR */
@@ -160,6 +169,7 @@ static const USB_Device_List_t supported_USB_devices[] = {
   { 0x15ba, 0x0044, USBSER_TYPE_CDC, SOFTRF_MODEL_BALKAN, "Balkan", "Edition" },
   { 0x303a, 0x1001, USBSER_TYPE_CDC, SOFTRF_MODEL_ECO, "Eco", "Edition" },
   { 0x303a, 0x820a, USBSER_TYPE_CDC, SOFTRF_MODEL_INK, "Ink", "Edition" },
+  { 0x303a, 0x82d9, USBSER_TYPE_CDC, SOFTRF_MODEL_GIZMO, "Gizmo", "Edition" },
   { 0x2886, 0x0057, USBSER_TYPE_CDC, SOFTRF_MODEL_CARD, "Card", "Edition" },
   { 0x10c4, 0xea60, USBSER_TYPE_CP210X, SOFTRF_MODEL_UNKNOWN, "CP210X", "device" },
   { 0x0403, 0x6001, USBSER_TYPE_FTDI, SOFTRF_MODEL_UNKNOWN, "FT232", "device" },
@@ -223,7 +233,8 @@ static void ESP32_setup()
 
   ++bootCount;
 
-#if defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
+#if defined(CONFIG_IDF_TARGET_ESP32C5) || defined(CONFIG_IDF_TARGET_ESP32C6) || \
+    defined(CONFIG_IDF_TARGET_ESP32H2)
   ret = esp_read_mac(efuse_mac, ESP_MAC_WIFI_STA);
   if (ret != ESP_OK) {
 #else
@@ -390,7 +401,8 @@ static void ESP32_setup()
 #endif /* CONFIG_IDF_TARGET_ESP32 */
   }
 
-#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6)
+#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C5) && \
+    !defined(CONFIG_IDF_TARGET_ESP32C6)
   /* SD-SPI init */
   uSD_SPI.begin(
 #if !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32S3)
@@ -409,7 +421,9 @@ static void ESP32_setup()
 
 #if ARDUINO_USB_CDC_ON_BOOT && (defined(CONFIG_IDF_TARGET_ESP32S2) || \
                                 defined(CONFIG_IDF_TARGET_ESP32S3) || \
-                                defined(CONFIG_IDF_TARGET_ESP32C6))
+                                defined(CONFIG_IDF_TARGET_ESP32C5) || \
+                                defined(CONFIG_IDF_TARGET_ESP32C6) || \
+                                defined(CONFIG_IDF_TARGET_ESP32P4))
   Serial.begin(SERIAL_OUT_BR);
 
   for (int i=0; i < 20; i++) {if (Serial) break; else delay(100);}
@@ -582,13 +596,14 @@ static void ESP32_loop()
 
 static void ESP32_fini()
 {
-#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6)
+#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C5) && \
+    !defined(CONFIG_IDF_TARGET_ESP32C6)
   uSD_SPI.end();
 #endif /* CONFIG_IDF_TARGET_ESP32C3 || C6 */
 
   esp_wifi_stop();
 
-#if !defined(CONFIG_IDF_TARGET_ESP32S2)
+#if !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32P4)
   esp_bt_controller_disable();
 #endif /* CONFIG_IDF_TARGET_ESP32S2 */
 
@@ -604,7 +619,8 @@ static void ESP32_fini()
 
     delay(20);
 
-#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6)
+#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C5) && \
+    !defined(CONFIG_IDF_TARGET_ESP32C6) && !defined(CONFIG_IDF_TARGET_ESP32P4)
     esp_sleep_enable_ext0_wakeup((gpio_num_t) SOC_GPIO_PIN_TWATCH_PMU_IRQ, 0); // 1 = High, 0 = Low
 #endif /* CONFIG_IDF_TARGET_ESP32C3 || C6 */
   }
@@ -887,7 +903,8 @@ static float ESP32_Battery_voltage()
 
 static bool ESP32_DB_init()
 {
-#if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C6)
+#if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C5) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6)
   return false;
 #else
   int ss_pin = (hw_info.model == SOFTRF_MODEL_WEBTOP_USB) ?
@@ -933,7 +950,8 @@ static bool ESP32_DB_init()
 
 static bool ESP32_DB_query(uint8_t type, uint32_t id, char *buf, size_t size)
 {
-#if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C6)
+#if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C5) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6)
   return false;
 #else
   sqlite3_stmt *stmt;
@@ -1308,7 +1326,8 @@ void onModeButtonEvent() {
 
 static void ESP32_Button_setup()
 {
-#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6)
+#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C5) && \
+    !defined(CONFIG_IDF_TARGET_ESP32C6)
   int button_pin = (hw_info.model == SOFTRF_MODEL_WEBTOP_USB) ?
                    SOC_GPIO_PIN_TDONGLE_BUTTON : SOC_GPIO_PIN_TWATCH_BUTTON;
 
@@ -1335,7 +1354,8 @@ static void ESP32_Button_setup()
 
 static void ESP32_Button_loop()
 {
-#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6)
+#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C5) && \
+    !defined(CONFIG_IDF_TARGET_ESP32C6)
   button_mode.check();
 #endif /* CONFIG_IDF_TARGET_ESP32C3 || C6 */
 }
@@ -1829,12 +1849,18 @@ const SoC_ops_t ESP32_ops = {
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
   SOC_ESP32C3,
   "ESP32-C3",
+#elif defined(CONFIG_IDF_TARGET_ESP32C5)
+  SOC_ESP32C5,
+  "ESP32-C5",
 #elif defined(CONFIG_IDF_TARGET_ESP32C6)
   SOC_ESP32C6,
   "ESP32-C6",
+#elif defined(CONFIG_IDF_TARGET_ESP32P4)
+  SOC_ESP32P4,
+  "ESP32-P4",
 #else
 #error "This ESP32 family build variant is not supported!"
-#endif /* CONFIG_IDF_TARGET_ESP32-S2-S3-C3-C6 */
+#endif /* CONFIG_IDF_TARGET_ESP32-S2-S3-C3-C5-C6-P4 */
   ESP32_setup,
   ESP32_post_init,
   ESP32_loop,
@@ -1866,12 +1892,12 @@ const SoC_ops_t ESP32_ops = {
   ESP32_WDT_setup,
   ESP32_WDT_fini,
   ESP32_Service_Mode,
-#if !defined(CONFIG_IDF_TARGET_ESP32S2)
-#if defined(CONFIG_IDF_TARGET_ESP32C6)
+#if !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32P4)
+#if defined(USE_ARDUINOBLE)
   &ArdBLE_Bluetooth_ops,
 #else
   &ESP32_Bluetooth_ops,
-#endif /* CONFIG_IDF_TARGET_ESP32C6 */
+#endif /* USE_ARDUINOBLE */
 #else
   NULL,
 #endif /* CONFIG_IDF_TARGET_ESP32S2 */

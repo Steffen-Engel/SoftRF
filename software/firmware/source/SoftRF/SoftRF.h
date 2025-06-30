@@ -29,13 +29,13 @@
 #include <TimeLib.h>
 #endif /* CC13XX || CC13X2 || HACKRF_ONE || AVR || SILABS */
 
-#if defined(RASPBERRY_PI)
+#if defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)
 #include <raspi/raspi.h>
 #endif /* RASPBERRY_PI */
 
 #define SOFTRF_IDENT            "SoftRF"
-#define SOFTRF_FIRMWARE_VERSION "1.6"
-#define SOFTRF_USB_FW_VERSION   0x0106
+#define SOFTRF_FIRMWARE_VERSION "1.7.1"
+#define SOFTRF_USB_FW_VERSION   0x0107
 
 #define ENTRY_EXPIRATION_TIME   10 /* seconds */
 #define LED_EXPIRATION_TIME     5  /* seconds */
@@ -230,6 +230,22 @@ enum
 	SOFTRF_MODEL_CARD,
 	SOFTRF_MODEL_COZY,
 	SOFTRF_MODEL_NEO,
+	SOFTRF_MODEL_HANDHELD,
+	SOFTRF_MODEL_GIZMO,
+	SOFTRF_MODEL_NANO,
+	SOFTRF_MODEL_DECENT,
+};
+
+enum
+{
+	STD_EDN_REV_DEFAULT    = 0,
+	STD_EDN_REV_T3_1_1     = 11,
+	STD_EDN_REV_T3_1_6     = 16,
+	STD_EDN_REV_S3_DEVKIT  = 203,
+	STD_EDN_REV_BPICOW     = 4,
+	STD_EDN_REV_EHUB       = 5,
+	STD_EDN_REV_T3S3_OLED  = 6,
+	STD_EDN_REV_WT99P4C5   = 7,
 };
 
 enum

@@ -141,7 +141,11 @@ static bool wdt_is_active = false;
 static RP2xxx_board_id RP2xxx_board    = RP2040_RAK11300; /* default */
 
 const char *RP2xxx_Device_Manufacturer = SOFTRF_IDENT;
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W) || defined(ARDUINO_RASPBERRY_PI_PICO_2W)
+const char *RP2xxx_Device_Model        = "Standalone Edition";
+#else
 const char *RP2xxx_Device_Model        = "Lego Edition";
+#endif
 const uint16_t RP2xxx_Device_Version   = SOFTRF_USB_FW_VERSION;
 
 #define UniqueIDsize 2
@@ -209,13 +213,15 @@ static Adafruit_SPIFlash *SPIFlash = &QSPIFlash;
 
 /// Flash device list count
 enum {
-  W25Q16JV_IQ_INDEX,
+  W25Q16JV_IQ_INDEX, /* Pico and compatible */
+  W25Q32JV_IQ_INDEX, /* Pico 2 */
   EXTERNAL_FLASH_DEVICE_COUNT
 };
 
 /// List of all possible flash devices used by RP2040 boards
 static SPIFlash_Device_t possible_devices[] = {
   [W25Q16JV_IQ_INDEX] = W25Q16JV_IQ,
+  [W25Q32JV_IQ_INDEX] = W25Q32JV_IQ,
 };
 #endif /* ARDUINO_ARCH_MBED */
 
@@ -340,8 +346,10 @@ static void RP2xxx_setup()
 #endif /* EXCLUDE_WIFI */
 #elif defined(ARDUINO_RASPBERRY_PI_PICO_W)
   RP2xxx_board = rp2040.isPicoW() ? RP2040_RPIPICO_W : RP2040_RPIPICO;
+  hw_info.model = SOFTRF_MODEL_STANDALONE;
 #elif defined(ARDUINO_RASPBERRY_PI_PICO_2W)
   RP2xxx_board = rp2040.isPicoW() ? RP2350_RPIPICO_2W : RP2350_RPIPICO_2;
+  hw_info.model = SOFTRF_MODEL_STANDALONE;
 #endif /* ARDUINO_RASPBERRY_PI_PICO */
 
   RP2xxx_board = (SoC->getChipId() == 0xcf516424) ?
@@ -395,7 +403,8 @@ static void RP2xxx_post_init()
 #endif
   {
     Serial.println();
-    Serial.println(F("SoftRF Lego Edition Power-on Self Test"));
+    Serial.print(F("SoftRF ")); Serial.print(RP2xxx_Device_Model);
+    Serial.println(F(" Power-on Self Test"));
     Serial.println();
     Serial.flush();
 
@@ -654,6 +663,8 @@ static void RP2xxx_Sound_test(int var)
     tone(SOC_GPIO_PIN_BUZZER, 640,  500); delay(500);
     tone(SOC_GPIO_PIN_BUZZER, 840,  500); delay(500);
     tone(SOC_GPIO_PIN_BUZZER, 1040, 500); delay(600);
+    noTone(SOC_GPIO_PIN_BUZZER);
+    pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
   }
 }
 
@@ -664,6 +675,7 @@ static void RP2xxx_Sound_tone(int hz, uint8_t volume)
       tone(SOC_GPIO_PIN_BUZZER, hz, ALARM_TONE_MS);
     } else {
       noTone(SOC_GPIO_PIN_BUZZER);
+      pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
     }
   }
 }
@@ -957,12 +969,18 @@ static float RP2xxx_Battery_param(uint8_t param)
   switch (param)
   {
   case BATTERY_PARAM_THRESHOLD:
-    rval = RP2xxx_board == RP2040_RPIPICO || RP2xxx_board == RP2040_RPIPICO_W ?
+    rval = RP2xxx_board == RP2040_RPIPICO    ||
+           RP2xxx_board == RP2040_RPIPICO_W  ||
+           RP2xxx_board == RP2350_RPIPICO_2  ||
+           RP2xxx_board == RP2350_RPIPICO_2W ?
            BATTERY_THRESHOLD_NIMHX2 : BATTERY_THRESHOLD_LIPO;
     break;
 
   case BATTERY_PARAM_CUTOFF:
-    rval = RP2xxx_board == RP2040_RPIPICO || RP2xxx_board == RP2040_RPIPICO_W ?
+    rval = RP2xxx_board == RP2040_RPIPICO    ||
+           RP2xxx_board == RP2040_RPIPICO_W  ||
+           RP2xxx_board == RP2350_RPIPICO_2  ||
+           RP2xxx_board == RP2350_RPIPICO_2W ?
            BATTERY_CUTOFF_NIMHX2 : BATTERY_CUTOFF_LIPO;
     break;
 
@@ -999,7 +1017,8 @@ static float RP2xxx_Battery_param(uint8_t param)
       uint pin25_dir;
       uint pin29_dir;
 
-      if (RP2xxx_board == RP2040_RPIPICO_W) {
+      if (RP2xxx_board == RP2040_RPIPICO_W ||
+          RP2xxx_board == RP2350_RPIPICO_2W) {
         pin29_dir  = gpio_get_dir(SOC_GPIO_PIN_BATTERY);
         pin29_func = gpio_get_function(SOC_GPIO_PIN_BATTERY);
         adc_gpio_init(SOC_GPIO_PIN_BATTERY);
@@ -1016,7 +1035,8 @@ static float RP2xxx_Battery_param(uint8_t param)
 
       mV = (analogRead(SOC_GPIO_PIN_BATTERY) * 3300UL) >> 12;
 
-      if (RP2xxx_board == RP2040_RPIPICO_W) {
+      if (RP2xxx_board == RP2040_RPIPICO_W ||
+          RP2xxx_board == RP2350_RPIPICO_2W) {
 #if defined(ARDUINO_RASPBERRY_PI_PICO)   || \
     defined(ARDUINO_RASPBERRY_PI_PICO_W) || \
     defined(ARDUINO_RASPBERRY_PI_PICO_2W)
@@ -1362,15 +1382,13 @@ void setup1() {
   pio_usb_configuration_t pio_cfg = PIO_USB_DEFAULT_CONFIG;
   pio_cfg.pin_dp     = SOC_GPIO_PIN_USBH_DP;
 
-#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W) || defined(ARDUINO_RASPBERRY_PI_PICO_2W)
   pio_cfg.sm_tx      = 3;
   pio_cfg.sm_rx      = 2;
   pio_cfg.sm_eop     = 3;
   pio_cfg.pio_rx_num = 0;
   pio_cfg.pio_tx_num = 1;
   pio_cfg.tx_ch      = 9;
-#elif defined(ARDUINO_RASPBERRY_PI_PICO_2W)
-  /* TBD */
 #endif /* ARDUINO_RASPBERRY_PI_PICO_W */
 
   USBHost.configure_pio_usb(1, &pio_cfg);

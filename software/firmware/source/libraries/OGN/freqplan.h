@@ -18,7 +18,9 @@ enum
   RF_BAND_UK   = 7,  /* 869.52 MHz band. Deprecated - treated as EU */
   RF_BAND_IN   = 8,  /* 866.0 MHz band */
   RF_BAND_IL   = 9,  /* 916.2 MHz band */
-  RF_BAND_KR   = 10  /* 920.9 MHz band */
+  RF_BAND_KR   = 10, /* 920.9 MHz band */
+  RF_BAND_RSVD = 11, /* reserved */
+  RF_BAND_COUNT
 };
 
 class FreqPlan
@@ -39,10 +41,20 @@ class FreqPlan
      switch (Protocol)
      {
       case RF_PROTOCOL_P3I:
-        { BaseFreq= 869525000; ChanSepar= 200000; Channels= 1; MaxTxPower = 27; }
+        switch (Plan)
+        {
+          case RF_BAND_RSVD:
+            { BaseFreq=2450000000; ChanSepar= 200000; Channels= 1; MaxTxPower = 30; } // reserved
+//            { BaseFreq=2000000000; ChanSepar= 200000; Channels= 1; MaxTxPower = 30; } /* S-band */
+            break;
+          case RF_BAND_EU:
+          default:
+            { BaseFreq= 869525000; ChanSepar= 200000; Channels= 1; MaxTxPower = 27; } // Europe
 #if defined(TEST_PAW_ON_NICERF_SV610_FW466)
-        BaseFreq= 869920000; // Test PAW on NiceRF SV6X0
+              BaseFreq= 869920000; // Test PAW on NiceRF SV6X0
 #endif
+            break;
+        }
         break;
       case RF_PROTOCOL_ADSB_1090:
         { BaseFreq=1090000000; ChanSepar=2000000; Channels= 1; MaxTxPower = -10; }
@@ -56,15 +68,16 @@ class FreqPlan
         {
           case RF_BAND_US:
           case RF_BAND_AU:
+          case RF_BAND_NZ: /* ISM 915-928 MHz, https://www.rsm.govt.nz/assets/Uploads/documents/pibs/table-of-radio-spectrum-usage-in-new-zealand-pib-21.pdf */
           case RF_BAND_CN: /* ? */
             BaseFreq   = 920800000;
             Bandwidth  = RF_RX_BANDWIDTH_SS_250KHZ; // BW500
-            MaxTxPower = 15;
+            MaxTxPower = 15 /* LoRaWAN: 30 */;
             break;
           case RF_BAND_IN:
             BaseFreq   = 866200000;
             Bandwidth  = RF_RX_BANDWIDTH_SS_125KHZ; // BW250
-            MaxTxPower = 14;
+            MaxTxPower = 14 /* LoRaWAN: 30 */;
             break;
           case RF_BAND_IL:
             BaseFreq   = 918500000;
@@ -74,11 +87,16 @@ class FreqPlan
           case RF_BAND_KR:
             BaseFreq   = 923200000;
             Bandwidth  = RF_RX_BANDWIDTH_SS_62KHZ;  // BW125
-            MaxTxPower = 15;
+            MaxTxPower = 15 /* LoRaWAN: 23 */;
+            break;
+          case RF_BAND_RSVD:
+            BaseFreq   = 2450000000;
+//            BaseFreq   = 2000000000; /* S-band */
+            Bandwidth  = RF_RX_BANDWIDTH_SS_250KHZ; // BW500
+            MaxTxPower = 30;
             break;
           case RF_BAND_EU:
           case RF_BAND_RU:
-          case RF_BAND_NZ: /* ? */
           default:
             BaseFreq   = 868200000;
             Bandwidth  = RF_RX_BANDWIDTH_SS_125KHZ; // BW250
@@ -135,32 +153,36 @@ class FreqPlan
         switch (Plan)
         {
           case RF_BAND_US:
-            { BaseFreq=902200000; ChanSepar=400000; Channels=65; MaxTxPower = 30; } // USA, 902-928 MHz
+            { BaseFreq= 902200000; ChanSepar=400000; Channels=65; MaxTxPower = 30; } // USA, 902-928 MHz
             break;
           case RF_BAND_AU:
-            { BaseFreq=917000000; ChanSepar=400000; Channels=24; MaxTxPower = 30; } // Australia and South America
+            { BaseFreq= 917000000; ChanSepar=400000; Channels=24; MaxTxPower = 30; } // Australia and South America
             break;
-          case RF_BAND_NZ:
-            { BaseFreq=869250000; ChanSepar=200000; Channels= 1; MaxTxPower = 10; } // New Zealand
+          case RF_BAND_NZ: /* SRD 868-870 MHz, https://www.rsm.govt.nz/assets/Uploads/documents/pibs/table-of-radio-spectrum-usage-in-new-zealand-pib-21.pdf */
+            { BaseFreq= 869250000; ChanSepar=200000; Channels= 1; MaxTxPower = 10; } // New Zealand
             break;
           case RF_BAND_RU:
-            { BaseFreq=868800000; ChanSepar=200000; Channels= 1; MaxTxPower = 20; } // Russia
+            { BaseFreq= 868800000; ChanSepar=200000; Channels= 1; MaxTxPower = 20; } // Russia
             break;
           case RF_BAND_CN:
-            { BaseFreq=470100000; ChanSepar=200000; Channels= 1 /* 18 */; MaxTxPower = 17; } // China, 470-473.6 MHz
+            { BaseFreq= 470100000; ChanSepar=200000; Channels= 1 /* 18 */; MaxTxPower = 17; } // China, 470-473.6 MHz
             break;
           case RF_BAND_IN:
-            { BaseFreq=866000000; ChanSepar=200000; Channels= 1; MaxTxPower = 30; } // India
+            { BaseFreq= 866000000; ChanSepar=200000; Channels= 1; MaxTxPower = 30; } // India
             break;
           case RF_BAND_IL:
-            { BaseFreq=916200000; ChanSepar=200000; Channels= 1; MaxTxPower = 30; } // Israel
+            { BaseFreq= 916200000; ChanSepar=200000; Channels= 1; MaxTxPower = 30; } // Israel
             break;
           case RF_BAND_KR:
-            { BaseFreq=920900000; ChanSepar=200000; Channels= 1; MaxTxPower = 23; } // South Korea
+            { BaseFreq= 920900000; ChanSepar=200000; Channels= 1; MaxTxPower = 23; } // South Korea
+            break;
+          case RF_BAND_RSVD:
+            { BaseFreq=2450000000; ChanSepar=200000; Channels= 1; MaxTxPower = 30; } // reserved
+//            { BaseFreq=2000000000; ChanSepar=200000; Channels= 1; MaxTxPower = 30; } /* S-band */
             break;
           case RF_BAND_EU:
           default: /* AUTO, UK */
-            { BaseFreq=868200000; ChanSepar=200000; Channels= 2; MaxTxPower = 14; } // Europe
+            { BaseFreq= 868200000; ChanSepar=200000; Channels= 2; MaxTxPower = 14; } // Europe
             break;
         }
         break;
@@ -173,10 +195,11 @@ class FreqPlan
    const char *getPlanName(void) { return getPlanName(Plan); }
 
    static const char *getPlanName(uint8_t Plan)
-   { static const char *Name[11] = { "Default", "Europe/Africa",
+   { static const char *Name[RF_BAND_COUNT] = { "Default", "Europe/Africa",
        "USA/Canada", "Australia/South America", "New Zealand",
-       "Russia", "China", "PilotAware (UK)", "India", "Israel", "South Korea" } ;
-     if(Plan>RF_BAND_KR) return 0;
+       "Russia", "China", "PilotAware (UK)", "India", "Israel",
+       "South Korea", "Reserved" } ;
+     if(Plan >= RF_BAND_COUNT) return 0;
      return Name[Plan]; }
 
    uint8_t getChannel  (uint32_t Time, uint8_t Slot=0, uint8_t OGN=1) const // OGN-tracker or FLARM, UTC time, slot: 0 or 1

@@ -107,7 +107,7 @@ struct rst_info {
 #else
 #define SOC_GPIO_PIN_STATUS   SOC_UNUSED_PIN /* PA15 PB4 */
 #endif
-#define SOC_GPIO_PIN_BUZZER   SOC_UNUSED_PIN
+#define SOC_GPIO_PIN_BUZZER   4 /* PA4 */
 
 #define SOC_GPIO_PIN_RX3      SOC_UNUSED_PIN
 #define SOC_GPIO_PIN_TX3      SOC_UNUSED_PIN
@@ -157,8 +157,8 @@ extern  SPIClass RadioSPI;
 #define SOC_GPIO_PIN_SWD_DIO  PA_13
 #define SOC_GPIO_PIN_SWD_CLK  PA_14
 
-#define SOC_GPIO_PIN_LED      SOC_UNUSED_PIN
-#define SOC_GPIO_PIN_GNSS_PPS PA3
+#define SOC_GPIO_PIN_LED      1 /* PA1 */
+#define SOC_GPIO_PIN_GNSS_PPS 3 /* PA3 */
 #define SOC_GPIO_PIN_BATTERY  SOC_UNUSED_PIN /* PA0 TBD */
 #if defined(PB3)
 #define SOC_GPIO_PIN_BUTTON   PB3
@@ -234,13 +234,14 @@ extern  SPIClass RadioSPI;
 
 //#define EXCLUDE_EEPROM
 #define EXCLUDE_WIFI
+#define EXCLUDE_ETHERNET
 #define EXCLUDE_CC13XX
 #define EXCLUDE_TEST_MODE
 #define EXCLUDE_WATCHOUT_MODE
 //#define EXCLUDE_TRAFFIC_FILTER_EXTENSION
 //#define EXCLUDE_LK8EX1
 
-#define EXCLUDE_GNSS_UBLOX
+//#define EXCLUDE_GNSS_UBLOX
 #define EXCLUDE_GNSS_SONY
 //#define EXCLUDE_GNSS_MTK
 #define EXCLUDE_GNSS_GOKE
@@ -261,8 +262,8 @@ extern  SPIClass RadioSPI;
 #define EXCLUDE_UATM             //  -    kb
 #define EXCLUDE_MAVLINK          //  -    kb
 #define EXCLUDE_EGM96            //  - 16 kb
-#define EXCLUDE_LED_RING         //  -    kb
-#define EXCLUDE_SOUND
+//#define EXCLUDE_LED_RING       //  -    kb
+//#define EXCLUDE_SOUND
 
 #define USE_OLED                 //       kb
 #define EXCLUDE_OLED_049
@@ -274,6 +275,13 @@ extern  SPIClass RadioSPI;
 #define USE_BASICMAC
 //#define EXCLUDE_SX1276         //  -    kb
 #define USE_RADIOLIB
+//#define USE_RADIOHEAD
+//#define EXCLUDE_LR11XX
+//#define EXCLUDE_CC1101
+//#define EXCLUDE_SI443X
+#define EXCLUDE_SI446X
+//#define EXCLUDE_SX1231
+//#define EXCLUDE_SX1280
 //#define ENABLE_RECORDER
 
 #if !defined(EXCLUDE_LED_RING)

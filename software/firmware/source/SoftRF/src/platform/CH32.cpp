@@ -191,7 +191,7 @@ static void CH32_msc_flush_cb (void)
 #endif /* USE_TINYUSB */
 
 #if defined(ENABLE_RECORDER)
-#include <SdFat.h>
+#include <SdFat_Adafruit_Fork.h>
 
 SoftSpiDriver<SOC_GPIO_YD_SD_D0, SOC_GPIO_YD_SD_CMD, SOC_GPIO_YD_SD_CLK> uSD_SPI;
 
@@ -594,6 +594,8 @@ static void CH32_Sound_test(int var)
     tone(SOC_GPIO_PIN_BUZZER, 640,  500); delay(500);
     tone(SOC_GPIO_PIN_BUZZER, 840,  500); delay(500);
     tone(SOC_GPIO_PIN_BUZZER, 1040, 500); delay(600);
+    noTone(SOC_GPIO_PIN_BUZZER);
+    pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
   }
 }
 
@@ -604,6 +606,7 @@ static void CH32_Sound_tone(int hz, uint8_t volume)
       tone(SOC_GPIO_PIN_BUZZER, hz, ALARM_TONE_MS);
     } else {
       noTone(SOC_GPIO_PIN_BUZZER);
+      pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
     }
   }
 }

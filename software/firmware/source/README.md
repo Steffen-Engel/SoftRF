@@ -10,6 +10,7 @@
 * [SAMD21](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/source#samd21)<br>
 * [RP2040](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/source#rp2040)<br>
 * [RA4M1](https://github.com/lyusupov/SoftRF/edit/master/software/firmware/source#ra4m1)<br>
+* [RP2350](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/source#rp2350)<br>
 
 <br>
 
@@ -49,6 +50,9 @@
     For **ESP32-S3**:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[**2.0.9**](https://github.com/espressif/arduino-esp32/releases/tag/2.0.9)<br>
     For **ESP32-C3**:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[**2.0.9**](https://github.com/espressif/arduino-esp32/releases/tag/2.0.9)<br>
     For **ESP32-C6**:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[**3.0.7**](https://github.com/espressif/arduino-esp32/releases/tag/3.0.7)<br>
+    For **ESP32-P4**:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[**3.2.0**](https://github.com/espressif/arduino-esp32/releases/tag/3.2.0)<br>
+    For **ESP32-C5**:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[**3.3.0-alpha1**](https://github.com/espressif/arduino-esp32/releases/tag/3.3.0-alpha1)<br>
+
 2. Become familiar with IDE and **DoIt ESP32 DevKit** by building and uploading of a basic **Blink** sketch:<br>
 ```
 int ledPin = 2; // use pin 14 for TTGO T-Beam rev.05 or higher   
@@ -85,18 +89,38 @@ void loop()
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _Board_ ->  _ESP32-S3_ _Dev_ _Module_<br>
     For **ESP32-C3**:<br>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _Board_ ->  _ESP32-C3_ _Dev_ _Module_<br>
+    For **ESP32-C5**:<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _Board_ ->  _ESP32-C5_ _Dev_ _Module_<br>
     For **ESP32-C6**:<br>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _Board_ ->  _ESP32-C6_ _Dev_ _Module_<br>
+    For **ESP32-P4**:<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _Board_ ->  _ESP32-P4_ _Dev_ _Module_<br>
 10. Select _Tools_ -> _Flash_ _Mode_ ->  _DIO_
 11. Select _Tools_ -> _Flash_ _Size_ ->  _4MB_
 12. For **ESP32**:<br>
     For **ESP32-S3**:<br>
     For **ESP32-C3**:<br>
+    For **ESP32-P4**:<br>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _Partition_ _Scheme_ ->  _Minimal_ _SPIFFS_<br>
+    For **ESP32-C5**:<br>
     For **ESP32-C6**:<br>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _Partition_ _Scheme_ ->  _No_ _FS_ _4MB_ _(2MB_ _APP_ _x2)_<br>
-13. Select _Tools_ -> _Flash_ _Frequency_ ->  _80MHz_
-14. Select _Tools_ -> _CPU_ _Frequency_ ->  _80MHz_
+13. For **ESP32**:<br>
+    For **ESP32-S3**:<br>
+    For **ESP32-C3**:<br>
+    For **ESP32-C5**:<br>
+    For **ESP32-C6**:<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _Flash_ _Frequency_ ->  _80MHz_<br>
+    For **ESP32-P4**:<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _Flash_ _Frequency_ ->  _40MHz_<br>
+14. For **ESP32**:<br>
+    For **ESP32-S3**:<br>
+    For **ESP32-C3**:<br>
+    For **ESP32-C5**:<br>
+    For **ESP32-C6**:<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _CPU_ _Frequency_ ->  _80MHz_<br>
+    For **ESP32-P4**:<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _CPU_ _Frequency_ ->  _40MHz_<br>
 15. Select _Tools_ -> _PSRAM_ ->  _Enabled_
 16. _Sketch_ -> _Upload_
 
@@ -351,5 +375,27 @@ You will need to have an ST-LINK/V2 USB adapter connected in order to put the fi
 7. start **Arduino** application again
 8. open **SoftRF** sketch from _File_ -> _Open_ menu
 9. _Sketch_ -> _Upload_
+
+<br>
+
+## RP2350
+
+1. Follow [these official instructions](https://github.com/earlephilhower/arduino-pico#installing-via-arduino-boards-manager)
+  to install Arduino IDE and [latest **stable** Raspberry Pi Pico Arduino core, for all RP2XXX boards](https://github.com/earlephilhower/arduino-pico/releases/tag/4.5.1) (4.5.1)
+2. open ``<My Documents>`` (Windows) , ``<Home>`` (Linux) or ``<Documents>`` (MacOS) directory
+3. create **Arduino** sub-directory
+4. transfer full content of **SoftRF** and **libraries** GitHub folders into the sub-directory:
+
+    [SoftRF](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/source/SoftRF) &nbsp;&nbsp;**-->** ``<My Documents>``/Arduino/SoftRF <br>
+    [libraries](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/source/libraries) **-->** ``<My Documents>``/Arduino/libraries <br>
+
+5. start **Arduino** application
+6. open **SoftRF** sketch from _File_ -> _Open_ menu
+7. For Raspberry Pi Pico 2W:<br>
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Select _Tools_ -> _Board_ -> _Raspberry_ _Pi_ _Pico_ _2W_<br>
+8. Select _Tools_ -> _Flash_ _Size_ -> _4MB_ _(Sketch:_ _1MB,_ _FS:_ _3MB)_
+9. Select _Tools_ -> _USB_ _Stack_ -> _Adafruit_ _TinyUSB_
+10. Select _Tools_ -> _IP/Bluetooth_ _Stack_ -> _IPv4_ _+_ _Bluetooth_
+11. try to build and upload using _Sketch_ -> _Upload_
 
 <br>

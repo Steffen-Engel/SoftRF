@@ -30,7 +30,7 @@
  *   NeoPixelBus library is developed by Michael Miller
  *   jQuery library is developed by JS Foundation
  *   EGM96 data is developed by XCSoar team
- *   BCM2835 C library is developed by Mike McCauley
+ *   BCM2835 and RadioHead libraries are developed by Mike McCauley
  *   SimpleNetwork library is developed by Dario Longobardi
  *   ArduinoJson library is developed by Benoit Blanchon
  *   Flashrom library is part of the flashrom.org project
@@ -203,7 +203,9 @@ void setup()
 
 #if !defined(EXCLUDE_MAVLINK)
   if (settings->mode == SOFTRF_MODE_UAV) {
-    Serial.begin(57600);
+    if (hw_info.model == SOFTRF_MODEL_STANDALONE) {
+      Serial.begin(57600);
+    }
     MAVLink_setup();
     ThisAircraft.aircraft_type = AIRCRAFT_TYPE_UAV;  
   }  else
@@ -542,6 +544,8 @@ void uav()
 
   MAVLinkTimeSync();
   MAVLinkSetWiFiPower();
+
+  hw_info.gnss = get_num_heartbeats() > 0 ? GNSS_MODULE_MAV : GNSS_MODULE_NONE;
 
   ThisAircraft.timestamp = now();
 

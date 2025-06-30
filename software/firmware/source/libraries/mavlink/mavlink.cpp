@@ -27,7 +27,7 @@
 #include <Arduino.h>
 #endif /* ARDUINO */
 
-#if defined(RASPBERRY_PI)
+#if defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)
 #include <raspi/raspi.h>
 #endif /* RASPBERRY_PI */
 
@@ -38,6 +38,8 @@
 #include <Exp_SoftwareSerial.h>
 extern Exp_SoftwareSerial swSer;
 #elif defined(ESP32)
+#include "sdkconfig.h"
+
 extern HardwareSerial Serial1;
 #elif defined(ARDUINO_ARCH_NRF52)
 extern Uart Serial1;
@@ -50,7 +52,11 @@ void comm_send_ch(mavlink_channel_t chan, uint8_t ch)
 #if defined __AVR_ATmega32U4_
   Serial1.write(ch);
 #elif defined(ESP8266) || defined(ESP32)
+#if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C6)
+  Serial1.write(ch);
+#else
   Serial.write(ch);
+#endif /* C3 || C6 */
 #elif defined(ARDUINO_ARCH_NRF52)
   Serial1.write(ch);
 #else

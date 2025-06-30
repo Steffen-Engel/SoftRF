@@ -29,7 +29,11 @@
 // set which output port should be used for debug output
 // may be Serial port (on Arduino) or file like stdout or stderr (on generic platforms)
 #if !defined(RADIOLIB_DEBUG_PORT)
-  #define RADIOLIB_DEBUG_PORT   Serial
+  #if ARDUINO >= 100
+    #define RADIOLIB_DEBUG_PORT   Serial
+  #else
+    #define RADIOLIB_DEBUG_PORT   stdout
+  #endif
 #endif
 
 /*
@@ -112,6 +116,10 @@
  */
 #if !defined(RADIOLIB_CLOCK_DRIFT_MS)
   //#define RADIOLIB_CLOCK_DRIFT_MS                         (0)
+#endif
+
+#if !defined(RADIOLIB_LINE_FEED)
+  #define RADIOLIB_LINE_FEED    "\r\n"
 #endif
 
 #if ARDUINO >= 100
@@ -262,20 +270,24 @@
   #define RADIOLIB_ARDUINOHAL_PIN_STATUS_CAST         (PinStatus)
   #define RADIOLIB_ARDUINOHAL_INTERRUPT_MODE_CAST     (PinStatus)
 
+  #if defined(ARDUINO_ARCH_MBED)
   // Arduino mbed OS boards have a really bad tone implementation which will crash after a couple seconds
   #define RADIOLIB_TONE_UNSUPPORTED
   #define RADIOLIB_MBED_TONE_OVERRIDE
+  #endif
 
-#elif defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_PORTENTA_H7_M4)
+#elif defined(ARDUINO_PORTENTA_H7_M7) || defined(ARDUINO_PORTENTA_H7_M4) || defined(ARDUINO_PORTENTA_H7)
   // Arduino Portenta H7
   #define RADIOLIB_PLATFORM                           "Portenta H7"
   #define RADIOLIB_ARDUINOHAL_PIN_MODE_CAST           (PinMode)
   #define RADIOLIB_ARDUINOHAL_PIN_STATUS_CAST         (PinStatus)
   #define RADIOLIB_ARDUINOHAL_INTERRUPT_MODE_CAST     (PinStatus)
 
+  #if defined(ARDUINO_ARCH_MBED)
   // Arduino mbed OS boards have a really bad tone implementation which will crash after a couple seconds
   #define RADIOLIB_TONE_UNSUPPORTED
   #define RADIOLIB_MBED_TONE_OVERRIDE
+  #endif
 
 #elif defined(__STM32F4__) || defined(__STM32F1__)
   // Arduino STM32 core by Roger Clark (https://github.com/rogerclarkmelbourne/Arduino_STM32)
@@ -436,10 +448,6 @@
   #define RADIOLIB_NONVOLATILE_READ_DWORD(addr)       (*((uint32_t *)(void *)(addr)))
   #define RADIOLIB_TYPE_ALIAS(type, alias)            using alias = type;
 
-  #if !defined(RADIOLIB_DEBUG_PORT)
-    #define RADIOLIB_DEBUG_PORT                       stdout
-  #endif
-
   #define DEC 10
   #define HEX 16
   #define OCT 8
@@ -470,9 +478,9 @@
 #if RADIOLIB_DEBUG
   #if defined(RADIOLIB_BUILD_ARDUINO)
     #define RADIOLIB_DEBUG_PRINT(...) rlb_printf(__VA_ARGS__)
-    #define RADIOLIB_DEBUG_PRINTLN(M, ...) rlb_printf(M "\n", ##__VA_ARGS__)
+    #define RADIOLIB_DEBUG_PRINTLN(M, ...) rlb_printf(M "" RADIOLIB_LINE_FEED, ##__VA_ARGS__)
     #define RADIOLIB_DEBUG_PRINT_LVL(LEVEL, M, ...) rlb_printf(LEVEL "" M, ##__VA_ARGS__)
-    #define RADIOLIB_DEBUG_PRINTLN_LVL(LEVEL, M, ...) rlb_printf(LEVEL "" M "\n", ##__VA_ARGS__)
+    #define RADIOLIB_DEBUG_PRINTLN_LVL(LEVEL, M, ...) rlb_printf(LEVEL "" M "" RADIOLIB_LINE_FEED, ##__VA_ARGS__)
 
     // some platforms do not support printf("%f"), so it has to be done this way
     #define RADIOLIB_DEBUG_PRINT_FLOAT(LEVEL, VAL, DECIMALS) RADIOLIB_DEBUG_PRINT(LEVEL); RADIOLIB_DEBUG_PORT.print(VAL, DECIMALS)
@@ -482,8 +490,8 @@
       #define RADIOLIB_DEBUG_PRINT_LVL(LEVEL, M, ...) fprintf(RADIOLIB_DEBUG_PORT, LEVEL "" M, ##__VA_ARGS__)
     #endif
     #if !defined(RADIOLIB_DEBUG_PRINTLN)
-      #define RADIOLIB_DEBUG_PRINTLN(M, ...) fprintf(RADIOLIB_DEBUG_PORT, M "\n", ##__VA_ARGS__)
-      #define RADIOLIB_DEBUG_PRINTLN_LVL(LEVEL, M, ...) fprintf(RADIOLIB_DEBUG_PORT, LEVEL "" M "\n", ##__VA_ARGS__)
+      #define RADIOLIB_DEBUG_PRINTLN(M, ...) fprintf(RADIOLIB_DEBUG_PORT, M "" RADIOLIB_LINE_FEED, ##__VA_ARGS__)
+      #define RADIOLIB_DEBUG_PRINTLN_LVL(LEVEL, M, ...) fprintf(RADIOLIB_DEBUG_PORT, LEVEL "" M "" RADIOLIB_LINE_FEED, ##__VA_ARGS__)
     #endif
     #define RADIOLIB_DEBUG_PRINT_FLOAT(LEVEL, VAL, DECIMALS) RADIOLIB_DEBUG_PRINT(LEVEL "%.3f", VAL)
   #endif
@@ -512,11 +520,13 @@
 
 #if RADIOLIB_DEBUG_PROTOCOL
   #define RADIOLIB_DEBUG_PROTOCOL_PRINT(...) RADIOLIB_DEBUG_PRINT_LVL("RLB_PRO: ", __VA_ARGS__)
+  #define RADIOLIB_DEBUG_PROTOCOL_PRINT_NOTAG(...) RADIOLIB_DEBUG_PRINT_LVL("", __VA_ARGS__)
   #define RADIOLIB_DEBUG_PROTOCOL_PRINTLN(...) RADIOLIB_DEBUG_PRINTLN_LVL("RLB_PRO: ", __VA_ARGS__)
   #define RADIOLIB_DEBUG_PROTOCOL_PRINT_FLOAT(...) RADIOLIB_DEBUG_PRINT_FLOAT("RLB_PRO: ", __VA_ARGS__);
   #define RADIOLIB_DEBUG_PROTOCOL_HEXDUMP(...) RADIOLIB_DEBUG_HEXDUMP("RLB_PRO: ", __VA_ARGS__);
 #else
   #define RADIOLIB_DEBUG_PROTOCOL_PRINT(...) {}
+  #define RADIOLIB_DEBUG_PROTOCOL_PRINT_NOTAG(...) {}
   #define RADIOLIB_DEBUG_PROTOCOL_PRINTLN(...) {}
   #define RADIOLIB_DEBUG_PROTOCOL_PRINT_FLOAT(...) {}
   #define RADIOLIB_DEBUG_PROTOCOL_HEXDUMP(...) {}
@@ -542,13 +552,13 @@
 #define RADIOLIB_VALUE_TO_STRING(x) #x
 #define RADIOLIB_VALUE(x) RADIOLIB_VALUE_TO_STRING(x)
 
-#define RADIOLIB_INFO "\nRadioLib Info\nVersion:  \"" \
+#define RADIOLIB_INFO "\r\nRadioLib Info\nVersion:  \"" \
   RADIOLIB_VALUE(RADIOLIB_VERSION_MAJOR) "." \
   RADIOLIB_VALUE(RADIOLIB_VERSION_MINOR) "." \
   RADIOLIB_VALUE(RADIOLIB_VERSION_PATCH) "." \
-  RADIOLIB_VALUE(RADIOLIB_VERSION_EXTRA) "\"\n" \
-  "Platform: " RADIOLIB_VALUE(RADIOLIB_PLATFORM) "\n" \
-  "Compiled: " RADIOLIB_VALUE(__DATE__) " " RADIOLIB_VALUE(__TIME__)
+  RADIOLIB_VALUE(RADIOLIB_VERSION_EXTRA) "\"\r\n" \
+  "Platform: " RADIOLIB_VALUE(RADIOLIB_PLATFORM) "\r\n" \
+  RADIOLIB_VALUE(__DATE__) " " RADIOLIB_VALUE(__TIME__)
 
 /*!
   \brief A simple assert macro, will return on error.

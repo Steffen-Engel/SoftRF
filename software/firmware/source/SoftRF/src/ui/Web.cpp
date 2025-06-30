@@ -18,7 +18,8 @@
 
 #include "../system/SoC.h"
 
-#if defined(EXCLUDE_WIFI) || defined(EXCLUDE_WEBUI)
+#if defined(EXCLUDE_WEBUI) || \
+   (defined(EXCLUDE_WIFI)  && defined(EXCLUDE_ETHERNET))
 void Web_setup()    {}
 void Web_loop()     {}
 void Web_fini()     {}
@@ -37,6 +38,9 @@ void Web_fini()     {}
 #include "../protocol/data/NMEA.h"
 #include "../protocol/data/GDL90.h"
 #include "../protocol/data/D1090.h"
+#if !defined(EXCLUDE_MAVLINK)
+#include "../protocol/data/MAVLink.h"
+#endif /* EXCLUDE_MAVLINK */
 #include "../system/Time.h"
 
 #if defined(ENABLE_AHRS)
@@ -150,7 +154,7 @@ Copyright (C) 2015-2025 &nbsp;&nbsp;&nbsp; Linar Yusupov\
 
 void handleSettings() {
 
-  size_t size = 5470;
+  size_t size = 5520;
   char *offset;
   size_t len = 0;
 size += 100;
@@ -199,7 +203,8 @@ size += 100;
   if (hw_info.rf == RF_IC_SX1276 ||
       hw_info.rf == RF_IC_SX1262 ||
       hw_info.rf == RF_IC_LR1110 ||
-      hw_info.rf == RF_IC_LR1121) {
+      hw_info.rf == RF_IC_LR1121 ||
+      hw_info.rf == RF_IC_SX1280) {
     snprintf_P ( offset, size,
       PSTR("\
 <tr>\
@@ -235,6 +240,36 @@ size += 100;
      RF_PROTOCOL_ADSL_860, adsl_proto_desc.name,
     (settings->rf_protocol == RF_PROTOCOL_APRS     ? "selected" : ""),
      RF_PROTOCOL_APRS, prol_proto_desc.name
+    );
+  } else if (hw_info.rf == RF_IC_SX1231 ||
+             hw_info.rf == RF_IC_SI4432 ||
+             hw_info.rf == RF_IC_SI4463 ||
+             hw_info.rf == RF_IC_CC1101) {
+    snprintf_P ( offset, size,
+      PSTR("\
+<tr>\
+<th align=left>Protocol</th>\
+<td align=right>\
+<select name='protocol'>\
+<option %s value='%d'>%s</option>\
+<option %s value='%d'>%s</option>\
+<option %s value='%d'>%s</option>"
+#if defined(ENABLE_ADSL)
+"<option %s value='%d'>%s</option>"
+#else
+"<!--<option %s value='%d'>%s</option>-->"
+#endif /* ENABLE_ADSL */
+"</select>\
+</td>\
+</tr>"),
+    (settings->rf_protocol == RF_PROTOCOL_LEGACY   ? "selected" : ""),
+     RF_PROTOCOL_LEGACY, legacy_proto_desc.name,
+    (settings->rf_protocol == RF_PROTOCOL_OGNTP    ? "selected" : ""),
+     RF_PROTOCOL_OGNTP, ogntp_proto_desc.name,
+    (settings->rf_protocol == RF_PROTOCOL_P3I      ? "selected" : ""),
+     RF_PROTOCOL_P3I, p3i_proto_desc.name,
+    (settings->rf_protocol == RF_PROTOCOL_ADSL_860 ? "selected" : ""),
+     RF_PROTOCOL_ADSL_860, adsl_proto_desc.name
     );
   } else {
     snprintf_P ( offset, size,
@@ -274,6 +309,7 @@ size += 100;
 <option %s value='%d'>IN (866 MHz)</option>\
 <option %s value='%d'>KR (920.9 MHz)</option>\
 <option %s value='%d'>IL (916.2 MHz)</option>\
+<!--<option %s value='%d'>Reserved</option>-->\
 </select>\
 </td>\
 </tr>\
@@ -346,16 +382,17 @@ size += 100;
 </td>\
 </tr>"),
   (settings->band == RF_BAND_AUTO ? "selected" : ""), RF_BAND_AUTO,
-  (settings->band == RF_BAND_EU ? "selected" : ""), RF_BAND_EU,
-  (settings->band == RF_BAND_RU ? "selected" : ""), RF_BAND_RU,
-  (settings->band == RF_BAND_CN ? "selected" : ""), RF_BAND_CN,
-  (settings->band == RF_BAND_US ? "selected" : ""), RF_BAND_US,
-  (settings->band == RF_BAND_NZ ? "selected" : ""), RF_BAND_NZ,
-  (settings->band == RF_BAND_UK ? "selected" : ""), RF_BAND_UK,
-  (settings->band == RF_BAND_AU ? "selected" : ""), RF_BAND_AU,
-  (settings->band == RF_BAND_IN ? "selected" : ""), RF_BAND_IN,
-  (settings->band == RF_BAND_KR ? "selected" : ""), RF_BAND_KR,
-  (settings->band == RF_BAND_IL ? "selected" : ""), RF_BAND_IL,
+  (settings->band == RF_BAND_EU   ? "selected" : ""), RF_BAND_EU,
+  (settings->band == RF_BAND_RU   ? "selected" : ""), RF_BAND_RU,
+  (settings->band == RF_BAND_CN   ? "selected" : ""), RF_BAND_CN,
+  (settings->band == RF_BAND_US   ? "selected" : ""), RF_BAND_US,
+  (settings->band == RF_BAND_NZ   ? "selected" : ""), RF_BAND_NZ,
+  (settings->band == RF_BAND_UK   ? "selected" : ""), RF_BAND_UK,
+  (settings->band == RF_BAND_AU   ? "selected" : ""), RF_BAND_AU,
+  (settings->band == RF_BAND_IN   ? "selected" : ""), RF_BAND_IN,
+  (settings->band == RF_BAND_KR   ? "selected" : ""), RF_BAND_KR,
+  (settings->band == RF_BAND_IL   ? "selected" : ""), RF_BAND_IL,
+  (settings->band == RF_BAND_RSVD ? "selected" : ""), RF_BAND_RSVD,
   (settings->aircraft_type == AIRCRAFT_TYPE_GLIDER ? "selected" : ""),  AIRCRAFT_TYPE_GLIDER,
   (settings->aircraft_type == AIRCRAFT_TYPE_TOWPLANE ? "selected" : ""),  AIRCRAFT_TYPE_TOWPLANE,
   (settings->aircraft_type == AIRCRAFT_TYPE_POWERED ? "selected" : ""),  AIRCRAFT_TYPE_POWERED,
@@ -685,15 +722,23 @@ size += 100;
   size -= len;
 
   /* Radio specific part 3 */
-  if (rf_chip && rf_chip->type == RF_IC_SX1276) {
+  if (rf_chip && (rf_chip->type == RF_IC_SX1276 ||
+                  rf_chip->type == RF_IC_CC1101 ||
+                  rf_chip->type == RF_IC_SX1231 ||
+                  rf_chip->type == RF_IC_SI4432 ||
+                  rf_chip->type == RF_IC_SI4463 ||
+     (rf_chip->type == RF_IC_LR1121 && hw_info.model == SOFTRF_MODEL_NANO) ||
+                  rf_chip->type == RF_IC_SX1280)) {
     snprintf_P ( offset, size,
       PSTR("\
 <tr>\
 <th align=left>Radio CF correction (&#177;, kHz)</th>\
 <td align=right>\
-<INPUT type='number' name='rfc' min='-30' max='30' value='%d'>\
+<INPUT type='number' name='rfc' min='%d' max='%d' value='%d'>\
 </td>\
 </tr>"),
+    rf_chip->type == RF_IC_SX1280 ? -90 : -30,
+    rf_chip->type == RF_IC_SX1280 ?  90 :  30,
     settings->freq_corr);
 
     len = strlen(offset);
@@ -762,7 +807,14 @@ void handleRoot() {
   bool low_voltage = (Battery_voltage() <= Battery_threshold());
 
   unsigned int timestamp = (unsigned int) ThisAircraft.timestamp;
-  unsigned int sats = gnss.satellites.value(); // Number of satellites in use (u32)
+  unsigned int sats;
+
+#if !defined(EXCLUDE_MAVLINK)
+  if (settings->mode == SOFTRF_MODE_UAV)
+    sats = the_aircraft.gps.num_sats;
+  else
+#endif /* EXCLUDE_MAVLINK */
+    sats = gnss.satellites.value(); // Number of satellites in use (u32)
 
   char str_lat[16];
   char str_lon[16];
@@ -814,7 +866,7 @@ void handleRoot() {
  "<tr><th align=left>Uptime</th><td align=right>%02d:%02d:%02d</td></tr>\
   <tr><th align=left>Free memory</th><td align=right>%u</td></tr>\
   <tr><th align=left>Battery voltage</th><td align=right><font color=%s>%s</font></td></tr>"
-#if defined(USE_USB_HOST)
+#if defined(USE_USB_HOST) && defined(ESP32)
   "<tr><th align=left>USB client</th><td align=right>%s %s</td></tr>"
 #endif /* USE_USB_HOST */
  "</table>\
@@ -839,7 +891,7 @@ void handleRoot() {
     <td align=left><input type=button onClick=\"location.href='/settings'\" value='Settings'></td>\
     <td align=center><input type=button onClick=\"location.href='/about'\" value='About'></td>"),
     ThisAircraft.addr, SOFTRF_FIRMWARE_VERSION
-#if defined(USE_USB_HOST)
+#if defined(USE_USB_HOST) && defined(ESP32)
     "H"
 #endif /* USE_USB_HOST */
 #if defined(SOFTRF_ADDRESS)
@@ -855,7 +907,7 @@ void handleRoot() {
 #endif /* ENABLE_AHRS */
     UpTime.hours, UpTime.minutes, UpTime.seconds, SoC->getFreeHeap(),
     low_voltage ? "red" : "green", str_Vcc,
-#if defined(USE_USB_HOST)
+#if defined(USE_USB_HOST) && defined(ESP32)
     ESP32_USB_Serial.connected ? supported_USB_devices[ESP32_USB_Serial.index].first_name : "",
     ESP32_USB_Serial.connected ? supported_USB_devices[ESP32_USB_Serial.index].last_name  : "N/A",
 #endif /* USE_USB_HOST */
@@ -1037,7 +1089,7 @@ PSTR("<html>\
 
 #if defined(ENABLE_RECORDER)
 
-#include <SdFat.h>
+#include <SdFat_Adafruit_Fork.h>
 extern SdFat uSD;
 
 #define FILESYSTEM       uSD

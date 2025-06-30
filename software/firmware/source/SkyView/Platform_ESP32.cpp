@@ -23,12 +23,16 @@
 #include <Wire.h>
 #include <esp_err.h>
 #include <esp_wifi.h>
-#if !defined(CONFIG_IDF_TARGET_ESP32S2)
+#if !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32P4)
 #include <esp_bt.h>
 #endif /* CONFIG_IDF_TARGET_ESP32S2 */
-#if !defined(CONFIG_IDF_TARGET_ESP32C6)
+#if !defined(CONFIG_IDF_TARGET_ESP32C5)  && \
+    !defined(CONFIG_IDF_TARGET_ESP32C6)  && \
+    !defined(CONFIG_IDF_TARGET_ESP32C61) && \
+    !defined(CONFIG_IDF_TARGET_ESP32H2)  && \
+    !defined(CONFIG_IDF_TARGET_ESP32P4)
 #include <soc/rtc_cntl_reg.h>
-#endif /* CONFIG_IDF_TARGET_ESP32C6 */
+#endif /* CONFIG_IDF_TARGET_ESP32C5 || C6 || H2 || P4 */
 #include <rom/spi_flash.h>
 #include <soc/adc_channel.h>
 #include <driver/i2s.h>
@@ -47,7 +51,9 @@
 #if defined(CONFIG_IDF_TARGET_ESP32)   || \
     defined(CONFIG_IDF_TARGET_ESP32S2) || \
     defined(CONFIG_IDF_TARGET_ESP32C3) || \
-    defined(CONFIG_IDF_TARGET_ESP32C6)
+    defined(CONFIG_IDF_TARGET_ESP32C5) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6) || \
+    defined(CONFIG_IDF_TARGET_ESP32P4)
 #include <sqlite3.h>
 #include <SD.h>
 #endif /* CONFIG_IDF_TARGET_ESP32XX */
@@ -65,6 +71,11 @@ char UDPpacketBuffer[UDP_PACKET_BUFSIZE]; // Dummy definition to satisfy build s
 #else
 WebServer server ( 80 );
 #endif /* EXCLUDE_WIFI */
+
+#if !defined(EXCLUDE_ETHERNET)
+#include <ETH.h>
+#include "EthernetHelper.h"
+#endif /* EXCLUDE_ETHERNET */
 
 /*
  * TTGO-T5S. Pin definition
@@ -166,7 +177,9 @@ SPIClass uSD_SPI(HSPI);
 #if defined(CONFIG_IDF_TARGET_ESP32)   || \
     defined(CONFIG_IDF_TARGET_ESP32S2) || \
     defined(CONFIG_IDF_TARGET_ESP32C3) || \
-    defined(CONFIG_IDF_TARGET_ESP32C6)
+    defined(CONFIG_IDF_TARGET_ESP32C5) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6) || \
+    defined(CONFIG_IDF_TARGET_ESP32P4)
 
 /* variables hold file, state of process wav file and wav file properties */
 wavProperties_t wavProps;
@@ -209,7 +222,7 @@ i2s_pin_config_t pin_config = {
 RTC_DATA_ATTR int bootCount          = 0;
 static size_t ESP32_Min_AppPart_Size = 0;
 
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4)
 //#define SPI_DRIVER_SELECT 3
 #include <Adafruit_SPIFlash.h>
 #include <Adafruit_INA219.h>
@@ -584,7 +597,7 @@ static void ESP32_setup()
 #if CONFIG_TINYUSB_ENABLED
   if (USB.manufacturerName(ESP32SX_Device_Manufacturer)) {
     char usb_serial_number[16];
-    uint16_t pid = 0x812BD ; /* Banana Pi BPI-PicoW-S3 - Arduino */
+    uint16_t pid = 0x812B ; /* Banana Pi BPI-PicoW-S3 - Arduino */
 
     snprintf(usb_serial_number, sizeof(usb_serial_number),
              "%02X%02X%02X%02X%02X%02X",
@@ -611,12 +624,28 @@ static void ESP32_setup()
 #endif /* TBD */
 
 #else
-#if ARDUINO_USB_CDC_ON_BOOT && defined(CONFIG_IDF_TARGET_ESP32C6)
+#if ARDUINO_USB_CDC_ON_BOOT && \
+    (defined(CONFIG_IDF_TARGET_ESP32C5) || \
+     defined(CONFIG_IDF_TARGET_ESP32C6) || \
+     defined(CONFIG_IDF_TARGET_ESP32P4))
   Serial.begin(SERIAL_OUT_BR);
 #else
   Serial.begin(SERIAL_OUT_BR, SERIAL_OUT_BITS);
 #endif /* CONFIG_IDF_TARGET_ESP32C6 */
 #endif /* ARDUINO_USB_CDC_ON_BOOT && (CONFIG_IDF_TARGET_ESP32S2 || S3) */
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+#if !defined(EXCLUDE_ETHERNET)
+  Ethernet_setup();
+
+  ETH.begin(ETH_PHY_TYPE,
+            ETH_PHY_ADDR,
+            SOC_GPIO_PIN_ETH_MDC,
+            SOC_GPIO_PIN_ETH_MDIO,
+            SOC_GPIO_PIN_ETH_PWR,
+            ETH_CLK_MODE);
+#endif /* EXCLUDE_ETHERNET */
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 }
 
 static void ESP32_post_init()
@@ -722,6 +751,12 @@ static void ESP32_loop()
     }
   }
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+#if !defined(EXCLUDE_ETHERNET)
+  Ethernet_loop();
+#endif /* EXCLUDE_ETHERNET */
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 }
 
 static void ESP32_fini()
@@ -748,6 +783,14 @@ static void ESP32_fini()
 
   pinMode(SOC_GPIO_PIN_LED, INPUT);
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+#if !defined(EXCLUDE_ETHERNET)
+  ETH.end();
+
+  Ethernet_fini();
+#endif /* EXCLUDE_ETHERNET */
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 
   int wake_gpio_num = SOC_BUTTON_MODE_DEF;
 
@@ -790,7 +833,8 @@ static void ESP32_fini()
    *  SD card in  -            0.2 mA
    *  SD card out -            0.1 mA
    */
-#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6)
+#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C5) && \
+    !defined(CONFIG_IDF_TARGET_ESP32C6)
   esp_sleep_enable_ext1_wakeup(1ULL << wake_gpio_num, ESP_EXT1_WAKEUP_ALL_LOW);
 #endif /* CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6 */
 
@@ -903,6 +947,8 @@ static void ESP32_Battery_setup()
   calibrate_voltage((adc1_channel_t) ADC1_GPIO3_CHANNEL);
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
   calibrate_voltage((adc1_channel_t) ADC1_GPIO1_CHANNEL); /* TBD */
+#elif defined(CONFIG_IDF_TARGET_ESP32C5)
+  /* TBD */
 #elif defined(CONFIG_IDF_TARGET_ESP32C6)
   /* TBD */
 #else
@@ -1509,7 +1555,9 @@ static void ESP32_DB_fini()
 #if defined(CONFIG_IDF_TARGET_ESP32)   || \
     defined(CONFIG_IDF_TARGET_ESP32S2) || \
     defined(CONFIG_IDF_TARGET_ESP32C3) || \
-    defined(CONFIG_IDF_TARGET_ESP32C6)
+    defined(CONFIG_IDF_TARGET_ESP32C5) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6) || \
+    defined(CONFIG_IDF_TARGET_ESP32P4)
 /* write sample data to I2S */
 int i2s_write_sample_nb(uint32_t sample)
 {
@@ -1668,7 +1716,9 @@ static void ESP32_TTS(char *message)
 #if defined(CONFIG_IDF_TARGET_ESP32)   || \
     defined(CONFIG_IDF_TARGET_ESP32S2) || \
     defined(CONFIG_IDF_TARGET_ESP32C3) || \
-    defined(CONFIG_IDF_TARGET_ESP32C6)
+    defined(CONFIG_IDF_TARGET_ESP32C5) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6) || \
+    defined(CONFIG_IDF_TARGET_ESP32P4)
       if (SD.cardType() == CARD_NONE)
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
       if (!FATFS_is_mounted)
@@ -1727,7 +1777,9 @@ static void ESP32_TTS(char *message)
 #if defined(CONFIG_IDF_TARGET_ESP32)   || \
     defined(CONFIG_IDF_TARGET_ESP32S2) || \
     defined(CONFIG_IDF_TARGET_ESP32C3) || \
-    defined(CONFIG_IDF_TARGET_ESP32C6)
+    defined(CONFIG_IDF_TARGET_ESP32C5) || \
+    defined(CONFIG_IDF_TARGET_ESP32C6) || \
+    defined(CONFIG_IDF_TARGET_ESP32P4)
       if (SD.cardType() == CARD_NONE ||
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
       if (!FATFS_is_mounted          ||
@@ -1988,12 +2040,18 @@ const SoC_ops_t ESP32_ops = {
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
   SOC_ESP32C3,
   "ESP32-C3",
+#elif defined(CONFIG_IDF_TARGET_ESP32C5)
+  SOC_ESP32C5,
+  "ESP32-C5",
 #elif defined(CONFIG_IDF_TARGET_ESP32C6)
   SOC_ESP32C6,
   "ESP32-C6",
+#elif defined(CONFIG_IDF_TARGET_ESP32P4)
+  SOC_ESP32P4,
+  "ESP32-P4",
 #else
 #error "This ESP32 family build variant is not supported!"
-#endif /* CONFIG_IDF_TARGET_ESP32-S2-S3-C3 */
+#endif /* CONFIG_IDF_TARGET_ESP32-S2-S3-C3-C5-C6-P4 */
   ESP32_setup,
   ESP32_post_init,
   ESP32_loop,
@@ -2026,7 +2084,7 @@ const SoC_ops_t ESP32_ops = {
   ESP32_Button_fini,
   ESP32_WDT_setup,
   ESP32_WDT_fini,
-#if !defined(CONFIG_IDF_TARGET_ESP32S2)
+#if !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32P4)
   &ESP32_Bluetooth_ops,
 #else
   NULL,

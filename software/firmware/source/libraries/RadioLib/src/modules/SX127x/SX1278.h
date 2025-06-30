@@ -213,10 +213,11 @@ class SX1278: public SX127x {
       \brief Sets transmission output power. Allowed values range from -3 to 15 dBm (RFO pin) or +2 to +17 dBm (PA_BOOST pin).
       High power +20 dBm operation is also supported, on the PA_BOOST pin.
       \param power Transmission output power in dBm.
-      \param useRfo Whether to use the RFO (true) or the PA_BOOST (false) pin for the RF output.
+      \param forceRfo Whether to force using the RFO pin for the RF output (true)
+      or to leave the selection up to user (false) based on power output.
       \returns \ref status_codes
     */
-    int16_t setOutputPower(int8_t power, bool useRfo);
+    int16_t setOutputPower(int8_t power, bool forceRfo) override;
 
     /*!
       \brief Check if output power is configurable.
@@ -234,7 +235,7 @@ class SX1278: public SX127x {
       \param useRfo Whether to use the RFO (true) or the PA_BOOST (false) pin for the RF output.
       \returns \ref status_codes
     */
-    int16_t checkOutputPower(int8_t power, int8_t* clipped, bool useRfo);
+    int16_t checkOutputPower(int8_t power, int8_t* clipped, bool useRfo) override;
 
     /*!
       \brief Sets gain of receiver LNA (low-noise amplifier). Can be set to any integer in range 1 to 6 where 1 is the highest gain.
@@ -328,7 +329,6 @@ class SX1278: public SX127x {
     int16_t setBandwidthRaw(uint8_t newBandwidth);
     int16_t setSpreadingFactorRaw(uint8_t newSpreadingFactor);
     int16_t setCodingRateRaw(uint8_t newCodingRate);
-    int16_t setHeaderType(uint8_t headerType, size_t len = 0xFF);
 
     int16_t configFSK();
     void errataFix(bool rx) override;

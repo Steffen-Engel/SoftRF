@@ -20,14 +20,23 @@
 #include "sdkconfig.h"
 #endif
 
-#if defined(ESP32) && !defined(CONFIG_IDF_TARGET_ESP32S2)
+#if defined(ESP32)                     && \
+   !defined(CONFIG_IDF_TARGET_ESP32S2) && \
+   !defined(CONFIG_IDF_TARGET_ESP32P4)
 
-#if !defined(CONFIG_IDF_TARGET_ESP32C6)
+#include "SoCHelper.h"
+
+#if !defined(USE_ARDUINOBLE)
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth is not enabled!
 #endif
 
+#if defined(USE_NIMBLE)
+#include <NimBLEDevice.h>
+#include <NimBLEServer.h>
+#include <NimBLEUtils.h>
+#else
 /*
     BLE code is based on Neil Kolban example for IDF:
       https://github.com/nkolban/esp32-snippets/blob/master/cpp_utils/tests/BLE%20Tests/SampleNotify.cpp
@@ -38,15 +47,21 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#endif /* USE_NIMBLE */
 
 #include "esp_gap_bt_api.h"
 
-#include "SoCHelper.h"
 #include "EEPROMHelper.h"
 #include "BluetoothHelper.h"
 
+#if defined(USE_NIMBLE)
+NimBLEServer* pServer = NULL;
+NimBLECharacteristic* pCharacteristic = NULL;
+#else
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
+#endif /* USE_NIMBLE */
+
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 
@@ -60,7 +75,9 @@ String BT_name;
 static unsigned long BLE_Notify_TimeMarker = 0;
 static unsigned long BLE_Advertising_TimeMarker = 0;
 
+#if !defined(USE_NIMBLE)
 BLEDescriptor UserDescriptor(BLEUUID((uint16_t)0x2901));
+#endif /* USE_NIMBLE */
 
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
@@ -118,8 +135,11 @@ static void ESP32_Bluetooth_setup()
 #endif /* CONFIG_IDF_TARGET_ESP32 */
 
       // Create the BLE Device
+#if defined(USE_NIMBLE)
+      NimBLEDevice::init((BT_name+"-LE").c_str());
+#else
       BLEDevice::init((BT_name+"-LE").c_str());
-
+#endif
       /*
        * Set the MTU of the packets sent,
        * maximum is 500, Apple needs 23 apparently.
@@ -127,12 +147,25 @@ static void ESP32_Bluetooth_setup()
       // BLEDevice::setMTU(23);
 
       // Create the BLE Server
+#if defined(USE_NIMBLE)
+      pServer = NimBLEDevice::createServer();
+#else
       pServer = BLEDevice::createServer();
+#endif
       pServer->setCallbacks(new MyServerCallbacks());
 
       // Create the BLE Service
       BLEService *pService = pServer->createService(SERVICE_UUID16);
 
+#if defined(USE_NIMBLE)
+      // Create a BLE Characteristic
+      pCharacteristic = pService->createCharacteristic(
+                          NimBLEUUID(CHARACTERISTIC_UUID16),
+                          NIMBLE_PROPERTY::READ   |
+                          NIMBLE_PROPERTY::NOTIFY |
+                          NIMBLE_PROPERTY::WRITE_NR
+                        );
+#else
       // Create a BLE Characteristic
       pCharacteristic = pService->createCharacteristic(
                           CHARACTERISTIC_UUID16,
@@ -144,6 +177,7 @@ static void ESP32_Bluetooth_setup()
       UserDescriptor.setValue("HMSoft");
       pCharacteristic->addDescriptor(&UserDescriptor);
       pCharacteristic->addDescriptor(new BLE2902());
+#endif
 
       pCharacteristic->setCallbacks(new MyCallbacks());
 
@@ -151,12 +185,20 @@ static void ESP32_Bluetooth_setup()
       pService->start();
 
       // Start advertising
+#if defined(USE_NIMBLE) && defined(ESP_IDF_VERSION_MAJOR) && ESP_IDF_VERSION_MAJOR >= 5
+      BLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
+      pAdvertising->addServiceUUID(SERVICE_UUID16);
+      pAdvertising->enableScanResponse(true);
+      pAdvertising->setPreferredParams(0x06, 0x12);
+      NimBLEDevice::startAdvertising();
+#else
       BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
       pAdvertising->addServiceUUID(SERVICE_UUID16);
       pAdvertising->setScanResponse(true);
       pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
       pAdvertising->setMaxPreferred(0x12);
       BLEDevice::startAdvertising();
+#endif /* ESP_IDF_VERSION_MAJOR */
 
       BLE_Advertising_TimeMarker = millis();
     }
@@ -987,7 +1029,6 @@ static void bt_app_av_state_disconnecting(uint16_t event, void *param)
 #include <api/RingBuffer.h>
 #endif /* ESP32 */
 
-#include "SoCHelper.h"
 #include "EEPROMHelper.h"
 #include "BluetoothHelper.h"
 #include "WiFiHelper.h"
@@ -1344,7 +1385,7 @@ IODev_ops_t ArdBLE_Bluetooth_ops = {
   ArdBLE_Bluetooth_write
 };
 
-#endif /* CONFIG_IDF_TARGET_ESP32C6 */
+#endif /* USE_ARDUINOBLE */
 
 #elif defined(ARDUINO_ARCH_RP2040)
 #include "SoCHelper.h"

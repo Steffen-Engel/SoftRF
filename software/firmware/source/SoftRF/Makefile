@@ -24,11 +24,20 @@ RTLSDR        ?= no
 HACKRF        ?= no
 MIRISDR       ?= no
 
+BCM2835       ?= yes
+LGPIO         ?= no
+
+ifeq ($(LGPIO), yes)
+  RADIOLIB    ?= yes
+endif
+
 CC            = gcc
 CXX           = g++
 
-CFLAGS        = -Winline -MMD -DRASPBERRY_PI -DBCM2835_NO_DELAY_COMPATIBILITY \
-                -D__BASEFILE__=\"$*\"
+CFLAGS        = -Winline -MMD -D__BASEFILE__=\"$*\" \
+                -DBCM2835_NO_DELAY_COMPATIBILITY
+pi:           CFLAGS += -DRASPBERRY_PI
+lyra:         CFLAGS += -DLUCKFOX_LYRA
 
 CXXFLAGS      = -std=c++11 $(CFLAGS)
 
@@ -92,6 +101,8 @@ U8G2_PATH     = $(LIB_PATH)/U8g2_for_Adafruit_GFX/src
 EPD2_PATH     = $(LIB_PATH)/GxEPD2/src
 MODES_PATH    = $(LIB_PATH)/libmodes/src
 APRS_PATH     = $(LIB_PATH)/LibAPRS_ESP32
+LGPIO_PATH    = $(LIB_PATH)/lg-0.1
+RADIOLIB_PATH = $(LIB_PATH)/RadioLib/src
 
 ifeq ($(BASICMAC), yes)
 RADIO_PATH    = $(BASICMAC_PATH)
@@ -106,7 +117,8 @@ INCLUDE       = -I$(PRODAT_PATH) -I$(PRORAD_PATH)  -I$(PLATFORM_PATH) \
                 -I$(ADSB_PATH)   -I$(NMEALIB_PATH) -I$(GEOID_PATH)    \
                 -I$(JSON_PATH)   -I$(TCPSRV_PATH)  -I$(DUMP978_PATH)  \
                 -I$(GFX_PATH)    -I$(U8G2_PATH)    -I$(EPD2_PATH)     \
-                -I$(MODES_PATH)  -I$(APRS_PATH)
+                -I$(MODES_PATH)  -I$(APRS_PATH)    -I$(RADIOLIB_PATH) \
+                -I$(LGPIO_PATH)
 
 SRC_CPPS      := $(SRC_PATH)/TrafficHelper.cpp \
                  $(SRC_PATH)/Library.cpp
@@ -144,23 +156,25 @@ PLAT_CPPS     := $(PLATFORM_PATH)/ESP8266.cpp  \
                  $(PLATFORM_PATH)/EFR32.cpp    \
                  $(PLATFORM_PATH)/CH32.cpp
 
-DRV_CPPS      := $(DRIVER_PATH)/RF.cpp             \
-                 $(DRIVER_PATH)/radio/nordic.cpp   \
-                 $(DRIVER_PATH)/radio/almic.cpp    \
-                 $(DRIVER_PATH)/radio/uatm.cpp     \
-                 $(DRIVER_PATH)/radio/easylink.cpp \
-                 $(DRIVER_PATH)/radio/ogn.cpp      \
-                 $(DRIVER_PATH)/radio/nicerf.cpp   \
-                 $(DRIVER_PATH)/radio/radiolib.cpp \
-                 $(DRIVER_PATH)/GNSS.cpp           \
-                 $(DRIVER_PATH)/Baro.cpp           \
-                 $(DRIVER_PATH)/LED.cpp            \
-                 $(DRIVER_PATH)/OLED.cpp           \
-                 $(DRIVER_PATH)/Battery.cpp        \
-                 $(DRIVER_PATH)/EEPROM.cpp         \
-                 $(DRIVER_PATH)/Bluetooth.cpp      \
-                 $(DRIVER_PATH)/Sound.cpp          \
-                 $(DRIVER_PATH)/WiFi.cpp           \
+DRV_CPPS      := $(DRIVER_PATH)/RF.cpp              \
+                 $(DRIVER_PATH)/radio/nordic.cpp    \
+                 $(DRIVER_PATH)/radio/almic.cpp     \
+                 $(DRIVER_PATH)/radio/uatm.cpp      \
+                 $(DRIVER_PATH)/radio/easylink.cpp  \
+                 $(DRIVER_PATH)/radio/ogn.cpp       \
+                 $(DRIVER_PATH)/radio/nicerf.cpp    \
+                 $(DRIVER_PATH)/radio/radiolib.cpp  \
+                 $(DRIVER_PATH)/radio/radiohead.cpp \
+                 $(DRIVER_PATH)/GNSS.cpp            \
+                 $(DRIVER_PATH)/Baro.cpp            \
+                 $(DRIVER_PATH)/LED.cpp             \
+                 $(DRIVER_PATH)/OLED.cpp            \
+                 $(DRIVER_PATH)/Battery.cpp         \
+                 $(DRIVER_PATH)/EEPROM.cpp          \
+                 $(DRIVER_PATH)/Bluetooth.cpp       \
+                 $(DRIVER_PATH)/Sound.cpp           \
+                 $(DRIVER_PATH)/WiFi.cpp            \
+                 $(DRIVER_PATH)/Ethernet.cpp        \
                  $(DRIVER_PATH)/EPD.cpp
 
 UI_CPPS       := $(UI_PATH)/Web.cpp        \
@@ -237,6 +251,17 @@ ifeq ($(BASICMAC), yes)
   CFLAGS      += -DUSE_BASICMAC
 endif
 
+ifeq ($(RADIOLIB), yes)
+  OBJS        += $(RADIOLIB_PATH)/Module.o $(RADIOLIB_PATH)/Hal.o \
+                 $(RADIOLIB_PATH)/protocols/PhysicalLayer/PhysicalLayer.o \
+                 $(RADIOLIB_PATH)/utils/Utils.o \
+                 $(RADIOLIB_PATH)/modules/LR11x0/LR11x0.o \
+                 $(RADIOLIB_PATH)/modules/LR11x0/LR1110.o \
+                 $(RADIOLIB_PATH)/modules/LR11x0/LR1120.o \
+                 $(RADIOLIB_PATH)/modules/LR11x0/LR1121.o
+  CFLAGS      += -DUSE_RADIOLIB
+endif
+
 ifeq ($(NOMAVLINK), no)
   OBJS        += $(MAVLINK_PATH)/mavlink.o
 else
@@ -247,7 +272,15 @@ ifeq ($(GDEY027T91), yes)
   CFLAGS      += -DUSE_GDEY027T91
 endif
 
-LIBS          := -L$(BCMLIB_PATH) -lbcm2835 -lpthread
+ifeq ($(BCM2835), yes)
+  LIBS        := -L$(BCMLIB_PATH) -lbcm2835 -lpthread
+  CFLAGS      += -DUSE_BCMLIB
+endif
+
+ifeq ($(LGPIO), yes)
+  LIBS        := -L$(LGPIO_PATH) -llgpio -lpthread
+  CFLAGS      += -DUSE_LGPIO
+endif
 
 ifeq ($(RTLSDR), yes)
   OBJS        += $(MODES_PATH)/sdr/sdr_rtlsdr.o \
@@ -314,7 +347,9 @@ e3uf2:
 e6uf2:
 	$(UF2CONV) $(HEXDIR)/$(BIN_RAW) -c -f 0x540ddf62 -b 0 -o $(HEXDIR)/$(BIN_UF2)
 
-pi: bcm $(PROGNAME) $(PROGNAME)-aux
+pi: bcm lgpio $(PROGNAME) $(PROGNAME)-aux
+
+lyra: bcm lgpio $(PROGNAME)
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $*.cpp -o $*.o $(INCLUDE)
@@ -334,6 +369,9 @@ RPi.o: $(PLATFORM_PATH)/RPi.cpp
 RPi-aux.o: $(PLATFORM_PATH)/RPi.cpp
 	$(CXX) $(CXXFLAGS) -DUSE_SPI1 -c $(PLATFORM_PATH)/RPi.cpp $(INCLUDE) -o RPi-aux.o
 
+Lyra.o: $(PLATFORM_PATH)/RK35.cpp
+	$(CXX) $(CXXFLAGS) -c $(PLATFORM_PATH)/RK35.cpp $(INCLUDE) -o Lyra.o
+
 aes.o: $(RADIO_PATH)/aes/lmic.c
 	$(CC) $(CFLAGS) -c $(RADIO_PATH)/aes/lmic.c $(INCLUDE) -o aes.o
 
@@ -341,17 +379,31 @@ $(RADIO_PATH)/lmic/%.o: $(RADIO_PATH)/lmic/%.c
 	$(CC) -c $(CFLAGS) $(RADIO_PATH)/lmic/$*.c -o $(RADIO_PATH)/lmic/$*.o $(INCLUDE)
 
 bcm:
+ifeq ($(BCM2835), yes)
 	(cd $(BCMLIB_PATH)/../ ; ./configure ; make)
+endif
 
-$(PROGNAME): $(OBJS) aes.o hal.o RPi.o
-	$(CXX) $(OBJS) aes.o hal.o RPi.o $(LIBS) -o $(PROGNAME)
+lgpio:
+ifeq ($(LGPIO), yes)
+	(cd $(LGPIO_PATH)/ ; make)
+endif
+
+$(PROGNAME): $(OBJS) aes.o hal.o RPi.o Lyra.o
+	$(CXX) $(OBJS) aes.o hal.o RPi.o Lyra.o $(LIBS) -o $(PROGNAME)
 
 $(PROGNAME)-aux: $(OBJS) aes.o hal-aux.o RPi-aux.o
 	$(CXX) $(OBJS) aes.o hal-aux.o RPi-aux.o $(LIBS) -o $(PROGNAME)-aux
 
 bcm-clean:
+ifeq ($(BCM2835), yes)
 	(cd $(BCMLIB_PATH)/../ ; make distclean)
+endif
 
-clean: bcm-clean
+lgpio-clean:
+ifeq ($(LGPIO), yes)
+	(cd $(LGPIO_PATH)/ ; make clean)
+endif
+
+clean: bcm-clean lgpio-clean
 	rm -f $(OBJS) $(DEPS) aes.o hal.o hal-aux.o \
-	RPi.o RPi-aux.o $(PROGNAME) $(PROGNAME)-aux *.d
+	RPi.o RPi-aux.o Lyra.o $(PROGNAME) $(PROGNAME)-aux *.d

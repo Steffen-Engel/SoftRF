@@ -112,12 +112,14 @@ const char *ISO3166_CC[] = {
   [RF_BAND_UK]   = "UK",
   [RF_BAND_IN]   = "IN",
   [RF_BAND_IL]   = "IL",
-  [RF_BAND_KR]   = "KR"
+  [RF_BAND_KR]   = "KR",
+  [RF_BAND_RSVD] = "R "
 };
 
 const char SoftRF_text1[]  = "SoftRF";
 const char SoftRF_text2[]  = "and";
 const char SoftRF_text3[]  = "LilyGO";
+const char SoftRF_text4[]  = "Elecrow";
 const char ID_text[]       = "ID";
 const char PROTOCOL_text[] = "PROTOCOL";
 const char RX_text[]       = "RX";
@@ -167,6 +169,7 @@ byte OLED_setup() {
     u8x8 = &u8x8_i2c;
     rval = (hw_info.model == SOFTRF_MODEL_MINI     ? DISPLAY_OLED_HELTEC :
             hw_info.model == SOFTRF_MODEL_BRACELET ? DISPLAY_OLED_0_49   :
+            hw_info.model == SOFTRF_MODEL_DECENT   ? DISPLAY_OLED_1_3    :
             DISPLAY_OLED_TTGO);
   }
 

@@ -197,7 +197,7 @@ public:
 
     bool isChargeDone()
     {
-        return chargeStatus() != POWERS_SY_CHARGE_DONE;
+        return chargeStatus() == POWERS_SY_CHARGE_DONE;
     }
 
     bool isBatteryConnect(void) __attribute__((error("Not implemented")))
@@ -544,6 +544,7 @@ public:
             return false;
         }
         val &= (~_BV(7));
+        val &= (~_BV(6));
         return writeRegister(POWERS_SY6970_REG_02H, val) != 1;
     }
 
@@ -894,7 +895,7 @@ public:
 
     void getReadOnlyRegisterValue()
     {
-#if defined(ARDUINO) && !defined(ARDUINO_ARCH_MBED) //debug ..
+#if defined(ARDUINO) && !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR) //debug ..
         static uint8_t last_val[8] = {0};
         const uint8_t regis[] = {
             POWERS_SY6970_REG_0BH,

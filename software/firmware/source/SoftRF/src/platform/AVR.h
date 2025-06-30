@@ -129,6 +129,7 @@ struct rst_info {
 #endif
 
 #define EXCLUDE_WIFI
+#define EXCLUDE_ETHERNET
 #define EXCLUDE_CC13XX
 #define EXCLUDE_TEST_MODE
 #define EXCLUDE_WATCHOUT_MODE
@@ -163,6 +164,11 @@ struct rst_info {
 //#define USE_BASICMAC
 //#define EXCLUDE_SX1276         //  -  3 kb
 //#define USE_RADIOLIB
+#define EXCLUDE_CC1101
+#define EXCLUDE_SI443X
+#define EXCLUDE_SI446X
+#define EXCLUDE_SX1231
+#define EXCLUDE_SX1280
 
 //#define USE_OLED               //       kb
 #define EXCLUDE_OLED_049

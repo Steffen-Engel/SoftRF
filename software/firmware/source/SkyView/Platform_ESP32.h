@@ -36,6 +36,8 @@
 /* Peripherals */
 #define INA219_ADDRESS_ALT    (0x43) // 1000011 (A0=SCL, A1=GND)
 
+#define EXCLUDE_ETHERNET
+
 /* TTGO T5 and T5S SPI pins mapping */
 #define SOC_GPIO_PIN_MOSI_T5S 23
 #define SOC_GPIO_PIN_MISO_T5S 12
@@ -160,7 +162,74 @@
 #define SOC_GPIO_PIN_LRCK     9
 #define SOC_GPIO_PIN_MCK      8
 
-#elif defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C6)
+#elif defined(CONFIG_IDF_TARGET_ESP32P4)
+#define SOC_GPIO_PIN_GNSS_RX  5
+#define SOC_GPIO_PIN_GNSS_TX  4
+
+#define SOC_BUTTON_MODE_DEF   35 /* BOOT, active LOW, strapping pin */
+
+#define SOC_GPIO_PIN_MOSI_WS  32
+#define SOC_GPIO_PIN_MISO_WS  33
+#define SOC_GPIO_PIN_SCK_WS   36 /* strapping pin */
+#define SOC_GPIO_PIN_SS_WS    26
+
+#define SOC_EPD_PIN_DC_WS     47
+#define SOC_EPD_PIN_RST_WS    48
+#define SOC_EPD_PIN_BUSY_WS   27
+
+#define SOC_GPIO_PIN_SDA      7
+#define SOC_GPIO_PIN_SCL      8
+
+// USB
+#define SOC_GPIO_PIN_USB_DP   25
+#define SOC_GPIO_PIN_USB_DN   24
+
+//#define USE_ADAFRUIT_MSC
+
+#undef EXCLUDE_ETHERNET
+
+// Audio
+//#define EXCLUDE_AUDIO
+
+#if !defined(EXCLUDE_AUDIO)
+#define USE_EXT_I2S_DAC
+#endif /* EXCLUDE_AUDIO */
+
+/* I2S ES8311 + MIC */
+#define SOC_GPIO_PIN_DATA     11
+#define SOC_GPIO_PIN_BCK      12
+#define SOC_GPIO_PIN_LRCK     10
+#define SOC_GPIO_PIN_MCK      13
+
+// SDIO 1 - SDMMC
+#define SOC_GPIO_PIN_SD_CLK   43
+#define SOC_GPIO_PIN_SD_CMD   44
+#define SOC_GPIO_PIN_SD_D0    39
+#define SOC_GPIO_PIN_SD_D1    40
+#define SOC_GPIO_PIN_SD_D2    41
+#define SOC_GPIO_PIN_SD_D3    42
+#define SOC_GPIO_PIN_SD_DET   45
+#define SOC_GPIO_PIN_SD_PWR   46 /* NC ? */
+
+// SDIO 2 - WIFI - ESP32-C5
+#define SOC_GPIO_PIN_ESPH_CLK 18
+#define SOC_GPIO_PIN_ESPH_CMD 19
+#define SOC_GPIO_PIN_ESPH_D0  14
+#define SOC_GPIO_PIN_ESPH_D1  15
+#define SOC_GPIO_PIN_ESPH_D2  16
+#define SOC_GPIO_PIN_ESPH_D3  17
+#define SOC_GPIO_PIN_ESPH_RST 54 /* C5 EN */
+#define SOC_GPIO_PIN_ESPH_WKP 6  /* C5 WAKEUP */
+
+// Ethernet
+#define ETH_PHY_TYPE          ETH_PHY_IP101
+#define SOC_GPIO_PIN_ETH_MDC  31
+#define SOC_GPIO_PIN_ETH_MDIO 52
+#define SOC_GPIO_PIN_ETH_PWR  51 /* PHY_RSTN */
+
+#elif defined(CONFIG_IDF_TARGET_ESP32C3) || \
+      defined(CONFIG_IDF_TARGET_ESP32C5) || \
+      defined(CONFIG_IDF_TARGET_ESP32C6)
 #define SOC_GPIO_PIN_GNSS_RX  10  /* D4 */
 #define SOC_GPIO_PIN_GNSS_TX  7
 
@@ -181,6 +250,9 @@
 #define SOC_GPIO_PIN_USB_DP   19 /* D1 */
 #define SOC_GPIO_PIN_USB_DN   18 /* D2 */
 
+#if defined(CONFIG_IDF_TARGET_ESP32C5) || defined(CONFIG_IDF_TARGET_ESP32C6)
+#define USE_NIMBLE
+#endif
 #define EXCLUDE_AUDIO
 
 #else

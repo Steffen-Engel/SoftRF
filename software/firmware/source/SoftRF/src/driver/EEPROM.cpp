@@ -82,14 +82,17 @@ void EEPROM_defaults()
 {
   eeprom_block.field.magic                  = SOFTRF_EEPROM_MAGIC;
   eeprom_block.field.version                = SOFTRF_EEPROM_VERSION;
-  eeprom_block.field.settings.mode          = SOFTRF_MODE_NORMAL;
+  eeprom_block.field.settings.mode          = hw_info.model == SOFTRF_MODEL_NANO ?
+                                              SOFTRF_MODE_UAV : SOFTRF_MODE_NORMAL;
   eeprom_block.field.settings.rf_protocol   = hw_info.model == SOFTRF_MODEL_BRACELET ||
                                               hw_info.model == SOFTRF_MODEL_CARD ?
                                               RF_PROTOCOL_FANET :
                                               hw_info.model == SOFTRF_MODEL_ES ?
                                               RF_PROTOCOL_ADSB_1090 :
                                               hw_info.model == SOFTRF_MODEL_HAM ?
-                                              RF_PROTOCOL_APRS : RF_PROTOCOL_OGNTP;
+                                              RF_PROTOCOL_APRS :
+                                              hw_info.model == SOFTRF_MODEL_NANO ?
+                                              RF_PROTOCOL_ADSL_860 : RF_PROTOCOL_OGNTP;
   eeprom_block.field.settings.band          = RF_BAND_EU;
   eeprom_block.field.settings.aircraft_type = hw_info.model == SOFTRF_MODEL_BRACELET ?
                                               AIRCRAFT_TYPE_STATIC :
@@ -112,11 +115,15 @@ void EEPROM_defaults()
     eeprom_block.field.settings.pointer     = DIRECTION_NORTH_UP;
   } else {
 #if defined(USE_PWM_SOUND)
-    if (hw_info.model == SOFTRF_MODEL_CARD) {
+    if (hw_info.model == SOFTRF_MODEL_CARD     ||
+        hw_info.model == SOFTRF_MODEL_HANDHELD ||
+        hw_info.model == SOFTRF_MODEL_DECENT) {
       eeprom_block.field.settings.volume    = BUZZER_VOLUME_FULL;
     } else
 #endif /* USE_PWM_SOUND */
-    {
+    if (hw_info.model == SOFTRF_MODEL_GIZMO) {
+      eeprom_block.field.settings.volume    = BUZZER_VOLUME_FULL;
+    } else {
       eeprom_block.field.settings.volume    = BUZZER_OFF;
     }
     eeprom_block.field.settings.pointer     = LED_OFF;
@@ -130,13 +137,22 @@ void EEPROM_defaults()
 
 #if (ARDUINO_USB_CDC_ON_BOOT && !defined(USE_USB_HOST)) || \
     (defined(USBD_USE_CDC) && !defined(DISABLE_GENERIC_SERIALUSB))
-  eeprom_block.field.settings.nmea_out   = NMEA_USB;
+  eeprom_block.field.settings.nmea_out   =
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+             /* Ebyte EoRa-HUB */
+             (hw_info.model == SOFTRF_MODEL_STANDALONE &&
+              hw_info.revision == STD_EDN_REV_EHUB) ||
+#endif /* CONFIG_IDF_TARGET_ESP32S3 */
+                                           hw_info.model == SOFTRF_MODEL_GIZMO ?
+                                           NMEA_UART : NMEA_USB;
 #elif defined(ARDUINO_ARCH_SILABS)
   eeprom_block.field.settings.nmea_out   = NMEA_UART;
 #else
   eeprom_block.field.settings.nmea_out   = hw_info.model == SOFTRF_MODEL_BADGE    ||
                                            hw_info.model == SOFTRF_MODEL_CARD     ||
-                                           hw_info.model == SOFTRF_MODEL_COZY      ?
+                                           hw_info.model == SOFTRF_MODEL_COZY     ||
+                                           hw_info.model == SOFTRF_MODEL_HANDHELD ||
+                                           hw_info.model == SOFTRF_MODEL_DECENT   ?
                                            NMEA_BLUETOOTH :
                                            hw_info.model == SOFTRF_MODEL_ES        ?
                                            NMEA_OFF :

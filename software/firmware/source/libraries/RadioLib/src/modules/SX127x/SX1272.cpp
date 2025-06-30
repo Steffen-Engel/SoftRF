@@ -279,8 +279,9 @@ int16_t SX1272::setOutputPower(int8_t power) {
   return(this->setOutputPower(power, false));
 }
 
-int16_t SX1272::setOutputPower(int8_t power, bool useRfo) {
+int16_t SX1272::setOutputPower(int8_t power, bool forceRfo) {
   // check if power value is configurable
+  bool useRfo = (power < 2) || forceRfo;
   int16_t state = checkOutputPower(power, NULL, useRfo);
   RADIOLIB_ASSERT(state);
 
@@ -497,11 +498,13 @@ int16_t SX1272::autoLDRO() {
 }
 
 int16_t SX1272::implicitHeader(size_t len) {
-  return(setHeaderType(RADIOLIB_SX1272_HEADER_IMPL_MODE, len));
+  this->implicitHdr = true;
+  return(setHeaderType(RADIOLIB_SX1272_HEADER_IMPL_MODE, 2, len));
 }
 
 int16_t SX1272::explicitHeader() {
-  return(setHeaderType(RADIOLIB_SX1272_HEADER_EXPL_MODE));
+  this->implicitHdr = false;
+  return(setHeaderType(RADIOLIB_SX1272_HEADER_EXPL_MODE, 2));
 }
 
 int16_t SX1272::setBandwidthRaw(uint8_t newBandwidth) {
@@ -521,11 +524,13 @@ int16_t SX1272::setSpreadingFactorRaw(uint8_t newSpreadingFactor) {
   // write registers
   Module* mod = this->getMod();
   if(newSpreadingFactor == RADIOLIB_SX127X_SF_6) {
+    this->implicitHdr = true;
     state |= mod->SPIsetRegValue(RADIOLIB_SX127X_REG_MODEM_CONFIG_1, RADIOLIB_SX1272_HEADER_IMPL_MODE | (SX127x::crcEnabled ? RADIOLIB_SX1272_RX_CRC_MODE_ON : RADIOLIB_SX1272_RX_CRC_MODE_OFF), 2, 1);
     state |= mod->SPIsetRegValue(RADIOLIB_SX127X_REG_MODEM_CONFIG_2, RADIOLIB_SX127X_SF_6 | RADIOLIB_SX127X_TX_MODE_SINGLE, 7, 3);
     state |= mod->SPIsetRegValue(RADIOLIB_SX127X_REG_DETECT_OPTIMIZE, RADIOLIB_SX127X_DETECT_OPTIMIZE_SF_6, 2, 0);
     state |= mod->SPIsetRegValue(RADIOLIB_SX127X_REG_DETECTION_THRESHOLD, RADIOLIB_SX127X_DETECTION_THRESHOLD_SF_6);
   } else {
+    this->implicitHdr = false;
     state |= mod->SPIsetRegValue(RADIOLIB_SX127X_REG_MODEM_CONFIG_1, RADIOLIB_SX1272_HEADER_EXPL_MODE | (SX127x::crcEnabled ? RADIOLIB_SX1272_RX_CRC_MODE_ON : RADIOLIB_SX1272_RX_CRC_MODE_OFF),  2, 1);
     state |= mod->SPIsetRegValue(RADIOLIB_SX127X_REG_MODEM_CONFIG_2, newSpreadingFactor | RADIOLIB_SX127X_TX_MODE_SINGLE, 7, 3);
     state |= mod->SPIsetRegValue(RADIOLIB_SX127X_REG_DETECT_OPTIMIZE, RADIOLIB_SX127X_DETECT_OPTIMIZE_SF_7_12, 2, 0);
@@ -541,27 +546,6 @@ int16_t SX1272::setCodingRateRaw(uint8_t newCodingRate) {
   // write register
   Module* mod = this->getMod();
   state |= mod->SPIsetRegValue(RADIOLIB_SX127X_REG_MODEM_CONFIG_1, newCodingRate, 5, 3);
-  return(state);
-}
-
-int16_t SX1272::setHeaderType(uint8_t headerType, size_t len) {
-  // check active modem
-  if(getActiveModem() != RADIOLIB_SX127X_LORA) {
-    return(RADIOLIB_ERR_WRONG_MODEM);
-  }
-
-  // set requested packet mode
-  Module* mod = this->getMod();
-  int16_t state = mod->SPIsetRegValue(RADIOLIB_SX127X_REG_MODEM_CONFIG_1, headerType, 2, 2);
-  RADIOLIB_ASSERT(state);
-
-  // set length to register
-  state = mod->SPIsetRegValue(RADIOLIB_SX127X_REG_PAYLOAD_LENGTH, len);
-  RADIOLIB_ASSERT(state);
-
-  // update cached value
-  SX127x::packetLength = len;
-
   return(state);
 }
 

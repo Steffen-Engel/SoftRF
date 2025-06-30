@@ -34,7 +34,8 @@ byte SoC_setup()
   SoC = &STM32_ops;
 #elif defined(__ASR6501__) || defined(ARDUINO_ARCH_ASR650X)
   SoC = &PSoC4_ops;
-#elif defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF52840)
+#elif defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF52840) || \
+     (defined(ARDUINO_ARCH_ZEPHYR) && defined(NRF52840_XXAA))
   SoC = &nRF52_ops;
 #elif defined(HACKRF_ONE)
   SoC = &LPC43_ops;
@@ -52,6 +53,8 @@ byte SoC_setup()
   SoC = &EFR32_ops;
 #elif defined(ARDUINO_ARCH_CH32)
   SoC = &CH32_ops;
+#elif defined(LUCKFOX_LYRA)
+  SoC = &RK35_ops;
 #else
 #error "This hardware platform is not supported!"
 #endif

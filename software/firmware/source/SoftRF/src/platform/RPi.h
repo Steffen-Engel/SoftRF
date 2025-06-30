@@ -61,13 +61,22 @@ struct rst_info {
 };
 
 /* Dragino LoRa/GPS HAT */
-#if 0 /* WiringPi */
-#define SOC_GPIO_PIN_MOSI     12
-#define SOC_GPIO_PIN_MISO     13
-#define SOC_GPIO_PIN_SCK      14
-#define SOC_GPIO_PIN_SS       6
-#define SOC_GPIO_PIN_RST      0
-#define SOC_GPIO_PIN_DIO0     7
+#if defined(USE_LGPIO) /* TBD */
+#if defined(USE_SPI1)
+#define SOC_GPIO_PIN_MOSI     20
+#define SOC_GPIO_PIN_MISO     19
+#define SOC_GPIO_PIN_SCK      21
+#define SOC_GPIO_PIN_SS       16
+#define SOC_GPIO_PIN_RST      26
+#define SOC_GPIO_PIN_DIO0     13  // IRQ on GPIO13 so P1 connector pin #33
+#else
+#define SOC_GPIO_PIN_MOSI     10
+#define SOC_GPIO_PIN_MISO     9
+#define SOC_GPIO_PIN_SCK      11
+#define SOC_GPIO_PIN_SS       25 // Slave Select on GPIO25 so P1 connector pin #22
+#define SOC_GPIO_PIN_RST      17 // Reset on GPIO17 so P1 connector pin #11
+#define SOC_GPIO_PIN_DIO0     4 // IRQ on GPIO4 so P1 connector pin #7
+#endif
 
 #define SOC_GPIO_PIN_GNSS_PPS SOC_UNUSED_PIN // 1 /* rev. 1.4 only */
 #else /* BCM */
@@ -106,6 +115,7 @@ extern TTYSerial Serial2;
 extern const char *Hardware_Rev[];
 
 #define EXCLUDE_WIFI
+#define EXCLUDE_ETHERNET
 #define EXCLUDE_LED_RING
 #define EXCLUDE_SOUND
 #define EXCLUDE_EEPROM
@@ -131,6 +141,13 @@ extern const char *Hardware_Rev[];
 #define EXCLUDE_BME280AUX
 #define EXCLUDE_MPL3115A2
 //#define EXCLUDE_MAVLINK
+
+//#define EXCLUDE_LR11XX
+#define EXCLUDE_CC1101
+#define EXCLUDE_SI443X
+#define EXCLUDE_SI446X
+#define EXCLUDE_SX1231
+#define EXCLUDE_SX1280
 
 //#define USE_TIME_SLOTS
 //#define USE_OGN_ENCRYPTION

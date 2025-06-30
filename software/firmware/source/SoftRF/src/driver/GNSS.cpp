@@ -599,7 +599,8 @@ static gnss_id_t ublox_probe()
    * ESP8266 NodeMCU and ESP32 DevKit (with NodeMCU adapter)
    * have no any spare GPIO pin to provide GNSS Tx feedback
    */
-  return(hw_info.model == SOFTRF_MODEL_STANDALONE && hw_info.revision == 0 ?
+  return(hw_info.model == SOFTRF_MODEL_STANDALONE &&
+         hw_info.revision == STD_EDN_REV_DEFAULT ?
          GNSS_MODULE_NMEA : (gnss_id_t) ublox_version());
 }
 
@@ -1123,10 +1124,22 @@ static bool uc65_setup()
    * Factory default:
    * $CFGSYS,H35155 = GPS + BDS + GLO + GAL + QZSS + SBAS
    * $CFGTP,1000000,500000,1,0,0,0 = PPS is enabled, 500 ms pulse, 1 s interval
+   *
+   * HTIT v1.0
+   * firmware "FB2S UM600,G1B1L1E1,V2.0,R6.0.0.0Build1280,N/A,N/A"
+   * $CFGGEOID,1*1F
+   * $CFGDYN,h00,0,0*55
+   *
+   * HTIT v1.1
+   * firmware "UC6580I,G1B1L1E1,V00,R6.0.0.0Build2810,2400615000268,20230316125509004"
+   * $CFGGEOID,0*1E
+   * $CFGDYN,h00,0,0*55
    */
   Serial_GNSS_Out.write("$CFGMSG,0,2,0\r\n"); delay(250); /* GSA off */
   Serial_GNSS_Out.write("$CFGMSG,0,3,0\r\n"); delay(250); /* GSV off */
   Serial_GNSS_Out.write("$CFGMSG,6,0,0\r\n"); delay(250); /* TXT off */
+
+  Serial_GNSS_Out.write("$CFGGEOID,1\r\n");   delay(250); /* enforce geoid height */
 
   return true;
 }
@@ -1328,6 +1341,10 @@ byte GNSS_setup() {
       hw_info.model == SOFTRF_MODEL_INK       ||
       hw_info.model == SOFTRF_MODEL_CARD      ||
       hw_info.model == SOFTRF_MODEL_COZY      ||
+      hw_info.model == SOFTRF_MODEL_HANDHELD  ||
+      hw_info.model == SOFTRF_MODEL_GIZMO     ||
+      hw_info.model == SOFTRF_MODEL_NANO      ||
+      hw_info.model == SOFTRF_MODEL_DECENT    ||
       hw_info.model == SOFTRF_MODEL_NEO)
   {
     // power on by wakeup call

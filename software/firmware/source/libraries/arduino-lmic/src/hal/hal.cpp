@@ -13,7 +13,7 @@
 #include <SPI.h>
 #endif /* ARDUINO */
 
-#if defined(RASPBERRY_PI)
+#if defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)
 #include <raspi/raspi.h>
 #endif /* RASPBERRY_PI */
 
@@ -104,7 +104,7 @@ void hal_pin_rst (u1_t val) {
         digitalWrite(lmic_pins.rst, val == 1 ? HIGH : LOW);
     } else {
         pinMode(lmic_pins.rst, INPUT);
-#if defined(RASPBERRY_PI)
+#if (defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)) && defined(USE_BCMLIB)
         //  with a pullup
         bcm2835_gpio_set_pud(lmic_pins.rst, BCM2835_GPIO_PUD_UP);
 #else
@@ -115,6 +115,8 @@ void hal_pin_rst (u1_t val) {
 
 #if !defined(LMIC_USE_INTERRUPTS)
 static void hal_interrupt_init() {
+    check_dio = 0;
+
     // Loop to check / configure all DIO input pin
     for (uint8_t i = 0; i < NUM_DIO; ++i) {
         if (lmic_pins.dio[i] != LMIC_UNUSED_PIN) {
@@ -122,7 +124,7 @@ static void hal_interrupt_init() {
             check_dio = 1; 
             pinMode(lmic_pins.dio[i], INPUT);
 
-#ifdef RASPBERRY_PI
+#if (defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)) && defined(USE_BCMLIB)
             // Enable pull down an rising edge detection on this one
             bcm2835_gpio_set_pud(lmic_pins.dio[i], BCM2835_GPIO_PUD_DOWN);
             bcm2835_gpio_ren(lmic_pins.dio[i]);
@@ -141,7 +143,7 @@ static void hal_io_check() {
             if (lmic_pins.dio[i] == LMIC_UNUSED_PIN)
                 continue;
 
-#ifdef RASPBERRY_PI
+#if (defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)) && defined(USE_BCMLIB)
             // Rising edge fired ?
             if (bcm2835_gpio_eds(lmic_pins.dio[i])) {
                 // Now clear the eds flag by setting it to 1
@@ -241,7 +243,7 @@ bool hal_pin_tcxo (u1_t val) {
 // -----------------------------------------------------------------------------
 // SPI
 
-#ifdef RASPBERRY_PI
+#if (defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)) && defined(USE_BCMLIB)
 // Raspberry Pi 2:
 //    BCM2835_CORE_CLK_HZ = 250000000
 //    Clock divider / 64 = 3.906 MHz

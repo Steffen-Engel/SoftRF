@@ -36,6 +36,9 @@
 #if defined(USE_RADIOLIB)
 #include <RadioLib.h>
 #endif
+#if defined(USE_RADIOHEAD)
+#include <RadioHead.h>
+#endif
 
 #include "GNSS.h"
 #include "../protocol/radio/Legacy.h"
@@ -81,6 +84,11 @@ enum
   RF_IC_SA8X8,
   RF_IC_LR1110,
   RF_IC_LR1121,
+  RF_IC_CC1101,
+  RF_IC_SX1231,
+  RF_IC_SX1280,
+  RF_IC_SI4432,
+  RF_IC_SI4463,
 };
 
 enum
@@ -174,6 +182,14 @@ extern const rfchip_ops_t sa8x8_ops;
 #if defined(USE_RADIOLIB)
 extern const rfchip_ops_t lr1110_ops;
 extern const rfchip_ops_t lr1121_ops;
+extern const rfchip_ops_t cc1101_ops;
+extern const rfchip_ops_t sx1280_ops;
+extern const rfchip_ops_t sx1231_ops;
+extern const rfchip_ops_t si4432_ops;
 #endif /* USE_RADIOLIB */
+
+#if defined(USE_RADIOHEAD)
+extern const rfchip_ops_t si4463_ops;
+#endif /* USE_RADIOHEAD */
 
 #endif /* RFHELPER_H */

@@ -111,8 +111,10 @@ class UARTCallbacks: public BLECharacteristicCallbacks {
 
 static void ESP32_Bluetooth_setup()
 {
+  char id_06x[8];
+  snprintf(id_06x, sizeof(id_06x),"%06x", SoC->getChipId() & 0x00FFFFFFU);
   BT_name += "-";
-  BT_name += String(SoC->getChipId() & 0x00FFFFFFU, HEX);
+  BT_name += String(id_06x);
 
   switch (settings->bluetooth)
   {
@@ -217,6 +219,8 @@ static void ESP32_Bluetooth_setup()
                                   hw_info.model == SOFTRF_MODEL_MIDI       ? "Midi Edition"       :
                                   hw_info.model == SOFTRF_MODEL_ECO        ? "Eco Edition"        :
                                   hw_info.model == SOFTRF_MODEL_INK        ? "Ink Edition"        :
+                                  hw_info.model == SOFTRF_MODEL_GIZMO      ? "Gizmo Edition"      :
+                                  hw_info.model == SOFTRF_MODEL_NANO       ? "Nano Edition"       :
                                   "Unknown";
       char SerialNum[9];
       snprintf(SerialNum, sizeof(SerialNum), "%08X", SoC->getChipId());
