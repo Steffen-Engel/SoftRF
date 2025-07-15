@@ -235,7 +235,7 @@ static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
                                 SOC_GPIO_PIN_P4_BUZZER : SOC_UNUSED_PIN)))))))
 
 #define SOC_GPIO_PIN_CIVA_BUZZER   (hw_info.model == SOFTRF_MODEL_PRIME_MK2 ? \
-                                    13 : hw_info.model == SOFTRF_MODEL_PRIME_MK3 ? 45 : 255)
+                                    13 : hw_info.model == SOFTRF_MODEL_PRIME_MK3 ? 38 : 255)
 
 /* SPI (does match Heltec & TTGO LoRa32 pins mapping) */
 #define SOC_GPIO_PIN_MOSI       27
