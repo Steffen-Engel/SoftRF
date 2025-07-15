@@ -76,6 +76,8 @@
 #include "../protocol/radio/RemoteID.h"
 #endif /* ENABLE_REMOTE_ID */
 
+#include <elapsedMillis.h>
+
 #if defined(USE_TFT)
 #include <TFT_eSPI.h>
 #endif /* USE_TFT */
@@ -109,6 +111,12 @@ Adafruit_NeoPixel *strip;
 // U8X8_SH1106_128X64_NONAME_2ND_HW_I2C  u8x8_elecrow(U8X8_PIN_NONE);
 // U8X8_SSD1306_128X64_NONAME_2ND_HW_I2C u8x8_ebyte  (SOC_GPIO_PIN_EHUB_OLED_RST);
 // #endif /* USE_OLED */
+
+
+#define CIVA_RESET_BUTTON 48
+#define CIVA_SELECT_SWITCH 21
+
+
 
 #if defined(USE_TFT)
 static TFT_eSPI *tft = NULL;
@@ -372,6 +380,8 @@ static unsigned long IMU_Time_Marker = 0;
 
 #if defined(USE_OLED)
 extern int32_t IMU_g_x10;
+extern int32_t max_g_x10;
+int32_t max_g_x10_array[5] = {0, 0, 0, 0, 0};
 #endif /* USE_OLED */
 #endif /* EXCLUDE_IMU */
 
@@ -2596,6 +2606,48 @@ static void ESP32_loop()
 
     IMU_Time_Marker = millis();
   }
+
+  // max g-value logging
+  static elapsedMillis maxg_Timer;
+  if (maxg_Timer > 50)
+  {
+    if (imu_qmi8658.getDataReady())
+    {
+      float a_x, a_y, a_z;
+      if (imu_qmi8658.getAccelerometer(a_x, a_y, a_z))
+      {
+        int32_t g_value = (int) (sqrtf(a_x * a_x + a_y * a_y + a_z * a_z) * 10);
+//        if (g_value > max_g_x10_array[0])
+//        {
+//          max_g_x10_array[0] = g_value;
+//        }
+      }
+    }
+    maxg_Timer = 0;
+  }
+  // handle the last max g array
+  static elapsedMillis maxg_array_Timer;
+  if (maxg_array_Timer > 1000)
+  {
+    for (int8_t count = 3; count >= 0 ; count--)
+    {
+      max_g_x10_array[count+1] = max_g_x10_array[count];
+    }
+    max_g_x10_array[0] = 0;
+
+    // and set the last max g over time value
+    max_g_x10 = 5;
+    for (int8_t count = 0; count < 5; count++)
+    {
+//      if (max_g_x10_array[count]>max_g_x10)
+//      {
+//        max_g_x10 = max_g_x10_array[count];
+//      }
+    }
+    maxg_array_Timer = 0;
+
+  }
+
   #endif /* !EXCLUDE_IMU */
 
   #if !defined(EXCLUDE_MAG)
@@ -5415,8 +5467,17 @@ static void ESP32_Button_setup()
     PageButtonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterClick);
     PageButtonConfig->setClickDelay(600);
   }
+  pinMode(CIVA_RESET_BUTTON, INPUT_PULLUP);    // switch to reset CIVA altitude to zero
+  pinMode(CIVA_SELECT_SWITCH, INPUT_PULLUP);           // switch to select CIVA altitude 1200 or 700
+  if (digitalRead(CIVA_SELECT_SWITCH) == LOW)
+  {
+    CIVAAltitude = 700;
+  }
+  else
+  {
+    CIVAAltitude = 1200;
+  }
 
-  pinMode(0, INPUT_PULLUP);
 }
 
 static void ESP32_Button_loop()
@@ -5444,7 +5505,7 @@ static void ESP32_Button_loop()
   }
 
   static int prev_Button = HIGH;
-  int button = digitalRead(0);
+  int button = digitalRead(CIVA_RESET_BUTTON);
   // altimeter reference button pressed?
   if (button != prev_Button)
   {
@@ -5454,6 +5515,17 @@ static void ESP32_Button_loop()
       Sound_Beep();
       CIVA_Status = CIVA_GROUND;
       StartupAltitude = ThisAircraft.pressure_altitude;
+
+      // at this time, check for altitude switch again and set penalty altitude
+      if (digitalRead(CIVA_SELECT_SWITCH) == LOW)
+      {
+        CIVAAltitude = 700;
+      }
+      else
+      {
+        CIVAAltitude = 1200;
+      }
+
     }
     prev_Button = button;
   }

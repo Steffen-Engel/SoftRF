@@ -97,6 +97,10 @@ static int32_t  prev_heading        = (int32_t) -10000;
 #if !defined(EXCLUDE_IMU)
 int32_t IMU_g_x10                   = 0;
 static int32_t  prev_g_x10          = (int32_t) -10000;
+
+// for CIVA_Maxg logging
+int32_t max_g_x10 = 0;
+static int32_t  prev_max_g_x10      = (int32_t) -10000;
 #endif /* EXCLUDE_IMU */
 
 unsigned long OLEDTimeMarker = 0;
@@ -740,7 +744,7 @@ static void OLED_aerobatic()
     prev_voltage = voltage;
   }
 
-  if (prev_CIVA_Status != CIVA_Status)
+  if (prev_CIVA_Status != CIVA_Status+(int)CIVAAltitude)
   {
     switch (CIVA_Status)
     {
@@ -748,7 +752,9 @@ static void OLED_aerobatic()
       u8x8->draw2x2String(1, 3, "UNKNOWN");
       break;
     case CIVA_GROUND:
-      u8x8->draw2x2String(1, 3, "GROUND ");
+      char line[40];
+      snprintf(line, sizeof(line), "GND %4.0f", CIVAAltitude);
+      u8x8->draw2x2String(0, 3, line);
       break;
     case CIVA_CLIMB:
     case CIVA_ALT150:
@@ -765,7 +771,7 @@ static void OLED_aerobatic()
     default:
       break;
     }
-    prev_CIVA_Status = CIVA_Status;
+    prev_CIVA_Status = CIVA_Status+(int)CIVAAltitude;
   }
 
   char line[40];
@@ -796,6 +802,8 @@ static void OLED_imu()
 
     prev_g_x10 = (int32_t) -10000;
 
+    prev_max_g_x10 = (int32_t) -10000;
+
     OLED_display_titles = true;
   }
 
@@ -805,6 +813,14 @@ static void OLED_imu()
     snprintf(buf, sizeof(buf), "%01d.%01d", disp_value / 10, disp_value % 10);
     u8x8->draw2x2String(5, 3, buf);
     prev_g_x10 = disp_value;
+  }
+
+  disp_value = (max_g_x10 > 99) ? 99 : max_g_x10;
+
+  if (prev_max_g_x10 != disp_value) {
+    snprintf(buf, sizeof(buf), "%01d.%01d", disp_value / 10, disp_value % 10);
+    u8x8->draw2x2String(5, 5, buf);
+    prev_max_g_x10 = disp_value;
   }
 }
 #endif /* EXCLUDE_IMU */

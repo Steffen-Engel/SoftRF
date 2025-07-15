@@ -76,6 +76,11 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/WiFi/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/HTTPClient/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SD/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FlightRecorder/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/elapsedMillis}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FFat/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_NeoPixel}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/RadioLib/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.cpp.sketch.input.996027058" name="CPP source files" superClass="io.sloeber.compiler.cpp.sketch.input"/>
 							</tool>
@@ -138,6 +143,11 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/WiFi/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/HTTPClient/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SD/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FlightRecorder/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/elapsedMillis}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FFat/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_NeoPixel}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/RadioLib/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.c.sketch.input.1353668278" name="C Source Files" superClass="io.sloeber.compiler.c.sketch.input"/>
 							</tool>
@@ -200,6 +210,11 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/WiFi/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/HTTPClient/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SD/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FlightRecorder/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/elapsedMillis}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FFat/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_NeoPixel}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/RadioLib/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.S.sketch.input.360197283" name="Assembly source files" superClass="io.sloeber.compiler.S.sketch.input"/>
 							</tool>
@@ -325,6 +340,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FlightRecorder/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/elapsedMillis}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/RadioLib/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_NeoPixel}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.cpp.sketch.input.279474028" name="CPP source files" superClass="io.sloeber.compiler.cpp.sketch.input"/>
 							</tool>
@@ -391,6 +407,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FlightRecorder/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/elapsedMillis}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/RadioLib/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_NeoPixel}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.c.sketch.input.2052528182" name="C Source Files" superClass="io.sloeber.compiler.c.sketch.input"/>
 							</tool>
@@ -457,6 +474,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FlightRecorder/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/elapsedMillis}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/RadioLib/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_NeoPixel}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.S.sketch.input.1058674004" name="Assembly source files" superClass="io.sloeber.compiler.S.sketch.input"/>
 							</tool>
