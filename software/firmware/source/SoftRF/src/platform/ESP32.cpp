@@ -2617,10 +2617,10 @@ static void ESP32_loop()
       if (imu_qmi8658.getAccelerometer(a_x, a_y, a_z))
       {
         int32_t g_value = (int) (sqrtf(a_x * a_x + a_y * a_y + a_z * a_z) * 10);
-//        if (g_value > max_g_x10_array[0])
-//        {
-//          max_g_x10_array[0] = g_value;
-//        }
+        if (g_value > max_g_x10_array[0])
+        {
+          //max_g_x10_array[0] = g_value;
+        }
       }
     }
     maxg_Timer = 0;
@@ -2633,16 +2633,16 @@ static void ESP32_loop()
     {
       max_g_x10_array[count+1] = max_g_x10_array[count];
     }
-    max_g_x10_array[0] = 0;
+    max_g_x10_array[0] = 10;
 
     // and set the last max g over time value
-    max_g_x10 = 5;
+    max_g_x10 = 0;
     for (int8_t count = 0; count < 5; count++)
     {
-//      if (max_g_x10_array[count]>max_g_x10)
-//      {
-//        max_g_x10 = max_g_x10_array[count];
-//      }
+      if (max_g_x10_array[count]>max_g_x10)
+      {
+        max_g_x10 = max_g_x10_array[count];
+      }
     }
     maxg_array_Timer = 0;
 

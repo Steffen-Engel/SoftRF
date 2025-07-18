@@ -253,7 +253,10 @@ size_t ogntp_encode(void *pkt, ufo_t *this_aircraft) {
     ogn_tx_pkt.Packet.Header.Other = 1;
     ogn_tx_pkt.Packet.CIVA.ReportType = 2;
     ogn_tx_pkt.Packet.CIVA.PenaltyAlarm = CIVA_Alarm;
-    ogn_tx_pkt.Packet.CIVA.max_g = 0;
+
+    // access to the logger max value of the last seconds
+    extern int32_t max_g_x10;
+    ogn_tx_pkt.Packet.CIVA.max_g = max_g_x10;
     ogn_tx_pkt.Packet.CIVA.max_neg_g = 0;
   }
   else
