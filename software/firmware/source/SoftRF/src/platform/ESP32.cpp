@@ -5471,7 +5471,7 @@ static void ESP32_Button_setup()
   pinMode(CIVA_SELECT_SWITCH, INPUT_PULLUP);           // switch to select CIVA altitude 1200 or 700
   if (digitalRead(CIVA_SELECT_SWITCH) == LOW)
   {
-    CIVAAltitude = 700;
+    CIVAAltitude = 750;
   }
   else
   {
@@ -5519,7 +5519,7 @@ static void ESP32_Button_loop()
       // at this time, check for altitude switch again and set penalty altitude
       if (digitalRead(CIVA_SELECT_SWITCH) == LOW)
       {
-        CIVAAltitude = 700;
+        CIVAAltitude = 750;
       }
       else
       {
