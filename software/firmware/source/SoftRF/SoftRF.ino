@@ -508,8 +508,8 @@ void normal()
       {
         CIVA_Alarm = false;
       }
-      CIVA_Quicksend = (((ThisAircraft.altitude >= 140) && (ThisAircraft.altitude<210))
-         || ((ThisAircraft.altitude > CIVAAltitude-10) && (ThisAircraft.altitude<=CIVAAltitude+60))
+      CIVA_Quicksend = (((ThisAircraft.altitude >= 120) && (ThisAircraft.altitude<230))
+         || ((ThisAircraft.altitude > CIVAAltitude-30) && (ThisAircraft.altitude<=CIVAAltitude+60))
          );
       break;
     default:
