@@ -46,7 +46,6 @@ extern SdFat uSD;
 
 static File32 LogFile;
 
-static bool inFlight = false;
 bool LogActive = false;
 
 void CIVARecorder_setup()
@@ -72,21 +71,28 @@ void CIVARecorder_setup()
 
 void CIVARecorder_loop()
 {
+
+#define USEGPS 0
+
+#if 1 // USEGPS
 #define DetectTakeoffSpeed 50   /* km/h ground speed */
 #define DetectLandSpeed 10      /* km/h ground speed */
-#define LogInterval 100 /* msec */
 
   static elapsedMillis TimeNotMoving;
   static elapsedMillis TimeMoving;
-  static elapsedMillis LogTime;
-
   float speed;
+
+#endif
+
+#define LogInterval 100 /* msec */
+  static elapsedMillis LogTime;
 
 
   /*****************************************************************************
    * first check if it seems to be flying/moving
    *****************************************************************************/
   // detection by speed
+#if USEGPS
   if (isValidGNSSFix())
   {
     speed = gnss.speed.kmph();
@@ -99,16 +105,23 @@ void CIVARecorder_loop()
       TimeMoving = 0;
     }
   }
+#endif
 
   /*****************************************************************************
    * end or start logging, if time of movement change is up
    *****************************************************************************/
   if (LogActive)
   {
+#if USEGPS
     // 15 Seconds not moving? End Logging, close file
     if ((isValidGNSSFix() && (TimeNotMoving >= 15000))
         || (!isValidGNSSFix() && ((CIVA_Status == CIVA_GROUND) || (CIVA_Status == CIVA_LAND))))
-    {
+#else
+      if ((CIVA_Status == CIVA_GROUND)
+          || (CIVA_Status == CIVA_LAND)
+         )
+#endif
+      {
       // Close Logfile
       Serial.println("end logging");
       LogFile.close();
@@ -117,10 +130,18 @@ void CIVARecorder_loop()
   }
   else
   {
+#if USEGPS
     // 10 Seconds moving? Create file
     if (isValidGNSSFix() && (TimeMoving >= 10000)
         || (!isValidGNSSFix() && (CIVA_Status == CIVA_CLIMB)))
-    {
+#else
+      if ((CIVA_Status == CIVA_CLIMB)         // should be they way of activation
+          || (CIVA_Status == CIVA_ALT150)     // be sure if climb missed
+          || (CIVA_Status == CIVA_ALT200)     // be sure if climb missed
+          || (CIVA_Status == CIVA_ACTIVE)     // be sure if climb missed
+          )
+#endif
+      {
       // create Logfile
       Serial.println("start logging");
       char LogName[50];
