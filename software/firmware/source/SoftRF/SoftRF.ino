@@ -130,6 +130,8 @@ float CIVAAltitude    = 1200.0;
 int CIVA_Status = CIVA_GROUND;
 bool CIVA_Alarm = false;
 bool CIVA_Quicksend = false;
+#define CIVA_TOLERANCE 5
+
 
 hardware_info_t hw_info = {
   .model    = DEFAULT_SOFTRF_MODEL,
@@ -497,8 +499,8 @@ void normal()
       {
         CIVA_Status = CIVA_LAND;
       }
-      if (((ThisAircraft.altitude >= 150) && (ThisAircraft.altitude<200))
-         || ((ThisAircraft.altitude > CIVAAltitude) && (ThisAircraft.altitude<=CIVAAltitude+50))
+      if (((ThisAircraft.altitude >= (150-CIVA_TOLERANCE)) && (ThisAircraft.altitude<(200-CIVA_TOLERANCE)))
+         || ((ThisAircraft.altitude > (CIVAAltitude+CIVA_TOLERANCE)) && (ThisAircraft.altitude<=(CIVAAltitude+50+CIVA_TOLERANCE)))
          )
       {
         CIVA_Alarm = true;
