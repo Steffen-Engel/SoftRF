@@ -108,6 +108,8 @@
 #include "src/TrafficHelper.h"
 #include "src/system/Recorder.h"
 #include "src/system/CIVARecorder.h"
+#include "elapsedMillis.h"
+
 
 #if defined(ENABLE_AHRS)
 #include "src/driver/AHRS.h"
@@ -518,8 +520,25 @@ void normal()
       break;
     }
 
+    static elapsedMillis BatteryTimer;
+    if (BatteryTimer > 10000)
+    {
+      // Battery warning only if device is on ground.
+      if ((Battery_voltage()<3.4) && ((CIVA_Status==CIVA_GROUND) || (CIVA_Status==CIVA_LAND)))
+      {
+        digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, HIGH);
+        delay(100);
+        digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, LOW);
+        delay(50);
+        digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, HIGH);
+        delay(100);
+        digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, LOW);
+      }
+      BatteryTimer = 0;
+    }
 
   }
+
 
   Sound_loop();
 
