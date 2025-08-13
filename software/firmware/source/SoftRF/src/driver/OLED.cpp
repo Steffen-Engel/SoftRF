@@ -807,18 +807,18 @@ static void OLED_imu()
     OLED_display_titles = true;
   }
 
-  int32_t disp_value = (IMU_g_x10 > 99) ? 99 : IMU_g_x10;
+  int32_t disp_value = IMU_g_x10;
 
   if (prev_g_x10 != disp_value) {
-    snprintf(buf, sizeof(buf), "%2.1f", 0.1*disp_value);
+    snprintf(buf, sizeof(buf), "%4.1f", 0.1*disp_value);
     u8x8->draw2x2String(5, 3, buf);
     prev_g_x10 = disp_value;
   }
 
-  disp_value = (max_g_x10 > 99) ? 99 : max_g_x10;
+  disp_value = max_g_x10;
 
   if (prev_max_g_x10 != disp_value) {
-    snprintf(buf, sizeof(buf), "%2.1f", 0.1*disp_value);
+    snprintf(buf, sizeof(buf), "%4.1f", 0.1*disp_value);
     u8x8->draw2x2String(5, 5, buf);
     prev_max_g_x10 = disp_value;
   }
