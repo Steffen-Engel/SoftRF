@@ -74,7 +74,7 @@ void CIVARecorder_loop()
 
 #define USEGPS 0
 
-#if 1 // USEGPS
+#if USEGPS
 #define DetectTakeoffSpeed 50   /* km/h ground speed */
 #define DetectLandSpeed 10      /* km/h ground speed */
 
