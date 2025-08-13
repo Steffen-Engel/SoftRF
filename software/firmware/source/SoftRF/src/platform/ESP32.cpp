@@ -4235,11 +4235,19 @@ static byte ESP32_Display_setup()
                      /* hw_info.model == SOFTRF_MODEL_GIZMO */ ? 1 : 0;
       uint8_t shift_x = hw_info.model == SOFTRF_MODEL_GIZMO ? 1 : 0;
 
-      u8x8->draw2x2String  ( 2, 2 - shift_y, SoftRF_text1);
+      if (settings->aerobaticbox)
+      {
+        u8x8->draw2x2String  ( 4, 2 - shift_y, "CIVA");
+        u8x8->draw2x2String( 5, 4, "HMD");
+      }
+      else
+      {
+        u8x8->draw2x2String  ( 2, 2 - shift_y, SoftRF_text1);
 
-      if (shift_y) {
-        u8x8->drawString   ( 6,           3, SoftRF_text2);
-        u8x8->draw2x2String( 2 - shift_x, 4, shift_x ? SoftRF_text4 : SoftRF_text3);
+        if (shift_y) {
+          u8x8->drawString   ( 6,           3, SoftRF_text2);
+          u8x8->draw2x2String( 2 - shift_x, 4, shift_x ? SoftRF_text4 : SoftRF_text3);
+        }
       }
 
       u8x8->drawString   ( 3, 6 + shift_y,
@@ -4249,7 +4257,7 @@ static byte ESP32_Display_setup()
 #endif /* USE_USB_HOST */
                            "CIVA"
                          );
-      u8x8->drawString   (11, 6 + shift_y, ISO3166_CC[settings->band]);
+      u8x8->drawString   (12, 6 + shift_y, ISO3166_CC[settings->band]);
     }
 
     SoC->ADB_ops && SoC->ADB_ops->setup();
