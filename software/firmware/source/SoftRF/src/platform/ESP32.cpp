@@ -2619,7 +2619,7 @@ static void ESP32_loop()
         int32_t g_value = (int) (sqrtf(a_x * a_x + a_y * a_y + a_z * a_z) * 10);
         if (g_value > max_g_x10_array[0])
         {
-          //max_g_x10_array[0] = g_value;
+          max_g_x10_array[0] = g_value;
         }
       }
     }
