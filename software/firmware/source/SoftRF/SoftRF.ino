@@ -328,8 +328,14 @@ void loop()
   // Handle OTA update.
   OTA_loop();
 
-  Recorder_loop();
-  CIVARecorder_loop();
+  if (settings->aerobaticbox)
+  {
+    CIVARecorder_loop();
+  }
+  else
+  {
+    Recorder_loop();
+  }
 
   SoC->loop();
 
