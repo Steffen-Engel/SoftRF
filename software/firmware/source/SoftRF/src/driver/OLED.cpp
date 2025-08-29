@@ -749,7 +749,7 @@ static void OLED_aerobatic()
     switch (CIVA_Status)
     {
     case CIVA_NONE:
-      u8x8->draw2x2String(1, 3, "UNKNOWN");
+      u8x8->draw2x2String(0, 3, " UNKNOWN");
       break;
     case CIVA_GROUND:
       char line[40];
@@ -759,13 +759,13 @@ static void OLED_aerobatic()
     case CIVA_CLIMB:
     case CIVA_ALT150:
     case CIVA_ALT200:
-      u8x8->draw2x2String(1, 3, "CLIMB  ");
+      u8x8->draw2x2String(0, 3, " CLIMB  ");
       break;
     case CIVA_ACTIVE:
-      u8x8->draw2x2String(1, 3, "ACTIVE ");
+      u8x8->draw2x2String(0, 3, " ACTIVE ");
       break;
     case CIVA_LAND:
-      u8x8->draw2x2String(1, 3, "LANDED ");
+      u8x8->draw2x2String(0, 3, " LANDED ");
       break;
 
     default:
