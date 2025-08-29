@@ -714,12 +714,11 @@ static void OLED_aerobatic()
     OLED_display_titles = true;
   }
 
-  int32_t altitude    = Baro_altitude() - StartupAltitude;        /* meters */
 
-  if (prev_altitude != altitude) {
-    snprintf(buf, sizeof(buf), "%4d", altitude);
+  if (prev_altitude != ThisAircraft.altitude) {
+    snprintf(buf, sizeof(buf), "%4d", ThisAircraft.altitude);
     u8x8->draw2x2String(0, 1, buf);
-    prev_altitude = altitude;
+    prev_altitude = ThisAircraft.altitude;
   }
 
   int32_t  voltage;
