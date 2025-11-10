@@ -715,10 +715,12 @@ static void OLED_aerobatic()
   }
 
 
-  if (prev_altitude != ThisAircraft.altitude) {
-    snprintf(buf, sizeof(buf), "%4d", ThisAircraft.altitude);
+  int32_t altitude    = (int32_t)ThisAircraft.altitude;        /* meters */
+
+  if (prev_altitude != altitude) {
+    snprintf(buf, sizeof(buf), "%4d", altitude);
     u8x8->draw2x2String(0, 1, buf);
-    prev_altitude = ThisAircraft.altitude;
+    prev_altitude = altitude;
   }
 
   int32_t  voltage;
