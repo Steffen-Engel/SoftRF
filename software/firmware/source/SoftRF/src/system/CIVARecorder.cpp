@@ -72,7 +72,7 @@ void CIVARecorder_setup()
 void CIVARecorder_loop()
 {
 
-#define USEGPS 0
+#define USEGPS 1
 
 #if USEGPS
 #define DetectTakeoffSpeed 50   /* km/h ground speed */
@@ -105,6 +105,17 @@ void CIVARecorder_loop()
       TimeMoving = 0;
     }
   }
+  else
+  {
+    if ((CIVA_Status == CIVA_GROUND) || (CIVA_Status == CIVA_LAND))
+    {
+      TimeMoving = 0;
+    }
+    else
+    {
+      TimeNotMoving = 0;
+    }
+  }
 #endif
 
   /*****************************************************************************
@@ -114,8 +125,7 @@ void CIVARecorder_loop()
   {
 #if USEGPS
     // 15 Seconds not moving? End Logging, close file
-    if ((isValidGNSSFix() && (TimeNotMoving >= 15000))
-        || (!isValidGNSSFix() && ((CIVA_Status == CIVA_GROUND) || (CIVA_Status == CIVA_LAND))))
+    if (TimeNotMoving >= 15000)
 #else
       if ((CIVA_Status == CIVA_GROUND)
           || (CIVA_Status == CIVA_LAND)
@@ -132,8 +142,7 @@ void CIVARecorder_loop()
   {
 #if USEGPS
     // 10 Seconds moving? Create file
-    if (isValidGNSSFix() && (TimeMoving >= 10000)
-        || (!isValidGNSSFix() && (CIVA_Status == CIVA_CLIMB)))
+    if (TimeMoving >= 10000)
 #else
       if ((CIVA_Status == CIVA_CLIMB)         // should be they way of activation
           || (CIVA_Status == CIVA_ALT150)     // be sure if climb missed
@@ -151,7 +160,18 @@ void CIVARecorder_loop()
       LogFile = uSD.open(LogName, FILE_WRITE);
       if (LogFile)
       {
+#ifdef FORMAT_YALL
         LogFile.write("date, time, time/msec, nx/g, ny/g, nz/g, phi, psi, theta, rot_x/deg/sec, rot_y/deg/sec, rot_z/deg/s, p_cabin/Pa, p_stat/Pa, p_diff/Pa,eta_hr, eta_qr, eta_sr, eta_fl, GPS_FIX, numSat, GPS_altitude, GPS_speed, longitude, latitude\n");
+#else
+        LogFile.write(
+            "      date,    time, time/msec,"                        //  1  2  3
+            " nx/g, ny/g, nz/g,"                                               //  4  5  6
+            " phi, psi, theta,"                                                //  7  8  9
+            " rot_x/deg/sec, rot_y/deg/sec, rot_z/deg/sec,"                    // 10 11 12
+            " p_stat/Pa, alt/m, isBeeping,"                                    // 13 14 15
+            " GPS_FIX, numSat, GPS_altitude, GPS_speed, GPS_course, latitude, longitude"   // 16 17 18 19 20 21
+            "\n");
+#endif
         LogTime = LogInterval+1;  // force immediate write of first data set
         LogActive = true;
       }
@@ -173,23 +193,23 @@ void CIVARecorder_loop()
 
       char loggerline[300];
       // write dataset to logfile
-      snprintf(loggerline, sizeof(loggerline), "%02d.%02d.%04d,%02d:%02d:%02d.%d,%8ld,%4d,%4d,%4d,%4d,%4d,%4d,%4d,%4d,%4d,%6d,%6d,%5d,%4d,%4d,%4d,%4d,%1d,%2d,%5d,%6d,%9d,%9d\n",
-                          day(),
-                          month(),
-                          year(),
-                          hour(),
-                          minute(),
-                          second(),
-                          0, // (SensorData.GPS_time/100) % 10,                       //  1
-                          millis(),                                                   //  2
-                          lround(10*_nx), lround(10*_ny), lround(10*_nz),                                     //  3  4  5
-                          0, 0, 0,                                                    //  6  7  8
-                          lround(_rx), lround(_ry), lround(_rz),                                              // rotx, y, z //  9 10 11
-                          lround(Baro_pressure()), 0, 0,                                      // 12 13 14
-                          lround(Baro_altitude() - StartupAltitude), CIVA_Alarm, 0, 0, // SensorData.eta[ETA_HR], SensorData.eta[ETA_QR], SensorData.eta[ETA_SR], SensorData.eta[ETA_FLAP], // 15 16 17 18
-                          isValidGNSSFix(), gnss.satellites.value(), lround(gnss.altitude.meters()), lround(gnss.speed.kmph()), // SensorData.GPS_FIX, SensorData.GPS_numSat, SensorData.GPS_altitude, SensorData.GPS_speed,         // 19 20 21 22
-                          lround(10000000*gnss.location.lat()), lround(10000000*gnss.location.lng())  // 23 24
-                          );
+
+      snprintf(loggerline, sizeof(loggerline),
+          "%02d.%02d.%04d,%02d:%02d:%02d,  %8ld,"                        // 1..3 time, date, millis
+          "%5d,%5d,%5d,"                                                 // 4..6 n/10
+          "%4d,%4d,%6d,"                                                 // 7..9 euler
+          "%14d,%14d,%14d,"                                              // 10..12 rotation
+          "%10d,%6d,%10d,"                                                // 13 14 15  pressure, altitude, beeping
+          "%8d,%7d,%13d,%10d,%11d,%9d,%10d\n",                                // 16 17 18 19 20 21  GPS information
+          day(), month(), year(), hour(), minute(), second(), millis(),  //  1  2  3
+          lround(10*_nx), lround(10*_ny), lround(10*_nz),                //  4  5  6
+          0, 0, 0,                                                       //  7  8  9
+          lround(_rx), lround(_ry), lround(_rz),                         // 10 11 12
+          lround(Baro_pressure()), lround(ThisAircraft.altitude), CIVA_Alarm,    // 13 14 15
+          isValidGNSSFix(), gnss.satellites.value(), lround(gnss.altitude.meters()), lround(gnss.speed.kmph()), lround(gnss.course.deg()), // 16 17 18 19 20
+          lround(10000000*gnss.location.lat()), lround(10000000*gnss.location.lng())  // 21 22
+          );
+
       LogFile.write(loggerline);
       LogTime -= LogInterval;
     }
