@@ -128,7 +128,7 @@
 ufo_t ThisAircraft;
 
 float StartupAltitude = 0.0;
-float CIVAAltitude    = 1200.0;
+float CIVAAltitude    = CIVA_ALTITUDE;
 int CIVA_Status = CIVA_GROUND;
 bool CIVA_Alarm = false;
 bool CIVA_Quicksend = false;
@@ -437,7 +437,7 @@ void normal()
 #endif /* EXCLUDE_EGM96 */
     if (settings->aerobaticbox)
     {
-      ThisAircraft.altitude = ThisAircraft.pressure_altitude-StartupAltitude;
+      ThisAircraft.altitude = ThisAircraft.pressure_altitude-StartupAltitude;  //+digitalRead(21)*100;
     }
 
     RF_Transmit(RF_Encode(&ThisAircraft), true);
@@ -480,18 +480,18 @@ void normal()
       }
       break;
     case CIVA_CLIMB:
-      if (ThisAircraft.altitude >= 150)
+      if (ThisAircraft.altitude >= CIVA_DISQUALIFY_ALTITUDE)
       {
         Sound_Beep();
-        CIVA_Status = CIVA_ALT150;
+        CIVA_Status = CIVA_ALT_DISQUALIFY;
       }
-    case CIVA_ALT150:
-      if (ThisAircraft.altitude >= 200)
+    case CIVA_ALT_DISQUALIFY:
+      if (ThisAircraft.altitude >= CIVA_PENALTY_ALTITUDE)
       {
         Sound_Beep();
-        CIVA_Status = CIVA_ALT200;
+        CIVA_Status = CIVA_ALT_PENALTY;
       }
-    case CIVA_ALT200:
+    case CIVA_ALT_PENALTY:
       if (ThisAircraft.altitude >= (CIVAAltitude/2))
         CIVA_Status = CIVA_ACTIVE;
 
@@ -507,7 +507,7 @@ void normal()
       {
         CIVA_Status = CIVA_LAND;
       }
-      if (((ThisAircraft.altitude >= (150-CIVA_TOLERANCE)) && (ThisAircraft.altitude<(200-CIVA_TOLERANCE)))
+      if (((ThisAircraft.altitude >= (CIVA_DISQUALIFY_ALTITUDE-CIVA_TOLERANCE)) && (ThisAircraft.altitude<(CIVA_PENALTY_ALTITUDE-CIVA_TOLERANCE)))
          || ((ThisAircraft.altitude > (CIVAAltitude+CIVA_TOLERANCE)) && (ThisAircraft.altitude<=(CIVAAltitude+50+CIVA_TOLERANCE)))
          )
       {

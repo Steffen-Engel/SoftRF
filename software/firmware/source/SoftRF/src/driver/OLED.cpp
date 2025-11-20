@@ -758,8 +758,8 @@ static void OLED_aerobatic()
       u8x8->draw2x2String(0, 3, line);
       break;
     case CIVA_CLIMB:
-    case CIVA_ALT150:
-    case CIVA_ALT200:
+    case CIVA_ALT_DISQUALIFY:
+    case CIVA_ALT_PENALTY:
       u8x8->draw2x2String(0, 3, " CLIMB  ");
       break;
     case CIVA_ACTIVE:
