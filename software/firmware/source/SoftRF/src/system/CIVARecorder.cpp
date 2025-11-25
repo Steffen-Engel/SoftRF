@@ -80,14 +80,12 @@ void CIVARecorder_loop()
 
   static elapsedMillis TimeNotMoving;
   static elapsedMillis TimeMoving;
-  float speed;
+  int32_t speed;
 
 #endif
 
 #define LogInterval 100 /* msec */
   static elapsedMillis LogTime;
-
-
   /*****************************************************************************
    * first check if it seems to be flying/moving
    *****************************************************************************/
@@ -95,12 +93,16 @@ void CIVARecorder_loop()
 #if USEGPS
   if (isValidGNSSFix())
   {
-    speed = gnss.speed.kmph();
-    if (speed >= DetectLandSpeed)
+    speed = lround(gnss.speed.kmph());
+
+    // if faster than take off detection, the not moving time has to be zeroed
+    if (speed >= DetectTakeoffSpeed)
     {
       TimeNotMoving = 0;
     }
-    if (speed < DetectTakeoffSpeed)
+
+    // if slower than landing detection, the moving time has to be zeroed
+    if (speed < DetectLandSpeed)
     {
       TimeMoving = 0;
     }
@@ -134,6 +136,14 @@ void CIVARecorder_loop()
       {
       // Close Logfile
       Serial.println("end logging");
+
+      char LogText[100];
+           snprintf(LogText, sizeof(LogText),
+               " Log Ended at %d msecs with GPS speed %d Sats %d NotMoving %d moving %d CIVA Status %d\n",
+               millis(), lround(gnss.speed.kmph()), gnss.satellites.value(), (int)TimeNotMoving, (int)TimeMoving, CIVA_Status);
+
+      Serial.print(LogText);
+      LogFile.write(LogText);
       LogFile.close();
       LogActive = false;
     }
@@ -157,12 +167,10 @@ void CIVARecorder_loop()
        snprintf(LogName, sizeof(LogName),
            FLIGHTS_DIR "/%04d-%02d-%02d_%02d-%02d.dat",
            year(), month(), day(), hour(), minute());
-      LogFile = uSD.open(LogName, FILE_WRITE);
+      LogFile = uSD.open(LogName, O_WRONLY | O_CREAT);
       if (LogFile)
       {
-#ifdef FORMAT_YALL
-        LogFile.write("date, time, time/msec, nx/g, ny/g, nz/g, phi, psi, theta, rot_x/deg/sec, rot_y/deg/sec, rot_z/deg/s, p_cabin/Pa, p_stat/Pa, p_diff/Pa,eta_hr, eta_qr, eta_sr, eta_fl, GPS_FIX, numSat, GPS_altitude, GPS_speed, longitude, latitude\n");
-#else
+
         LogFile.write(
             "      date,    time, time/msec,"                        //  1  2  3
             " nx/g, ny/g, nz/g,"                                               //  4  5  6
@@ -171,7 +179,7 @@ void CIVARecorder_loop()
             " p_stat/Pa, alt/m, isBeeping,"                                    // 13 14 15
             " GPS_FIX, numSat, GPS_altitude, GPS_speed, GPS_course, latitude, longitude"   // 16 17 18 19 20 21
             "\n");
-#endif
+
         LogTime = LogInterval+1;  // force immediate write of first data set
         LogActive = true;
       }
@@ -183,7 +191,7 @@ void CIVARecorder_loop()
    *****************************************************************************/
   if (LogActive)
   {
-    if (LogTime > LogInterval)
+    if (LogTime >= LogInterval)
     {
       float _nx, _ny, _nz;
       imu_qmi8658.getAccelerometer(_nx, _ny, _nz);
@@ -199,8 +207,8 @@ void CIVARecorder_loop()
           "%5d,%5d,%5d,"                                                 // 4..6 n/10
           "%4d,%4d,%6d,"                                                 // 7..9 euler
           "%14d,%14d,%14d,"                                              // 10..12 rotation
-          "%10d,%6d,%10d,"                                                // 13 14 15  pressure, altitude, beeping
-          "%8d,%7d,%13d,%10d,%11d,%9d,%10d\n",                                // 16 17 18 19 20 21  GPS information
+          "%10d,%6d,%10d,"                                               // 13 14 15  pressure, altitude, beeping
+          "%8d,%7d,%13d,%10d,%11d,%9d,%10d\n",                           // 16 17 18 19 20 21  GPS information
           day(), month(), year(), hour(), minute(), second(), millis(),  //  1  2  3
           lround(10*_nx), lround(10*_ny), lround(10*_nz),                //  4  5  6
           0, 0, 0,                                                       //  7  8  9
@@ -210,7 +218,25 @@ void CIVARecorder_loop()
           lround(10000000*gnss.location.lat()), lround(10000000*gnss.location.lng())  // 21 22
           );
 
-      LogFile.write(loggerline);
+
+      int result = LogFile.write(loggerline);
+      if (result == 0)
+      {
+        Serial.printf("WriteError sectorspercluster %d bytespercluster %d bytespersector %d\n", uSD.sectorsPerCluster(), uSD.bytesPerCluster(), uSD.bytesPerSector());
+        LogFile.close();
+        TimeMoving = 0;
+        LogActive = false;
+      }
+#if false
+      static elapsedMillis FlushTime;
+      if (FlushTime > 5000)
+      {
+        Serial.printf("Flush at line %d\n", lineswritten);
+        #error Flushing does not work on all SD Cards!
+        LogFile.flush();
+        FlushTime = 0;
+      }
+#endif
       LogTime -= LogInterval;
     }
   }
