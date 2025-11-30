@@ -40,6 +40,8 @@ bool LogActive = false;
 
 #include <SensorQMI8658.hpp>
 extern SensorQMI8658 imu_qmi8658;
+#include <SensorQMC6310.hpp>
+extern SensorQMC6310 mag_qmc6310;
 
 #define FLIGHTS_DIR "Flights"
 extern SdFat uSD;
@@ -48,8 +50,23 @@ static File32 LogFile;
 
 bool LogActive = false;
 
+
+void ShortBeep()
+{
+//  digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, HIGH);
+//  delay(100);
+//  digitalWrite(SOC_GPIO_PIN_CIVA_BUZZER, LOW);
+}
+
 void CIVARecorder_setup()
 {
+
+  delay(500);
+  ShortBeep();
+  delay(50);
+  ShortBeep();
+
+
   if ((hw_info.storage == STORAGE_CARD)     ||
       (hw_info.storage == STORAGE_FLASH_AND_CARD)
      )
@@ -96,13 +113,13 @@ void CIVARecorder_loop()
     speed = lround(gnss.speed.kmph());
 
     // if faster than take off detection, the not moving time has to be zeroed
-    if (speed >= DetectTakeoffSpeed)
+    if (speed >= DetectLandSpeed)
     {
       TimeNotMoving = 0;
     }
 
     // if slower than landing detection, the moving time has to be zeroed
-    if (speed < DetectLandSpeed)
+    if (speed < DetectTakeoffSpeed)
     {
       TimeMoving = 0;
     }
@@ -137,6 +154,10 @@ void CIVARecorder_loop()
       // Close Logfile
       Serial.println("end logging");
 
+      ShortBeep();
+      delay(50);
+      ShortBeep();
+
       char LogText[100];
            snprintf(LogText, sizeof(LogText),
                " Log Ended at %d msecs with GPS speed %d Sats %d NotMoving %d moving %d CIVA Status %d\n",
@@ -151,8 +172,8 @@ void CIVARecorder_loop()
   else
   {
 #if USEGPS
-    // 10 Seconds moving? Create file
-    if (TimeMoving >= 10000)
+    // 2 Seconds moving? Create file
+    if (TimeMoving >= 2000)
 #else
       if ((CIVA_Status == CIVA_CLIMB)         // should be they way of activation
           || (CIVA_Status == CIVA_ALT150)     // be sure if climb missed
@@ -163,6 +184,8 @@ void CIVARecorder_loop()
       {
       // create Logfile
       Serial.println("start logging");
+      ShortBeep();
+
       char LogName[50];
        snprintf(LogName, sizeof(LogName),
            FLIGHTS_DIR "/%04d-%02d-%02d_%02d-%02d.dat",
