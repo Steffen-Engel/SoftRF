@@ -927,6 +927,14 @@ void handleRoot() {
     offset += len;
     size -= len;
   }
+#else
+  if (settings->aerobaticbox) {
+    snprintf_P ( offset, size,
+    PSTR("<td align=center>&nbsp;&nbsp;&nbsp;<input type=button onClick=\"location.href='/flights'\" value='Flights'></td>"));
+    len = strlen(offset);
+    offset += len;
+    size -= len;
+  }
 #endif /* ENABLE_RECORDER */
 
   /* SoC specific part 1 */
@@ -1087,9 +1095,9 @@ PSTR("<html>\
   SoC->reset();
 }
 
-#if defined(ENABLE_RECORDER)
+#if defined(ENABLE_RECORDER) || true
 
-#include <SdFat_Adafruit_Fork.h>
+#include <SdFat.h>
 extern SdFat uSD;
 
 #define FILESYSTEM       uSD
@@ -1269,7 +1277,7 @@ bool handleFileRead(String path) {
 #endif /* ENABLE_RECORDER */
 
 void handleNotFound() {
-#if defined(ENABLE_RECORDER)
+#if defined(ENABLE_RECORDER)  || true
   if (!handleFileRead(server.uri()))
 #endif /* ENABLE_RECORDER */
   {
@@ -1444,7 +1452,7 @@ $('form').submit(function(e){\
   } );
 #endif /* EXCLUDE_OTA */
 
-#if defined(ENABLE_RECORDER)
+#if defined(ENABLE_RECORDER)  || true
   server.on("/flights", HTTP_GET, Handle_Flight_Download);
 #endif /* ENABLE_RECORDER */
 
