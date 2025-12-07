@@ -241,6 +241,14 @@ char *Root_content() {
     offset += len;
     size -= len;
   }
+#else
+  if (settings->aerobaticbox) {
+    snprintf_P ( offset, size,
+    PSTR("<td align=center>&nbsp;&nbsp;&nbsp;<input type=button onClick=\"location.href='/flights'\" value='Flights'></td>"));
+    len = strlen(offset);
+    offset += len;
+    size -= len;
+  }
 #endif /* ENABLE_RECORDER */
 
   /* SoC specific part 1 */
@@ -451,6 +459,18 @@ char *Settings_content() {
 </td>\
 </tr>\
 <tr>\
+<th align=left>Special type CIVA HMD Aerobatic Box</th>\
+<td align=right>\
+<input type='checkbox' name='aerobaticbox' value='1' %s>\
+</td>\
+</tr>\
+<tr>\
+<th align=left>CIVA HMD Device ID</th>\
+<td align=right>\
+<INPUT type='number' name='CIVA_ID' min='0' max='255' value='%d'>\
+</td>\
+</tr>\
+<tr>\
 <th align=left>Alarm trigger</th>\
 <td align=right>\
 <select name='alarm'>\
@@ -511,6 +531,8 @@ char *Settings_content() {
   (settings->aircraft_type == AIRCRAFT_TYPE_PARAGLIDER ? "selected" : ""),  AIRCRAFT_TYPE_PARAGLIDER,
   (settings->aircraft_type == AIRCRAFT_TYPE_BALLOON ? "selected" : ""),  AIRCRAFT_TYPE_BALLOON,
   (settings->aircraft_type == AIRCRAFT_TYPE_STATIC ? "selected" : ""),  AIRCRAFT_TYPE_STATIC,
+  (settings->aerobaticbox ? "checked" : ""),
+  (settings->CIVA_HMD_ID),
   (settings->alarm == TRAFFIC_ALARM_NONE ? "selected" : ""),  TRAFFIC_ALARM_NONE,
   (settings->alarm == TRAFFIC_ALARM_DISTANCE ? "selected" : ""),  TRAFFIC_ALARM_DISTANCE,
   (settings->alarm == TRAFFIC_ALARM_VECTOR ? "selected" : ""),  TRAFFIC_ALARM_VECTOR,
@@ -911,6 +933,8 @@ PSTR("<html>\
 <tr><th align=left>Protocol</th><td align=right>%d</td></tr>\
 <tr><th align=left>Band</th><td align=right>%d</td></tr>\
 <tr><th align=left>Aircraft type</th><td align=right>%d</td></tr>\
+<tr><th align=left>aerobatic box</th><td align=right>%d</td></tr>\
+<tr><th align=left>HMD Id</th><td align=right>%x</td></tr>\
 <tr><th align=left>Alarm trigger</th><td align=right>%d</td></tr>\
 <tr><th align=left>Tx Power</th><td align=right>%d</td></tr>\
 <tr><th align=left>Volume</th><td align=right>%d</td></tr>\
@@ -934,7 +958,7 @@ PSTR("<html>\
 </body>\
 </html>"),
   settings->mode, settings->rf_protocol, settings->band,
-  settings->aircraft_type, settings->alarm, settings->txpower,
+  settings->aircraft_type, settings->aerobaticbox, settings->CIVA_HMD_ID, settings->alarm, settings->txpower,
   settings->volume, settings->pointer, settings->bluetooth,
   BOOL_STR(settings->nmea_g), BOOL_STR(settings->nmea_p),
   BOOL_STR(settings->nmea_l), BOOL_STR(settings->nmea_s),
@@ -1043,6 +1067,9 @@ void handleRoot() {
 
 void handleInput() {
 
+  // set unchecked defaults for checkboxes
+  settings->aerobaticbox = false;
+
   for ( uint8_t i = 0; i < server.args(); i++ ) {
     if (server.argName(i).equals("mode")) {
       settings->mode = server.arg(i).toInt();
@@ -1052,6 +1079,10 @@ void handleInput() {
       settings->band = server.arg(i).toInt();
     } else if (server.argName(i).equals("acft_type")) {
       settings->aircraft_type = server.arg(i).toInt();
+    } else if (server.argName(i).equals("aerobaticbox")) {
+      settings->aerobaticbox = server.arg(i).toInt();
+    } else if (server.argName(i).equals("CIVA_ID")) {
+      sscanf(server.arg(i).c_str(), "%d", &settings->CIVA_HMD_ID);
     } else if (server.argName(i).equals("alarm")) {
       settings->alarm = server.arg(i).toInt();
     } else if (server.argName(i).equals("txpower")) {
@@ -1115,7 +1146,7 @@ void handleInput() {
   }
 }
 
-#if defined(ENABLE_RECORDER)
+#if defined(ENABLE_RECORDER) || true
 
 #include <SdFat_Adafruit_Fork.h>
 extern SdFat uSD;
@@ -1163,7 +1194,7 @@ void Flights() {
       if (!file.isDirectory()) {
         file.getName(buf, sizeof(buf));
         filename = String(buf);
-        if (filename.endsWith(".igc") || filename.endsWith(".IGC")) {
+        if (filename.endsWith(".igc") || filename.endsWith(".IGC") || filename.endsWith(".dat") || filename.endsWith(".DAT"))  {
           Filenames[numfiles].filename = (filename.startsWith("/") ? filename.substring(1) : filename);
           Filenames[numfiles].fsize    = ConvBinUnits(file.size(), 1);
           file.getModifyDateTime(&Filenames[numfiles].date, &Filenames[numfiles].time);
@@ -1254,6 +1285,8 @@ String getContentType(String filename) {
     return "application/x-gzip";
   } else if (filename.endsWith(".igc") || filename.endsWith(".IGC")) {
     return "application/octet-stream";
+  } else if (filename.endsWith(".dat") || filename.endsWith(".DAT")) {
+    return "application/octet-stream";
   }
   return "text/plain";
 }
@@ -1295,7 +1328,7 @@ bool handleFileRead(String path) {
 #endif /* ENABLE_RECORDER */
 
 void handleNotFound() {
-#if defined(ENABLE_RECORDER)
+#if defined(ENABLE_RECORDER) || true
   if (!handleFileRead(server.uri()))
 #endif /* ENABLE_RECORDER */
   {
@@ -1471,7 +1504,7 @@ $('form').submit(function(e){\
   } );
 #endif /* EXCLUDE_OTA */
 
-#if defined(ENABLE_RECORDER)
+#if defined(ENABLE_RECORDER) || true
   server.on("/flights", HTTP_GET, Handle_Flight_Download);
 #endif /* ENABLE_RECORDER */
 
