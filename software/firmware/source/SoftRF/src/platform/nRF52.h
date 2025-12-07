@@ -23,9 +23,6 @@
 #define PLATFORM_NRF52_H
 
 #include <avr/dtostrf.h>
-#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
-#include <pcf8563.h>
-#endif /* ARDUINO_ARCH_MBED */
 
 /* Maximum of tracked flying objects is now SoC-specific constant */
 #define MAX_TRACKING_OBJECTS    8
@@ -49,6 +46,7 @@
 #undef  LED_STATE_ON
 #define LED_STATE_ON            (hw_info.model == SOFTRF_MODEL_CARD     || \
                                  hw_info.model == SOFTRF_MODEL_HANDHELD || \
+                                 hw_info.model == SOFTRF_MODEL_SOLARIS  || \
                                  hw_info.model == SOFTRF_MODEL_DECENT    ? \
                                  HIGH : LOW)
 #else
@@ -80,10 +78,13 @@ enum nRF52_board_id {
   NRF52_LILYGO_TECHO_REV_0,     /* 20-8-6 */
   NRF52_LILYGO_TECHO_REV_1,     /* 2020-12-12 */
   NRF52_LILYGO_TECHO_REV_2,     /* 2021-3-26 */
+  NRF52_LILYGO_TECHO_PLUS,      /* 2025 */
   NRF52_LILYGO_TULTIMA,
   NRF52_SEEED_T1000E,
   NRF52_HELTEC_T114,
   NRF52_ELECROW_TN_M1,
+  NRF52_ELECROW_TN_M3,
+  NRF52_ELECROW_TN_M6,
   NRF52_SEEED_WIO_L1,
 };
 
@@ -134,6 +135,9 @@ struct rst_info {
 #define BME280_ADDRESS        (0x77)
 #define BHI260AP_ADDRESS_L    (0x28)
 #define BHI260AP_ADDRESS_H    (0x29)
+#define AHT20_ADDRESS         (0x38)
+#define SC7A20H_ADDRESS_L     (0x18)
+#define SC7A20H_ADDRESS_H     (0x19)
 
 #if defined(ARDUINO_ARCH_MBED) || defined(ARDUINO_ARCH_ZEPHYR)
 #define PCF8563_SLAVE_ADDRESS (0x51)
@@ -151,6 +155,8 @@ struct rst_info {
 #include "iomap/Seeed_T1000E.h"
 #include "iomap/Heltec_T114.h"
 #include "iomap/Elecrow_ThinkNode_M1.h"
+#include "iomap/Elecrow_ThinkNode_M3.h"
+#include "iomap/Elecrow_ThinkNode_M6.h"
 #include "iomap/Seeed_Wio_L1.h"
 
 #define SOC_GPIO_LED_PCA10059_STATUS    _PINNUM(0,  6) // P0.06
@@ -161,6 +167,8 @@ struct rst_info {
 #define SOC_GPIO_PIN_STATUS   (hw_info.model == SOFTRF_MODEL_CARD ? SOC_GPIO_LED_T1000_GREEN : \
                                hw_info.model == SOFTRF_MODEL_COZY ? SOC_GPIO_LED_T114_GREEN  : \
                                hw_info.model == SOFTRF_MODEL_HANDHELD ? SOC_GPIO_LED_M1_RED  : \
+                               hw_info.model == SOFTRF_MODEL_POCKET  ? SOC_GPIO_LED_M3_GREEN : \
+                               hw_info.model == SOFTRF_MODEL_SOLARIS  ? SOC_GPIO_LED_M6_RED  : \
                                hw_info.model == SOFTRF_MODEL_DECENT  ? SOC_GPIO_LED_L1_GREEN : \
                                hw_info.revision == 0 ? SOC_GPIO_LED_TECHO_REV_0_GREEN : \
                                hw_info.revision == 1 ? SOC_GPIO_LED_TECHO_REV_1_GREEN : \
@@ -169,12 +177,15 @@ struct rst_info {
 
 #define SOC_GPIO_LED_USBMSC   (hw_info.model == SOFTRF_MODEL_CARD  ? SOC_GPIO_LED_T1000_RED  : \
                                hw_info.model == SOFTRF_MODEL_HANDHELD ? SOC_GPIO_LED_M1_BLUE : \
+                               hw_info.model == SOFTRF_MODEL_POCKET   ? SOC_GPIO_LED_M3_RED  : \
+                               hw_info.model == SOFTRF_MODEL_SOLARIS  ? SOC_GPIO_LED_M6_BLUE : \
                                hw_info.revision == 0 ? SOC_GPIO_LED_TECHO_REV_0_RED : \
                                hw_info.revision == 1 ? SOC_GPIO_LED_TECHO_REV_1_RED : \
                                hw_info.revision == 2 ? SOC_GPIO_LED_TECHO_REV_2_RED : \
                                SOC_GPIO_LED_PCA10059_RED)
 
-#define SOC_GPIO_LED_BLE      (hw_info.revision == 0 ? SOC_GPIO_LED_TECHO_REV_0_BLUE : \
+#define SOC_GPIO_LED_BLE      (hw_info.model == SOFTRF_MODEL_POCKET ? SOC_GPIO_LED_M3_BLUE : \
+                               hw_info.revision == 0 ? SOC_GPIO_LED_TECHO_REV_0_BLUE : \
                                hw_info.revision == 1 ? SOC_GPIO_LED_TECHO_REV_1_BLUE : \
                                hw_info.revision == 2 ? SOC_GPIO_LED_TECHO_REV_2_BLUE : \
                                SOC_GPIO_LED_PCA10059_BLUE)
@@ -189,6 +200,10 @@ struct rst_info {
                                SOC_GPIO_PIN_GNSS_T1000_PPS :            \
                                hw_info.model == SOFTRF_MODEL_HANDHELD ? \
                                SOC_GPIO_PIN_GNSS_M1_PPS :               \
+                               hw_info.model == SOFTRF_MODEL_POCKET   ? \
+                               SOC_GPIO_PIN_GNSS_M3_PPS :               \
+                               hw_info.model == SOFTRF_MODEL_SOLARIS  ? \
+                               SOC_GPIO_PIN_GNSS_M6_PPS :               \
                                hw_info.model == SOFTRF_MODEL_DECENT   ? \
                                SOC_GPIO_PIN_GNSS_L1_PPS : SOC_UNUSED_PIN)
 
@@ -243,6 +258,14 @@ struct rst_info {
 //#define EXCLUDE_SOFTRF_HEARTBEAT
 //#define EXCLUDE_LK8EX1
 
+/*
+ * One of use cases for Solaris Edition is a long term continous operation
+ * from solar and rechargable battery power sources.
+ * Enforce a restart of the device when it's uptime is more than 46 days
+ * to prevent millis() rollover.
+ */
+#define TAKE_CARE_OF_MILLIS_ROLLOVER
+
 #define EXCLUDE_GNSS_UBLOX
 #define EXCLUDE_GNSS_SONY
 #define EXCLUDE_GNSS_MTK
@@ -269,10 +292,6 @@ struct rst_info {
 
 #define USE_BASICMAC
 //#define EXCLUDE_SX1276           //  -  3 kb
-
-//#define USE_OLED                 //  +  6 kb
-//#define EXCLUDE_OLED_BARO_PAGE
-//#define EXCLUDE_OLED_049
 
 #define USE_EPAPER                 //  +    kb
 #define EPD_ASPECT_RATIO_1C1
@@ -320,10 +339,19 @@ struct rst_info {
 #endif /* ARDUINO_ARCH_ZEPHYR */
 #endif /* ARDUINO_ARCH_MBED */
 
-#define EXCLUDE_BHI260
+//#define EXCLUDE_BHI260
+#define USE_BHI260_RAM_FW
+
 /* T-Ultima */
 #define EXCLUDE_PMU
+
 #define EXCLUDE_WIP
+
+#if !defined(EXCLUDE_WIP)
+#define USE_OLED                 //  +  6 kb
+//#define EXCLUDE_OLED_BARO_PAGE
+#define EXCLUDE_OLED_049
+#endif /* EXCLUDE_WIP */
 
 /* FTD-012 data port protocol version 8 and 9 */
 #define PFLAA_EXT1_FMT  ",%d,%d,%d"
@@ -333,6 +361,7 @@ struct rst_info {
 #define SOC_GPIO_PIN_BUZZER   (nRF52_board == NRF52_SEEED_T1000E  ? SOC_GPIO_PIN_T1000_BUZZER : \
                                nRF52_board == NRF52_ELECROW_TN_M1 ? SOC_GPIO_PIN_M1_BUZZER    : \
                                nRF52_board == NRF52_SEEED_WIO_L1  ? SOC_GPIO_PIN_L1_BUZZER    : \
+                               nRF52_board == NRF52_LILYGO_TECHO_PLUS ? SOC_GPIO_PIN_TECHO_BUZZER : \
                                hw_info.rf != RF_IC_SX1262 ? SOC_UNUSED_PIN           : \
                                hw_info.revision == 1 ? SOC_GPIO_PIN_TECHO_REV_1_DIO0 : \
                                hw_info.revision == 2 ? SOC_GPIO_PIN_TECHO_REV_2_DIO0 : \
@@ -353,9 +382,6 @@ extern Adafruit_NeoPixel strip;
 extern Uart Serial2;
 #endif
 
-#if !defined(ARDUINO_ARCH_MBED) && !defined(ARDUINO_ARCH_ZEPHYR)
-extern PCF8563_Class *rtc;
-#endif /* ARDUINO_ARCH_MBED */
 extern const char *nRF52_Device_Manufacturer, *nRF52_Device_Model, *Hardware_Rev[];
 
 #if defined(USE_EPAPER)

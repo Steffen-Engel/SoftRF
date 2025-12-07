@@ -46,7 +46,11 @@
 #include "SoCHelper.h"
 #include "EEPROMHelper.h"
 #include "NMEAHelper.h"
+#if defined(USE_TFT)
+#include "TFTHelper.h"
+#else
 #include "EPDHelper.h"
+#endif
 #include "TrafficHelper.h"
 #include "WiFiHelper.h"
 #include "WebHelper.h"
@@ -117,9 +121,11 @@ void setup()
   }
 
   Serial.println();
-  Serial.print(F("Intializing E-ink display module (may take up to 10 seconds)... "));
+  Serial.print(F("Intializing display module (may take up to 10 seconds)... "));
   Serial.flush();
-  hw_info.display = EPD_setup(true);
+
+  hw_info.display = SoC->Display_setup(true);
+
   if (hw_info.display != DISPLAY_NONE) {
     Serial.println(F(" done."));
   } else {
@@ -155,7 +161,7 @@ void loop()
 
   Traffic_loop();
 
-  EPD_loop();
+  SoC->Display_loop();
 
   Traffic_ClearExpired();
 
@@ -196,7 +202,7 @@ void shutdown(const char *msg)
 
   WiFi_fini();
 
-  EPD_fini(msg, screen_saver);
+  SoC->Display_fini(msg, screen_saver);
 
   SoC->Button_fini();
 

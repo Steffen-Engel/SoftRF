@@ -125,6 +125,12 @@
 #define PWR_MODE  18   // D2 // Power mode pin
 #define TX_EN     2    // D0 // TX / RX mode pin
 #define CS_N      8    // D8 // SPI slave select pin
+#elif defined(CONFIG_IDF_TARGET_ESP32C5)
+// WT99P4C5 GPIO pins
+#define TRX_EN    5    // Enable/standby pin
+#define PWR_MODE  4    // Power mode pin
+#define TX_EN     0    // TX / RX mode pin
+#define CS_N      7    // SPI slave select pin
 #elif defined(CONFIG_IDF_TARGET_ESP32C6)
 // NodeMCU 1.0 + WT0132C6-S5 GPIO pins
 #define TRX_EN    8    // D4 // Enable/standby pin
@@ -165,6 +171,7 @@
 #define CS_N      PA4  // SPI slave select pin
 
 #elif defined(ARDUINO_GENERIC_WLE5CCUX) || \
+      defined(ARDUINO_GENERIC_WL55CCUX) || \
       defined(ARDUINO_WisDuo_RAK3172_Evaluation_Board)
 
 /* TBD */

@@ -63,6 +63,7 @@
       defined(CONFIG_IDF_TARGET_ESP32C6)  || \
       defined(CONFIG_IDF_TARGET_ESP32C61) || \
       defined(CONFIG_IDF_TARGET_ESP32H2)  || \
+      defined(CONFIG_IDF_TARGET_ESP32H4)  || \
       defined(CONFIG_IDF_TARGET_ESP32P4)
 #if ARDUINO_USB_CDC_ON_BOOT
 #define UATSerial               Serial0
@@ -102,6 +103,7 @@
       !defined(CONFIG_IDF_TARGET_ESP32C6)  && \
       !defined(CONFIG_IDF_TARGET_ESP32C61) && \
       !defined(CONFIG_IDF_TARGET_ESP32H2)  && \
+      !defined(CONFIG_IDF_TARGET_ESP32H4)  && \
       !defined(CONFIG_IDF_TARGET_ESP32P4)
 #define USE_NEOPIXELBUS_LIBRARY
 #else
@@ -171,6 +173,8 @@ static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
 #define SOC_GPIO_PIN_LED        SOC_UNUSED_PIN /* TBD */
 #elif defined(CONFIG_IDF_TARGET_ESP32H2)
 #define SOC_GPIO_PIN_LED        SOC_UNUSED_PIN /* TBD */
+#elif defined(CONFIG_IDF_TARGET_ESP32H4)
+#define SOC_GPIO_PIN_LED        SOC_UNUSED_PIN /* TBD */
 #elif defined(CONFIG_IDF_TARGET_ESP32P4)
 #define SOC_GPIO_PIN_LED        1
 #else
@@ -231,8 +235,10 @@ static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
                                 SOC_GPIO_PIN_BPIPW_BUZZER :              \
                                 (esp32_board == ESP32_ELECROW_TN_M2 ?    \
                                 SOC_GPIO_PIN_M2_BUZZER :                 \
-                                (esp32_board == ESP32_P4_DEVKIT ?        \
-                                SOC_GPIO_PIN_P4_BUZZER : SOC_UNUSED_PIN)))))))
+                                (esp32_board == ESP32_ELECROW_TN_M5 ?    \
+                                SOC_GPIO_PIN_M5_BUZZER :                 \
+                                (esp32_board == ESP32_P4_WT_DEVKIT ?     \
+                                SOC_GPIO_PIN_P4_BUZZER : SOC_UNUSED_PIN))))))))
 
 #define SOC_GPIO_PIN_CIVA_BUZZER   (hw_info.model == SOFTRF_MODEL_PRIME_MK2 ? \
                                     13 : hw_info.model == SOFTRF_MODEL_PRIME_MK3 ? 38 : 255)
@@ -306,9 +312,15 @@ static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
 #include "iomap/LilyGO_T3S3.h"
 #include "iomap/Banana_PicoW.h"
 #include "iomap/Elecrow_ThinkNode_M2.h"
+#include "iomap/Elecrow_ThinkNode_M5.h"
+#if defined(CONFIG_IDF_TARGET_ESP32)
+#include "iomap/LilyGO_ELRS.h"
+#else
 #include "iomap/Generic_ELRS_C3.h"
+#endif /* CONFIG_IDF_TARGET_ESP32 */
 #include "iomap/Ebyte_EoRa_HUB_900TB.h"
 #include "iomap/WT99P4C5.h"
+#include "iomap/LilyGO_TDisplay_P4.h"
 
 enum rst_reason {
   REASON_DEFAULT_RST      = 0,  /* normal startup by power on */
@@ -329,7 +341,9 @@ enum esp32_board_id {
   ESP32_C6_DEVKIT,
   ESP32_C61_DEVKIT,
   ESP32_H2_DEVKIT,
-  ESP32_P4_DEVKIT,
+  ESP32_H4_DEVKIT,
+  ESP32_P4_WT_DEVKIT, /* Wireless Tag */
+  ESP32_P4_WS_DEVKIT, /* Waveshare or Espressif */
   ESP32_TTGO_V2_OLED,
   ESP32_HELTEC_OLED,
   ESP32_TTGO_T_BEAM,
@@ -341,9 +355,12 @@ enum esp32_board_id {
   ESP32_LILYGO_T3C6,
   ESP32_LILYGO_T3S3_EPD,
   ESP32_LILYGO_T3S3_OLED,
+  ESP32_LILYGO_TDISPLAY_P4,
   ESP32_BANANA_PICOW,
   ESP32_ELECROW_TN_M2,
+  ESP32_ELECROW_TN_M5,
   ESP32_RADIOMASTER_XR1,
+  ESP32_LILYGO_T_ELRS,
   ESP32_EBYTE_HUB_900TB,
 };
 
@@ -352,6 +369,7 @@ enum ep_model_id {
 	EP_GDEW027W3,
 	EP_GDEY027T91,
 	EP_DEPG0213BN,
+	EP_GDEH0154D67,
 };
 
 /* https://github.com/espressif/usb-pids/blob/main/allocated-pids.txt#L313 */
@@ -365,6 +383,7 @@ enum softrf_usb_pid {
   SOFTRF_USB_PID_INK        = 0x820A,
   SOFTRF_USB_PID_BANANA     = 0x812B,
   SOFTRF_USB_PID_GIZMO      = 0x82D9,
+  SOFTRF_USB_PID_AIRVENTURE = 0x82F9,
 };
 
 struct rst_info {
@@ -384,6 +403,7 @@ struct rst_info {
 /* ST / SGS/Thomson / Numonyx / XMC(later acquired by Micron) */
 #define ST_ID                   0x20
 #define XMC_XM25QH32B           0x4016
+#define XMC_XM25QH64B           0x4017
 
 /* Zbit Semiconductor, Inc. */
 #define ZBIT_ID                 0x5E
@@ -394,6 +414,9 @@ struct rst_info {
 #define FMICRO_ID               0xA1
 #define FMICRO_FM25Q16          0x4015
 
+#define TBD_ID                  0x46
+#define TBD_25Q32               0x4016
+
 #define MakeFlashId(v,d)        ((v << 16) | d)
 
 #define MPU6886_REG_PWR_MGMT_1  (0x6B)
@@ -401,6 +424,8 @@ struct rst_info {
 #define MPU9250_ADDRESS         (0x68)
 #define MPU9250_REG_PWR_MGMT_1  (0x6B)
 #define MPU9250_REG_WHOAMI      (0x75)
+
+#define PCA9557_ADDRESS         (0x18)
 
 /* Disable brownout detection (avoid unexpected reset on some boards) */
 #define ESP32_DISABLE_BROWNOUT_DETECTOR 0
@@ -414,6 +439,7 @@ struct rst_info {
 #define USE_NMEA_CFG
 #define USE_BASICMAC
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
+#define USE_SKYVIEW_CFG
 #define USE_RADIOLIB
 //#define EXCLUDE_LR11XX
 #define EXCLUDE_CC1101
@@ -470,6 +496,15 @@ struct rst_info {
 #if defined(CONFIG_IDF_TARGET_ESP32)
 //#define ENABLE_BT_VOICE
 //#define USE_NIMBLE
+
+//#define USE_RADIOLIB
+//#define EXCLUDE_LR11XX
+#define EXCLUDE_CC1101
+#define EXCLUDE_SI443X
+#define EXCLUDE_SI446X
+#define EXCLUDE_SX1231
+#define EXCLUDE_SX1280
+
 #else
 
 #define EXCLUDE_UATM
@@ -517,6 +552,7 @@ extern const USB_Device_List_t supported_USB_devices[];
       defined(CONFIG_IDF_TARGET_ESP32C6)  || \
       defined(CONFIG_IDF_TARGET_ESP32C61) || \
       defined(CONFIG_IDF_TARGET_ESP32H2)  || \
+      defined(CONFIG_IDF_TARGET_ESP32H4)  || \
       defined(CONFIG_IDF_TARGET_ESP32P4)
 #undef USE_OLED
 #undef USE_TFT
@@ -525,6 +561,7 @@ extern const USB_Device_List_t supported_USB_devices[];
     defined(CONFIG_IDF_TARGET_ESP32C6)  || \
     defined(CONFIG_IDF_TARGET_ESP32C61) || \
     defined(CONFIG_IDF_TARGET_ESP32H2)  || \
+    defined(CONFIG_IDF_TARGET_ESP32H4)  || \
     defined(CONFIG_IDF_TARGET_ESP32P4)
 #define EXCLUDE_EGM96
 #define EXCLUDE_TEST_MODE
@@ -532,19 +569,32 @@ extern const USB_Device_List_t supported_USB_devices[];
 #undef USE_NMEALIB
 #undef USE_BLE_MIDI
 #undef ENABLE_PROL
-#if defined(CONFIG_IDF_TARGET_ESP32C5) || defined(CONFIG_IDF_TARGET_ESP32C6)
+#if defined(CONFIG_IDF_TARGET_ESP32C5)
+//#define EXCLUDE_BLUETOOTH
 #define USE_NIMBLE
+//#define USE_NIMBLE_V2
+//#define USE_ARDUINOBLE
+#undef EXCLUDE_SOFTRF_HEARTBEAT
+#undef EXCLUDE_TEST_MODE
+#define USE_NMEALIB
+//#define USE_SOFTSPI
+#define USE_OLED
+#elif defined(CONFIG_IDF_TARGET_ESP32C6)
+#define USE_NIMBLE
+//#define USE_NIMBLE_V2
 #else
 #define USE_ARDUINOBLE
 #endif /* C6 */
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
 #undef EXCLUDE_ETHERNET
 #endif /* P4 */
-#endif /* C2 || C6 || H2 || P4 */
-#endif /* SX || CX || H2 || P4 */
+#endif /* C2 || C6 || H2 || H4 || P4 */
+#endif /* SX || CX || H2 || H4 || P4 */
 #endif /* CONFIG_IDF_TARGET_ESP32 */
 
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
+#define EXCLUDE_EGM96
+//#undef USE_NMEALIB
 #define USE_U10_EXT
 #define ENABLE_RECORDER
 #define USE_SA8X8
@@ -552,29 +602,36 @@ extern const USB_Device_List_t supported_USB_devices[];
 #define ENABLE_REMOTE_ID
 //#define EXCLUDE_VOICE_MESSAGE
 //#define USE_ARDUINOBLE
+//#define USE_NIMBLE
 //#undef USE_BLE_MIDI
-//#define USE_EPAPER
+#define USE_EPAPER
+#define EPD_ASPECT_RATIO_1C1
 //#define EPD_ASPECT_RATIO_2C1
-//#define USE_EPD_TASK
-//#define	EPD_POWEROFF		      {}
+#define USE_EPD_TASK
+#if defined(EPD_ASPECT_RATIO_2C1)
+#define	EPD_POWEROFF		      {}
+#endif /* EPD_ASPECT_RATIO_2C1 */
 #endif /* S3 */
 
 #if defined(CONFIG_IDF_TARGET_ESP32S2)
 #define EXCLUDE_BLUETOOTH
 #endif /* S2 */
 
-#if defined(CONFIG_IDF_TARGET_ESP32H2)
+#if defined(CONFIG_IDF_TARGET_ESP32H2) || defined(CONFIG_IDF_TARGET_ESP32H4)
 #define EXCLUDE_WIFI
 #undef NMEA_TCP_SERVICE
-#endif /* H2 */
+#endif /* H2 || H4 */
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
 #define USE_U10_EXT
 #define ENABLE_RECORDER
-#define EXCLUDE_BLUETOOTH
+//#define EXCLUDE_BLUETOOTH
+#undef USE_ARDUINOBLE
 //#define EXCLUDE_WIFI
 //#undef NMEA_TCP_SERVICE
 //#define EXCLUDE_VOICE_MESSAGE
+#define USE_OLED
+//#define USE_USB_HOST
 #endif /* P4 */
 
 #define POWER_SAVING_WIFI_TIMEOUT 600000UL /* 10 minutes */
@@ -595,6 +652,13 @@ typedef void EPD_Task_t;
 
 extern const char *Hardware_Rev[];
 #endif /* USE_EPAPER */
+
+#if defined(USE_SOFTSPI)
+#include <SoftSPI.h>
+extern  SoftSPI RadioSPI;
+#undef  SPI
+#define SPI RadioSPI
+#endif /* USE_SOFTSPI */
 
 #endif /* PLATFORM_ESP32_H */
 

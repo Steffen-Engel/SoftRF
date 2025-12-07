@@ -21,8 +21,7 @@
 #endif
 
 #if defined(ESP32)                     && \
-   !defined(CONFIG_IDF_TARGET_ESP32S2) && \
-   !defined(CONFIG_IDF_TARGET_ESP32P4)
+   !defined(CONFIG_IDF_TARGET_ESP32S2)
 
 #include "Platform_ESP32.h"
 #include "SoCHelper.h"
@@ -33,7 +32,7 @@
 
 #include "SkyView.h"
 
-#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
+#if !defined(CONFIG_BT_ENABLED)
 #error Bluetooth is not enabled!
 #endif
 

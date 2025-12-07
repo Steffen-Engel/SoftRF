@@ -25,6 +25,7 @@
 #include "Platform_ESP8266.h"
 #include "Platform_ESP32.h"
 #include "Platform_RP2XXX.h"
+#include "Platform_RK35.h"
 #include "SkyView.h"
 #include "BluetoothHelper.h"
 
@@ -48,10 +49,11 @@ typedef struct SoC_ops_struct {
   void (*WiFiUDP_stopAll)();
   void (*Battery_setup)();
   float (*Battery_voltage)();
-  void (*EPD_setup)();
-  void (*EPD_fini)();
-  bool (*EPD_is_ready)();
-  void (*EPD_update)(int);
+  byte (*Display_setup)(bool);
+  void (*Display_loop)();
+  void (*Display_fini)(const char *, bool);
+  bool (*Display_is_ready)();
+  void (*Display_update)(int);
   size_t (*WiFi_Receive_UDP)(uint8_t *, size_t);
   int  (*WiFi_clients_count)();
   bool (*DB_init)();
@@ -78,6 +80,7 @@ enum
 	SOC_ESP32C3,
 	SOC_ESP32C5,
 	SOC_ESP32C6,
+	SOC_ESP32C61,
 	SOC_ESP32H2,
 	SOC_ESP32P4,
 	SOC_RPi,
@@ -95,7 +98,8 @@ enum
 	SOC_RP2350_RISC,
 	SOC_RA4M1,
 	SOC_EFR32,
-	SOC_CH32
+	SOC_CH32,
+	SOC_RK3506,
 };
 
 extern const SoC_ops_t *SoC;
@@ -134,6 +138,9 @@ extern const SoC_ops_t ASR66_ops;
 #endif
 #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2350)
 extern const SoC_ops_t RP2xxx_ops;
+#endif
+#if defined(LUCKFOX_LYRA)
+extern const SoC_ops_t RK35_ops;
 #endif
 
 byte SoC_setup(void);

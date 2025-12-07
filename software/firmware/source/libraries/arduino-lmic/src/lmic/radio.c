@@ -318,12 +318,25 @@ static u1_t randbuf[16];
 
 //#define FIFO_Push_Inv(x)              writeReg(RegFifo, (u1_t)~(x))
 
+#if defined(CONFIG_IDF_TARGET_ESP32C5)
+#if CONFIG_ARDUINO_ISR_IRAM
+#define ARDUINO_ISR_ATTR IRAM_ATTR
+#else
+#define ARDUINO_ISR_ATTR
+#endif
+extern void ARDUINO_ISR_ATTR delayMicroseconds(uint32_t);
+#endif /* CONFIG_IDF_TARGET_ESP32C5 */
+
 static void opmode (u1_t mode) {
 #if defined(ENERGIA_ARCH_CC13XX) || defined(ENERGIA_ARCH_CC13X2) || defined(RASPBERRY_PI)
     delay(1);
 #endif
     writeReg(RegOpMode, (readReg(RegOpMode) & ~OPMODE_MASK) | mode);
+#if defined(CONFIG_IDF_TARGET_ESP32C5)
+    delayMicroseconds(1500);
+#else
     delay(1);
+#endif
 }
 
 static void opmodeLora() {
@@ -977,6 +990,7 @@ void radio_init () {
     // seed 15-byte randomness via noise rssi
     rxlora(RXMODE_RSSI);
     while( (readReg(RegOpMode) & OPMODE_MASK) != OPMODE_RX ); // continuous rx
+#if !defined(CONFIG_IDF_TARGET_ESP32C5)
     int i=1;
     for(i=1; i<16; i++) {
         int j=0;
@@ -987,7 +1001,7 @@ void radio_init () {
         }
     }
     randbuf[0] = 16; // set initial index
-
+#endif /* CONFIG_IDF_TARGET_ESP32C5 */
 #ifdef CFG_sx1276mb1_board
     // chain calibration
     writeReg(RegPaConfig, 0);
@@ -1015,6 +1029,7 @@ void radio_init () {
 // return next random byte derived from seed buffer
 // (buf[0] holds index of next byte to be returned)
 u1_t radio_rand1 () {
+#if !defined(CONFIG_IDF_TARGET_ESP32C5)
     u1_t i = randbuf[0];
     ASSERT( i != 0 );
     if( i==16 ) {
@@ -1024,6 +1039,9 @@ u1_t radio_rand1 () {
     u1_t v = randbuf[i++];
     randbuf[0] = i;
     return v;
+#else
+    return 0;
+#endif /* CONFIG_IDF_TARGET_ESP32C5 */
 }
 
 u1_t radio_rssi () {

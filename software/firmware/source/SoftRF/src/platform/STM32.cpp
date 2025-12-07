@@ -88,7 +88,7 @@ extern int32_t IMU_g_x10;
 HardwareSerial Serial2(SOC_GPIO_PIN_GNSS_RX, SOC_GPIO_PIN_GNSS_TX);
 HardwareSerial Serial3(SOC_GPIO_PIN_RX3,     SOC_GPIO_PIN_TX3);
 
-#elif defined(ARDUINO_GENERIC_WLE5CCUX)
+#elif defined(ARDUINO_GENERIC_WLE5CCUX) || defined(ARDUINO_GENERIC_WL55CCUX)
 
 HardwareSerial Serial2(USART2);
 
@@ -281,7 +281,9 @@ static void STM32_setup()
         // This reset is induced by calling the ARM CMSIS `NVIC_SystemReset()` function!
         reset_info.reason = REASON_SOFT_RESTART; // "SOFTWARE_RESET"
     }
-#if !defined(ARDUINO_GENERIC_WLE5CCUX) && !defined(ARDUINO_WisDuo_RAK3172_Evaluation_Board)
+#if !defined(ARDUINO_GENERIC_WLE5CCUX) && \
+    !defined(ARDUINO_GENERIC_WL55CCUX) && \
+    !defined(ARDUINO_WisDuo_RAK3172_Evaluation_Board)
     else if (__HAL_RCC_GET_FLAG(RCC_FLAG_PORRST))
     {
         reset_info.reason = REASON_DEFAULT_RST; // "POWER-ON_RESET (POR) / POWER-DOWN_RESET (PDR)"
@@ -384,6 +386,12 @@ static void STM32_setup()
     stm32_board = (SoC->getChipId() == 0x725c6907) ? STM32_EBYTE_E77 : STM32_OLIMEX_WLE5CC;
     hw_info.model = SOFTRF_MODEL_BALKAN;
 
+#elif defined(ARDUINO_GENERIC_WL55CCUX)
+
+    /* TBD */
+    stm32_board = STM32_LILYGO_T3_1_0;
+    hw_info.model = SOFTRF_MODEL_LABUBU;
+
 #elif defined(ARDUINO_WisDuo_RAK3172_Evaluation_Board)
 
     /* TBD */
@@ -429,7 +437,8 @@ static void STM32_setup()
       }
 #endif /* ARDUINO_NUCLEO_L073RZ */
       if (SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN) {
-        pinMode(SOC_GPIO_PIN_BUTTON, hw_info.model == SOFTRF_MODEL_DONGLE ?
+        pinMode(SOC_GPIO_PIN_BUTTON, hw_info.model == SOFTRF_MODEL_DONGLE ||
+                                     hw_info.model == SOFTRF_MODEL_LABUBU ?
                                      INPUT_PULLDOWN : INPUT);
 #if !defined(ARDUINO_WisDuo_RAK3172_Evaluation_Board)
         LowPower.attachInterruptWakeup(SOC_GPIO_PIN_BUTTON,
@@ -439,8 +448,9 @@ static void STM32_setup()
 #endif /* ARDUINO_WisDuo_RAK3172_Evaluation_Board */
 
         /* do not enter into DFU mode when BOOT button has dual function */
-        while (hw_info.model == SOFTRF_MODEL_DONGLE &&
-               digitalRead(SOC_GPIO_PIN_BUTTON) == HIGH);
+        while ((hw_info.model == SOFTRF_MODEL_DONGLE ||
+                hw_info.model == SOFTRF_MODEL_LABUBU) &&
+                digitalRead(SOC_GPIO_PIN_BUTTON) == HIGH);
         HAL_NVIC_SystemReset();
       } else {
         STM32_ULP_stop();
@@ -521,7 +531,20 @@ static void STM32_setup()
       hal_pin_tcxo(1);
       pinMode(lmic_pins.tcxo, OUTPUT);
     }
-#endif /* ARDUINO_NUCLEO_L073RZ || ARDUINO_GENERIC_WLE5CCUX */
+
+#elif defined(ARDUINO_GENERIC_WL55CCUX)
+
+    lmic_pins.rxe  = SOC_GPIO_ANT_RX;
+    lmic_pins.txe  = SOC_GPIO_ANT_TX;
+    STM32_has_TCXO = false; /* TBD */
+
+    if (STM32_has_TCXO) {
+      lmic_pins.tcxo = SOC_GPIO_TCXO;
+      hal_pin_tcxo(1);
+      pinMode(lmic_pins.tcxo, OUTPUT);
+    }
+
+#endif /* NUCLEO_L073RZ || GENERIC_WLE5CCUX || GENERIC_WL55CCUX */
 
 #if defined(USE_RADIOLIB)
     lmic_pins.dio[0] = SOC_GPIO_PIN_DIO0;
@@ -882,7 +905,7 @@ static void STM32_EEPROM_extension(int cmd)
       if (settings->gdl90    == GDL90_UART) { settings->gdl90    = GDL90_USB; }
       if (settings->d1090    == D1090_UART) { settings->d1090    = D1090_USB; }
     }
-#elif defined(ARDUINO_GENERIC_WLE5CCUX)
+#elif defined(ARDUINO_GENERIC_WLE5CCUX) || defined(ARDUINO_GENERIC_WL55CCUX)
     if (settings->nmea_out != NMEA_OFF) {
       settings->nmea_out = NMEA_UART;
     }
@@ -951,7 +974,25 @@ static byte STM32_Display_setup()
   byte rval = DISPLAY_NONE;
 
 #if defined(USE_OLED)
-  rval = OLED_setup();
+#if defined(ARDUINO_GENERIC_WL55CCUX)
+  if (stm32_board == STM32_LILYGO_T3_1_0) {
+    u8x8 = new U8X8_SSD1315_128X64_NONAME_4W_HW_SPI(SOC_GPIO_PIN_OLED_SS,
+                                                    SOC_GPIO_PIN_OLED_DC,
+                                                    U8X8_PIN_NONE);
+    u8x8->begin();
+    u8x8->setFlipMode(OLED_flip);
+    u8x8->setFont(u8x8_font_chroma48medium8_r);
+
+    u8x8->draw2x2String( 2, 2, SoftRF_text1);
+    u8x8->drawString   ( 3, 6, SOFTRF_FIRMWARE_VERSION);
+    u8x8->drawString   (11, 6, ISO3166_CC[settings->band]);
+
+    rval = DISPLAY_OLED_TTGO;
+  } else
+#endif /* ARDUINO_GENERIC_WL55CCUX */
+  {
+    rval = OLED_setup();
+  }
 #endif /* USE_OLED */
 
   return rval;
@@ -968,6 +1009,17 @@ static void STM32_Display_fini(int reason)
 {
 #if defined(USE_OLED)
   OLED_fini(reason);
+
+#if defined(ARDUINO_GENERIC_WL55CCUX)
+  if (stm32_board == STM32_LILYGO_T3_1_0) {
+    delay(3000); /* Keep shutdown message on OLED for 3 seconds */
+
+    u8x8->noDisplay();
+
+    delete u8x8;
+    u8x8 = NULL;
+  }
+#endif /* ARDUINO_GENERIC_WL55CCUX */
 #endif /* USE_OLED */
 }
 
@@ -983,15 +1035,17 @@ static float STM32_Battery_param(uint8_t param)
   switch (param)
   {
   case BATTERY_PARAM_THRESHOLD:
-    rval = hw_info.model == SOFTRF_MODEL_DONGLE  ||
-           hw_info.model == SOFTRF_MODEL_BRACELET ? BATTERY_THRESHOLD_LIPO   :
-                                                    BATTERY_THRESHOLD_NIMHX2;
+    rval = hw_info.model == SOFTRF_MODEL_DONGLE   ||
+           hw_info.model == SOFTRF_MODEL_BRACELET ||
+           hw_info.model == SOFTRF_MODEL_LABUBU ? BATTERY_THRESHOLD_LIPO   :
+                                                  BATTERY_THRESHOLD_NIMHX2;
     break;
 
   case BATTERY_PARAM_CUTOFF:
-    rval = hw_info.model == SOFTRF_MODEL_DONGLE ||
-           hw_info.model == SOFTRF_MODEL_BRACELET ? BATTERY_CUTOFF_LIPO   :
-                                                    BATTERY_CUTOFF_NIMHX2;
+    rval = hw_info.model == SOFTRF_MODEL_DONGLE   ||
+           hw_info.model == SOFTRF_MODEL_BRACELET ||
+           hw_info.model == SOFTRF_MODEL_LABUBU ? BATTERY_CUTOFF_LIPO   :
+                                                  BATTERY_CUTOFF_NIMHX2;
     break;
 
   case BATTERY_PARAM_CHARGE:
@@ -1044,11 +1098,14 @@ static bool STM32_Baro_setup() {
 
 static void STM32_UATSerial_begin(unsigned long baud)
 {
+#if !defined(EXCLUDE_UATM)
   UATSerial.begin(baud);
+#endif /* EXCLUDE_UATM */
 }
 
 static void STM32_UATModule_restart()
 {
+#if !defined(EXCLUDE_UATM)
   digitalWrite(SOC_GPIO_PIN_TXE, LOW);
   pinMode(SOC_GPIO_PIN_TXE, OUTPUT);
 
@@ -1059,6 +1116,7 @@ static void STM32_UATModule_restart()
   delay(100);
 
   pinMode(SOC_GPIO_PIN_TXE, INPUT);
+#endif /* EXCLUDE_UATM */
 }
 
 static void STM32_WDT_setup()
@@ -1118,12 +1176,14 @@ static void STM32_Button_setup()
   if (SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN   &&
       (hw_info.model == SOFTRF_MODEL_DONGLE   ||
        hw_info.model == SOFTRF_MODEL_BRACELET ||
-       hw_info.model == SOFTRF_MODEL_BALKAN)) {
+       hw_info.model == SOFTRF_MODEL_BALKAN   ||
+       hw_info.model == SOFTRF_MODEL_LABUBU)) {
     int button_pin = SOC_GPIO_PIN_BUTTON;
 
     // BOOT0 button(s) uses external pull DOWN resistor.
     pinMode(button_pin,
-            hw_info.model == SOFTRF_MODEL_DONGLE ? INPUT_PULLDOWN :
+            hw_info.model == SOFTRF_MODEL_DONGLE ||
+            hw_info.model == SOFTRF_MODEL_LABUBU ? INPUT_PULLDOWN :
             hw_info.model == SOFTRF_MODEL_BALKAN ? INPUT_PULLUP : INPUT);
 
     button_1.init(button_pin, hw_info.model == SOFTRF_MODEL_BALKAN ? HIGH : LOW);
@@ -1146,7 +1206,8 @@ static void STM32_Button_loop()
   if (SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN   &&
       (hw_info.model == SOFTRF_MODEL_DONGLE   ||
        hw_info.model == SOFTRF_MODEL_BRACELET ||
-       hw_info.model == SOFTRF_MODEL_BALKAN)) {
+       hw_info.model == SOFTRF_MODEL_BALKAN   ||
+       hw_info.model == SOFTRF_MODEL_LABUBU)) {
     button_1.check();
   }
 }
@@ -1156,9 +1217,11 @@ static void STM32_Button_fini()
   if (SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN   &&
       (hw_info.model == SOFTRF_MODEL_DONGLE   ||
        hw_info.model == SOFTRF_MODEL_BRACELET ||
-       hw_info.model == SOFTRF_MODEL_BALKAN)) {
+       hw_info.model == SOFTRF_MODEL_BALKAN   ||
+       hw_info.model == SOFTRF_MODEL_LABUBU)) {
     pinMode(SOC_GPIO_PIN_BUTTON,
-            hw_info.model == SOFTRF_MODEL_DONGLE ? INPUT_PULLDOWN :
+            hw_info.model == SOFTRF_MODEL_DONGLE ||
+            hw_info.model == SOFTRF_MODEL_LABUBU ? INPUT_PULLDOWN :
             hw_info.model == SOFTRF_MODEL_BALKAN ? INPUT_PULLUP : INPUT);
     bool button_is_active = (hw_info.model == SOFTRF_MODEL_BALKAN ? LOW : HIGH);
     while (digitalRead(SOC_GPIO_PIN_BUTTON) == button_is_active);

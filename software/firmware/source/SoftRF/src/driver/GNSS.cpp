@@ -1243,8 +1243,13 @@ static bool ag33_setup()
   /* NMEA 0183 V4.10 and SBAS DGPS are enabled by default */
 #endif
 
-  /* GPS + GLONASS + Galileo + BeiDou + QZSS */
-  Serial_GNSS_Out.write("$PAIR066,1,1,1,1,1,0*3B\r\n");         delay(250);
+  if (settings->band == RF_BAND_IN) {
+    /* GPS + GLONASS + Galileo + NAVIC  + QZSS */
+    Serial_GNSS_Out.write("$PAIR066,1,1,1,0,1,1*3B\r\n");       delay(250);
+  } else {
+    /* GPS + GLONASS + Galileo + BeiDou + QZSS */
+    Serial_GNSS_Out.write("$PAIR066,1,1,1,1,1,0*3B\r\n");       delay(250);
+  }
 
   Serial_GNSS_Out.write("$PAIR062,0,1*3F\r\n");   /* GGA 1s */  delay(250);
   Serial_GNSS_Out.write("$PAIR062,4,1*3B\r\n");   /* RMC 1s */  delay(250);
@@ -1345,7 +1350,9 @@ byte GNSS_setup() {
       hw_info.model == SOFTRF_MODEL_GIZMO     ||
       hw_info.model == SOFTRF_MODEL_NANO      ||
       hw_info.model == SOFTRF_MODEL_DECENT    ||
-      hw_info.model == SOFTRF_MODEL_NEO)
+      hw_info.model == SOFTRF_MODEL_NEO       ||
+      hw_info.model == SOFTRF_MODEL_SOLARIS   ||
+      hw_info.model == SOFTRF_MODEL_AIRVENTURE)
   {
     // power on by wakeup call
     Serial_GNSS_Out.write((uint8_t) 0); GNSS_FLUSH(); delay(500);
@@ -1453,11 +1460,13 @@ void GNSS_loop()
   /*
    * Both GGA and RMC NMEA sentences are required.
    * No fix when any of them is missing or lost.
-   * Valid date is critical for legacy protocol (only).
+   * Valid date is crucial for legacy protocol (only).
    */
+  FixQuality q   = gnss.location.Quality();
   GNSS_fix_cache = gnss.location.isValid()               &&
                    gnss.altitude.isValid()               &&
                    gnss.date.isValid()                   &&
+                  (q >= GPS && q <= FloatRTK)            &&
                   (gnss.location.age() <= NMEA_EXP_TIME) &&
                   (gnss.altitude.age() <= NMEA_EXP_TIME) &&
                   (gnss.date.age()     <= NMEA_EXP_TIME);

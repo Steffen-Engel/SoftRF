@@ -97,31 +97,21 @@ byte SPIClass::transfer(byte _data) {
 
 SPIClass SPI0(SPI_PRI);
 SPIClass SPI1(SPI_AUX);
-#endif /* USE_BCMLIB */
 
 /* I2C is not implemented yet */
-TwoWire::TwoWire()
-{}
+TwoWire::TwoWire() {}
 
-void TwoWire::begin() {
-}
-
-void TwoWire::setClock(uint32_t clock) {
-}
-
-void TwoWire::beginTransmission(uint8_t byte) {
-}
-
-uint8_t TwoWire::endTransmission() {
-  return 0;
-}
-
-size_t TwoWire::write(uint8_t byte) {
-}
+void TwoWire::begin() { }
+void TwoWire::setClock(uint32_t clock) { }
+void TwoWire::beginTransmission(uint8_t byte) { }
+uint8_t TwoWire::endTransmission() { return 0; }
+uint8_t TwoWire::requestFrom(uint8_t address, uint8_t quantity) { return 0; }
+int TwoWire::read() { return 0; }
+size_t TwoWire::write(uint8_t byte) { }
+size_t TwoWire::write(const uint8_t *data, size_t quantity) { }
 
 TwoWire Wire;
 
-#if defined(USE_BCMLIB)
 void pinMode(unsigned char pin, unsigned char mode) {
   if (pin == LMIC_UNUSED_PIN) {
     return;
@@ -150,7 +140,7 @@ unsigned char digitalRead(unsigned char pin) {
 
 #if defined(USE_LGPIO)
 SPIClass SPI0(0);
-SPIClass SPI1(2, 2000000, 1);
+SPIClass SPI1(0, 2000000, 1);
 
 #define PI_MAX_USER_GPIO  (31) /* TBD */
 
@@ -227,6 +217,18 @@ unsigned char digitalRead(unsigned char pin) {
     fprintf(stderr, "Error writing reading from pin %" PRIu32 ": %s\n", pin, lguErrorText(result));
   }
   return result;
+}
+
+void tone(uint32_t pin, unsigned int frequency, unsigned long duration = 0) {
+  if (pin == LMIC_UNUSED_PIN) return;
+
+  lgTxPwm(_gpioHandle, pin, frequency, 50, 0, duration);
+}
+
+void noTone(uint32_t pin) {
+  if (pin == LMIC_UNUSED_PIN) return;
+
+  lgTxPwm(_gpioHandle, pin, 0, 0, 0, 0);
 }
 #endif /* USE_LGPIO */
 
@@ -481,6 +483,14 @@ size_t SerialSimulator::println(char ch) {
 
 size_t SerialSimulator::println(int8_t n) {
   fprintf(stdout, "%d\n", n);
+}
+
+size_t SerialSimulator::print(float f) {
+  fprintf(stdout, "%f", f);
+}
+
+size_t SerialSimulator::println(float f) {
+  fprintf(stdout, "%f\n", f);
 }
 
 size_t SerialSimulator::print(unsigned char ch, int base) {

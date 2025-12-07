@@ -85,11 +85,11 @@ lmic_pinmap lmic_pins = {
 #else
     .dio = {SOC_GPIO_PIN_DIO0, LMIC_UNUSED_PIN, LMIC_UNUSED_PIN},
 #endif
-    .busy = SOC_GPIO_PIN_DIO0,
+    .busy = SOC_GPIO_PIN_BUSY,
     .tcxo = LMIC_UNUSED_PIN,
 };
 
-TTYSerial Serial1("/dev/ttyAMA0");
+TTYSerial Serial1("/dev/ttyS1");
 TTYSerial Serial2("/dev/ttyUSB0");
 
 // These callbacks are only used in over-the-air activation, so they are
@@ -114,8 +114,19 @@ void onEvent (ev_t ev) {
 #endif
 }
 
+#if defined(EXCLUDE_EEPROM)
 eeprom_t eeprom_block;
 settings_t *settings = &eeprom_block.field.settings;
+#else
+EEPROMClass EEPROM;
+#endif /* EXCLUDE_EEPROM */
+
+#if defined(USE_OLED)
+#include "../driver/OLED.h"
+
+extern U8X8 u8x8_i2c;
+#endif /* USE_OLED */
+
 ufo_t ThisAircraft;
 
 #if !defined(EXCLUDE_MAVLINK)
@@ -185,10 +196,344 @@ const char *Hardware_Rev[] = {
   [0] = "Unknown"
 };
 
+static int RK35_board = RK35_LUCKFOX_LYRA_B;      /* default */
+static int RK35_hat   = RK35_WAVESHARE_PICO_LORA; /* default */
+
 #include "mode-s.h"
 #include "sdr/common.h"
 
 mode_s_t state;
+
+#if defined(USE_BRIDGE)
+#include <Bridge.h>
+#include <BridgeServer.h>
+#include <BridgeClient.h>
+#include <BridgeUdp.h>
+#include <aWOT.h>
+#include <../ui/Web.h>
+
+#include <netdb.h>
+
+BridgeServer WebServer(HTTP_SRV_PORT);
+Application WebApp;
+BridgeUDP Uni_Udp;
+
+static IPAddress dest_IP;
+
+void index_page(Request &req, Response &res) {
+  char *content = Root_content();
+
+  if (content) {
+    res.set(F("Cache-Control"), F("no-cache, no-store, must-revalidate"));
+    res.set(F("Pragma"), F("no-cache"));
+    res.set(F("Expires"), F("-1"));
+    res.set("Content-Type", "text/html;");
+    res.write( (uint8_t *) content, strlen(content) );
+
+    free(content);
+  }
+}
+
+void settings_page(Request &req, Response &res) {
+  char *content = Settings_content();
+
+  if (content) {
+    res.set(F("Cache-Control"), F("no-cache, no-store, must-revalidate"));
+    res.set(F("Pragma"), F("no-cache"));
+    res.set(F("Expires"), F("-1"));
+    res.set("Content-Type", "text/html;");
+    res.write( (uint8_t *) content, strlen(content) );
+
+    free(content);
+  }
+}
+
+#define MAX_PARAM_LEN   (32 + 1)
+
+void input_page(Request &req, Response &res) {
+  char buf[MAX_PARAM_LEN];
+
+  if (req.query("mode", buf, MAX_PARAM_LEN)) {
+    settings->mode = atoi(buf);
+  }
+  if (req.query("protocol", buf, MAX_PARAM_LEN)) {
+    settings->rf_protocol = atoi(buf);
+  }
+  if (req.query("band", buf, MAX_PARAM_LEN)) {
+    settings->band = atoi(buf);
+  }
+  if (req.query("acft_type", buf, MAX_PARAM_LEN)) {
+    settings->aircraft_type = atoi(buf);
+  }
+  if (req.query("alarm", buf, MAX_PARAM_LEN)) {
+    settings->alarm = atoi(buf);
+  }
+  if (req.query("txpower", buf, MAX_PARAM_LEN)) {
+    settings->txpower = atoi(buf);
+  }
+  if (req.query("volume", buf, MAX_PARAM_LEN)) {
+    settings->volume = atoi(buf);
+  }
+  if (req.query("pointer", buf, MAX_PARAM_LEN)) {
+    settings->pointer = atoi(buf);
+  }
+  if (req.query("bluetooth", buf, MAX_PARAM_LEN)) {
+    settings->bluetooth = atoi(buf);
+  }
+  if (req.query("nmea_g", buf, MAX_PARAM_LEN)) {
+    settings->nmea_g = atoi(buf);
+  }
+  if (req.query("nmea_p", buf, MAX_PARAM_LEN)) {
+    settings->nmea_p = atoi(buf);
+  }
+  if (req.query("nmea_l", buf, MAX_PARAM_LEN)) {
+    settings->nmea_l = atoi(buf);
+  }
+  if (req.query("nmea_s", buf, MAX_PARAM_LEN)) {
+    settings->nmea_s = atoi(buf);
+  }
+  if (req.query("nmea_out", buf, MAX_PARAM_LEN)) {
+    settings->nmea_out = atoi(buf);
+  }
+  if (req.query("gdl90", buf, MAX_PARAM_LEN)) {
+    settings->gdl90 = atoi(buf);
+  }
+  if (req.query("d1090", buf, MAX_PARAM_LEN)) {
+    settings->d1090 = atoi(buf);
+  }
+  if (req.query("stealth", buf, MAX_PARAM_LEN)) {
+    settings->stealth = atoi(buf);
+  }
+  if (req.query("no_track", buf, MAX_PARAM_LEN)) {
+    settings->no_track = atoi(buf);
+  }
+  if (req.query("power_save", buf, MAX_PARAM_LEN)) {
+    settings->power_save = atoi(buf);
+  }
+  if (req.query("rfc", buf, MAX_PARAM_LEN)) {
+    settings->freq_corr = atoi(buf);
+  }
+#if defined(USE_OGN_ENCRYPTION)
+  if (req.query("igc_key", buf, MAX_PARAM_LEN)) {
+    buf[32] = 0;
+    settings->igc_key[3] = strtoul(buf + 24, NULL, 16);
+    buf[24] = 0;
+    settings->igc_key[2] = strtoul(buf + 16, NULL, 16);
+    buf[16] = 0;
+    settings->igc_key[1] = strtoul(buf +  8, NULL, 16);
+    buf[ 8] = 0;
+    settings->igc_key[0] = strtoul(buf +  0, NULL, 16);
+  }
+#endif
+
+  char *content = Input_content();
+
+  if (content) {
+    res.set(F("Cache-Control"), F("no-cache, no-store, must-revalidate"));
+    res.set(F("Pragma"), F("no-cache"));
+    res.set(F("Expires"), F("-1"));
+    res.set("Content-Type", "text/html;");
+    res.write( (uint8_t *) content, strlen(content) );
+
+    delay(1000);
+    free(content);
+
+#if !defined(EXCLUDE_EEPROM)
+    EEPROM_store();
+#endif /* EXCLUDE_EEPROM */
+
+    WebServer.end();
+
+    Sound_fini();
+    RF_Shutdown();
+
+    delay(1000);
+    SoC->reset();
+  }
+}
+
+void about_page(Request &req, Response &res) {
+  res.set("Content-Type", "text/html;");
+  res.print(about_html);
+}
+
+void notFound(Request &req, Response &res) {
+  res.set("Content-Type", "application/json");
+  res.print("{\"error\":\"This is not the page you are looking for.\"}");
+}
+#endif /* USE_BRIDGE */
+
+#if defined(USE_NEOPIXEL)
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <stdint.h>
+#include <linux/spi/spidev.h>
+
+#define SPI_DEVICE "/dev/spidev1.1"
+#define NUM_PIXELS 12
+
+typedef enum
+{
+	SPIMODE0 = SPI_MODE_0,
+	SPIMODE1 = SPI_MODE_1,
+	SPIMODE2 = SPI_MODE_2,
+	SPIMODE3 = SPI_MODE_3,
+} SPI_MODE;
+
+typedef enum
+{
+	S_1M    = 1000000,
+	S_6_75M = 6750000,
+	S_8M    = 8000000,
+	S_13_5M = 13500000,
+	S_27M   = 27000000,
+} SPI_SPEED;
+
+#define isTimeToDisplay() (millis() - LEDTimeMarker     > 1000)
+
+unsigned long LEDTimeMarker = 0;
+
+static unsigned char send_buf[24 * NUM_PIXELS];
+static int spi_fd;
+
+static int spi_init(const char *spi_dev)
+{
+    int fd_spidev;
+    int ret;
+    SPI_MODE mode;
+    char spi_bits;
+    uint32_t spi_speed;
+
+    fd_spidev = open(spi_dev, O_RDWR);
+    if (fd_spidev < 0)
+    {
+        printf("open %s err\n", spi_dev);
+        return -1;
+    }
+
+    /* mode */
+    mode = SPIMODE0;
+    ret = ioctl(fd_spidev, SPI_IOC_WR_MODE, &mode);                // mode 0
+    if (ret < 0)
+    {
+        printf("SPI_IOC_WR_MODE err\n");
+        return -1;
+    }
+
+    /* bits per word */
+    spi_bits = 8;
+    ret = ioctl(fd_spidev, SPI_IOC_WR_BITS_PER_WORD, &spi_bits);   // 8bits
+    if (ret < 0)
+    {
+        printf("SPI_IOC_WR_BITS_PER_WORD err\n");
+        return -1;
+    }
+
+    /* speed */
+    spi_speed = (uint32_t) S_8M;
+    ret = ioctl(fd_spidev, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);    // 1MHz
+    if (ret < 0)
+    {
+        printf("SPI_IOC_WR_MAX_SPEED_HZ err\n");
+        return -1;
+    }
+
+    return fd_spidev;
+}
+
+static int spi_write_nbyte_data(unsigned int fd_spidev,
+                                unsigned char *send_buf,
+                                unsigned int send_buf_len)
+{
+    struct spi_ioc_transfer	xfer[2];
+    unsigned char recv_buf[send_buf_len];
+    int status;
+
+    if (send_buf == NULL || send_buf_len < 1)
+        return -1;
+
+    memset(xfer, 0, sizeof(xfer));
+    memset(recv_buf, 0, sizeof(send_buf_len));
+
+    xfer[0].tx_buf = (unsigned long)send_buf;
+    xfer[0].rx_buf = (unsigned long)recv_buf;
+    xfer[0].len = send_buf_len;
+
+    status = ioctl(fd_spidev, SPI_IOC_MESSAGE(1), xfer);
+    if (status < 0)
+    {
+        perror("SPI_IOC_MESSAGE");
+        return -1;
+    }
+
+    return 0;
+}
+
+static void spi_exit(unsigned int fd_spidev)
+{
+    if (fd_spidev >= 0)
+        close(fd_spidev);
+}
+
+static void update_sendbuff(int n, unsigned char r, unsigned char g, unsigned char b)
+{
+    int i = 0;
+
+    // update g
+    for (i = 0; i < 8; i++)
+    {
+        send_buf[i + 24 * n] = (g & 0x80) ? (0xFC) : (0xC0);
+        g <<= 1;
+    }
+
+    // update r
+    for (i = 8; i < 16; i++)
+    {
+        send_buf[i + 24 * n] = (r & 0x80) ? (0xFC) : (0xC0);
+        r <<= 1;
+    }
+
+    // update b
+    for (i = 16; i < 24; i++)
+    {
+        send_buf[i + 24 * n] = (b & 0x80) ? (0xFC) : (0xC0);
+        b <<= 1;
+    }
+}
+
+int ws281x_init(void)
+{
+    spi_fd = spi_init(SPI_DEVICE);
+    if (spi_fd < 0)
+        return -1;
+
+    return 0;
+}
+
+void ws281x_show(void)
+{
+    spi_write_nbyte_data(spi_fd, send_buf, sizeof(send_buf));
+}
+
+int ws281x_numPixels(void)
+{
+    return NUM_PIXELS;
+}
+
+void ws281x_setPixelColor(int n, color_t c)
+{
+    update_sendbuff(n, (c>>16)&0xFF, (c>>8)&0xFF, (c>>0)&0xFF);
+}
+
+color_t ws281x_Color(uint8_t r, uint8_t g, uint8_t b)
+{
+    return ((uint32_t)r << 16) | ((uint32_t)g <<  8) | b;
+}
+#endif /* USE_NEOPIXEL */
 
 //-------------------------------------------------------------------------
 //
@@ -252,6 +597,33 @@ void RK35_SerialNumber(void)
 
 static void RK35_setup()
 {
+  FILE *fp = fopen("/sys/firmware/devicetree/base/model", "r");
+
+  if (fp == NULL)
+  {
+      perror("/sys/firmware/devicetree/base/model");
+      exit(EXIT_FAILURE);
+  }
+
+  char value[80];
+
+  if (fgets(value, sizeof(value), fp) != NULL)
+  {
+    if (strncmp(value, "Luckfox Lyra Zero W",      sizeof(value)) == 0 ||
+        strncmp(value, "Luckfox Lyra Zero",        sizeof(value)) == 0) {
+      RK35_board        = RK35_LUCKFOX_LYRA_ZW;
+      RK35_hat          = RK35_WAVESHARE_HAT_LORA_GNSS;
+    } else if (strncmp(value, "Luckfox Lyra Plus", sizeof(value)) == 0 ||
+               strncmp(value, "Luckfox Lyra",      sizeof(value)) == 0) {
+      RK35_board        = RK35_LUCKFOX_LYRA_B;
+      hw_info.model     = SOFTRF_MODEL_STANDALONE;
+      hw_info.revision  = STD_EDN_REV_LYRA;
+    }
+  }
+
+  fclose(fp);
+
+#if defined(EXCLUDE_EEPROM)
   eeprom_block.field.magic                  = SOFTRF_EEPROM_MAGIC;
   eeprom_block.field.version                = SOFTRF_EEPROM_VERSION;
   eeprom_block.field.settings.mode          = SOFTRF_MODE_NORMAL;
@@ -280,18 +652,39 @@ static void RK35_setup()
   eeprom_block.field.settings.igc_key[1]    = 0;
   eeprom_block.field.settings.igc_key[2]    = 0;
   eeprom_block.field.settings.igc_key[3]    = 0;
+#endif /* EXCLUDE_EEPROM */
 
   ui = &ui_settings;
 
   RK35_SerialNumber();
+
+  switch (RK35_hat)
+  {
+    case RK35_WAVESHARE_HAT_LORA_GNSS:
+      lmic_pins.nss  = SOC_GPIO_PIN_HAT_SS;
+      lmic_pins.rst  = SOC_GPIO_PIN_HAT_RST;
+      lmic_pins.busy = SOC_GPIO_PIN_HAT_BUSY;
+      lmic_pins.tcxo = lmic_pins.rst; /* SX1262 with XTAL */
+#if defined(USE_RADIOLIB) || defined(USE_RADIOHEAD)
+      lmic_pins.dio[0] = SOC_GPIO_PIN_HAT_DIO;
+#endif /* USE_RADIOLIB || USE_RADIOHEAD */
+      break;
+    case RK35_WAVESHARE_PICO_LORA:
+    default:
+      lmic_pins.nss    = SOC_GPIO_PIN_SS;
+      lmic_pins.rst    = SOC_GPIO_PIN_RST;
+      lmic_pins.busy   = SOC_GPIO_PIN_BUSY;
+#if defined(USE_RADIOLIB) || defined(USE_RADIOHEAD)
+      lmic_pins.dio[0] = SOC_GPIO_PIN_DIO0;
+#endif /* USE_RADIOLIB || USE_RADIOHEAD */
+      break;
+  }
 }
 
 static void RK35_post_init()
 {
-
-#if 0
   Serial.println();
-  Serial.println(F("Luckfox Lyra Power-on Self Test"));
+  Serial.println(F("Lyra Edition Power-on Self Test"));
   Serial.println();
   Serial.flush();
 
@@ -309,13 +702,19 @@ static void RK35_post_init()
   Serial.println(F("Power-on Self Test is complete."));
   Serial.println();
   Serial.flush();
-#endif
 
 #if defined(USE_EPAPER)
 
   EPD_info1();
 
 #endif /* USE_EPAPER */
+
+#if defined(USE_OLED)
+  if (hw_info.display == DISPLAY_OLED_1_3 ||
+      hw_info.display == DISPLAY_OLED_TTGO) {
+    OLED_info1();
+  }
+#endif /* USE_OLED */
 }
 
 static bool prev_PPS_state = LOW;
@@ -332,16 +731,27 @@ static void RK35_loop()
     prev_PPS_state = PPS_state;
   }
 #endif
+
+#if defined(USE_BRIDGE)
+  BridgeClient client = WebServer.available();
+
+  if (client.connected()) {
+    WebApp.process(&client);
+    client.stop();
+  }
+#endif /* USE_BRIDGE */
 }
 
 static void RK35_fini(int reason)
 {
-
+  fprintf( stderr, "Program termination. Reason code: %d.\n", reason );
+  exit(EXIT_SUCCESS);
 }
 
 static void RK35_reset()
 {
-
+  fprintf( stderr, "Program restart.\n" );
+  exit(EXIT_SUCCESS + 2);
 }
 
 static uint32_t RK35_getChipId()
@@ -356,14 +766,113 @@ static void* RK35_getResetInfoPtr()
   return (void *) &reset_info;
 }
 
+static uint32_t RK35_getFreeHeap()
+{
+  return 0; /* TBD */
+}
+
 static long RK35_random(long howsmall, long howBig)
 {
   return howsmall + random() % (howBig - howsmall);
 }
 
+#if defined(USE_LGPIO) && defined(USE_RADIOLIB) && !defined(EXCLUDE_LR11XX)
+#include <hal/RPi/PiHal.h>
+
+extern PiHal *RadioLib_HAL;
+#endif /* USE_RADIOLIB */
+
+static void RK35_Sound_test(int var)
+{
+#if defined(USE_LGPIO)
+  if (SOC_GPIO_PIN_BUZZER != SOC_UNUSED_PIN && settings->volume != BUZZER_OFF) {
+#if defined(USE_RADIOLIB) && !defined(EXCLUDE_LR11XX)
+    if (rf_chip && RadioLib_HAL && rf_chip->type == RF_IC_LR1121) {
+      RadioLib_HAL->tone(SOC_GPIO_PIN_BUZZER, 440,  220); delay(500);
+      RadioLib_HAL->tone(SOC_GPIO_PIN_BUZZER, 640,  320); delay(500);
+      RadioLib_HAL->tone(SOC_GPIO_PIN_BUZZER, 840,  420); delay(500);
+      RadioLib_HAL->tone(SOC_GPIO_PIN_BUZZER, 1040, 520); delay(600);
+      RadioLib_HAL->noTone(SOC_GPIO_PIN_BUZZER);
+      RadioLib_HAL->pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
+    } else
+#endif /* USE_RADIOLIB */
+    {
+      tone(SOC_GPIO_PIN_BUZZER, 440,  220); delay(500);
+      tone(SOC_GPIO_PIN_BUZZER, 640,  320); delay(500);
+      tone(SOC_GPIO_PIN_BUZZER, 840,  420); delay(500);
+      tone(SOC_GPIO_PIN_BUZZER, 1040, 520); delay(600);
+      noTone(SOC_GPIO_PIN_BUZZER);
+      pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
+    }
+  }
+#endif /* USE_LGPIO */
+}
+
+static void RK35_Sound_tone(int hz, uint8_t volume)
+{
+#if defined(USE_LGPIO)
+  if (SOC_GPIO_PIN_BUZZER != SOC_UNUSED_PIN && volume != BUZZER_OFF) {
+#if defined(USE_RADIOLIB) && !defined(EXCLUDE_LR11XX)
+    if (rf_chip && RadioLib_HAL && rf_chip->type == RF_IC_LR1121) {
+      if (hz > 0) {
+        RadioLib_HAL->tone(SOC_GPIO_PIN_BUZZER, hz, (hz * ALARM_TONE_MS) / 1000);
+      } else {
+        RadioLib_HAL->noTone(SOC_GPIO_PIN_BUZZER);
+        RadioLib_HAL->pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
+      }
+    } else
+#endif /* USE_RADIOLIB */
+    {
+      if (hz > 0) {
+        tone(SOC_GPIO_PIN_BUZZER, hz, (hz * ALARM_TONE_MS) / 1000);
+      } else {
+        noTone(SOC_GPIO_PIN_BUZZER);
+        pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
+      }
+    }
+  }
+#endif /* USE_LGPIO */
+}
+
 static void RK35_WiFi_transmit_UDP(int port, byte *buf, size_t size)
 {
-  /* TBD */
+#if defined(USE_BRIDGE)
+  Uni_Udp.beginPacket(dest_IP, port);
+  Uni_Udp.write(buf, size);
+  Uni_Udp.endPacket();
+#endif /* USE_BRIDGE */
+}
+
+static bool RK35_EEPROM_begin(size_t size)
+{
+#if !defined(EXCLUDE_EEPROM)
+  if (size > EEPROM.length()) {
+    return false;
+  }
+
+  EEPROM.begin();
+#endif /* EXCLUDE_EEPROM */
+
+  return true;
+}
+
+static void RK35_EEPROM_extension(int cmd)
+{
+  if (cmd == EEPROM_EXT_LOAD) {
+    if (settings->mode != SOFTRF_MODE_NORMAL
+#if !defined(EXCLUDE_TEST_MODE)
+        &&
+        settings->mode != SOFTRF_MODE_TXRX_TEST
+#endif /* EXCLUDE_TEST_MODE */
+        ) {
+      settings->mode = SOFTRF_MODE_NORMAL;
+    }
+
+    /* AUTO and UK RF bands are deprecated since Release v1.3 */
+    if (settings->band == RF_BAND_AUTO || settings->band == RF_BAND_UK) {
+      settings->band = RF_BAND_EU;
+    }
+  }
 }
 
 static void RK35_SPI_begin()
@@ -376,7 +885,35 @@ static void RK35_swSer_begin(unsigned long baud)
   Serial_GNSS_In.begin(baud);
 }
 
+static void RK35_swSer_enableRx(boolean arg)
+{
+  /* NONE */
+}
+
 pthread_t RK35_EPD_update_thread;
+
+#if defined(USE_OLED)
+bool RK35_OLED_probe_func()
+{
+  bool ret = false;
+
+#if defined(USE_LGPIO)
+  uint8_t i2cDevice = 1;
+  uint8_t buf[2] = { 0x00 };
+
+  int i2cHandle = -1;
+  if ((i2cHandle = lgI2cOpen(i2cDevice, SSD1306_OLED_I2C_ADDR, 0)) < 0) {
+    fprintf(stderr, "Could not open I2C handle on 0: %s\n", lguErrorText(i2cHandle));
+  } else {
+    int status = lgI2cWriteDevice(i2cHandle, (char *) buf, 1);
+    if (status < 0) { ret = false; } else { ret = true; }
+    lgI2cClose(i2cHandle);
+  }
+#endif /* USE_LGPIO */
+
+  return ret;
+}
+#endif /* USE_OLED */
 
 static byte RK35_Display_setup()
 {
@@ -407,29 +944,67 @@ static byte RK35_Display_setup()
   }
 #endif /* USE_EPAPER */
 
+#if defined(USE_OLED)
+  if (rval == DISPLAY_NONE) {
+    // u8x8_i2c.setI2CAddress(SH1106_OLED_I2C_ADDR_ALT << 1);
+    rval = OLED_setup();
+  }
+#endif /* USE_OLED */
+
   return rval;
 }
 
 static void RK35_Display_loop()
 {
+  switch (hw_info.display)
+  {
 #if defined(USE_EPAPER)
-  if (hw_info.display == DISPLAY_EPD_2_7) {
+  case DISPLAY_EPD_2_7:
     EPD_loop();
-  }
+    break;
 #endif /* USE_EPAPER */
+
+#if defined(USE_OLED)
+  case DISPLAY_OLED_1_3:
+  case DISPLAY_OLED_TTGO:
+  case DISPLAY_OLED_HELTEC:
+    OLED_loop();
+    break;
+#endif /* USE_OLED */
+
+  case DISPLAY_NONE:
+  default:
+    break;
+  }
 }
 
 static void RK35_Display_fini(int reason)
 {
-#if defined(USE_EPAPER)
-
-  EPD_fini(reason, false);
-
-  if ( RK35_EPD_update_thread != (pthread_t) 0)
+  switch (hw_info.display)
   {
-    pthread_cancel( RK35_EPD_update_thread );
-  }
+#if defined(USE_EPAPER)
+  case DISPLAY_EPD_2_7:
+    EPD_fini(reason, false);
+
+    if ( RK35_EPD_update_thread != (pthread_t) 0)
+    {
+      pthread_cancel( RK35_EPD_update_thread );
+    }
+    break;
 #endif /* USE_EPAPER */
+
+#if defined(USE_OLED)
+  case DISPLAY_OLED_1_3:
+  case DISPLAY_OLED_TTGO:
+  case DISPLAY_OLED_HELTEC:
+    OLED_fini(reason);
+    break;
+#endif /* USE_OLED */
+
+  case DISPLAY_NONE:
+  default:
+    break;
+  }
 }
 
 static void RK35_Battery_setup()
@@ -472,6 +1047,10 @@ void RK35_GNSS_PPS_Interrupt_handler() {
 
 static unsigned long RK35_get_PPS_TimeMarker() {
   return PPS_TimeMarker;
+}
+
+static bool RK35_Baro_setup() {
+  return true;
 }
 
 static void RK35_UATSerial_begin(unsigned long baud)
@@ -539,21 +1118,21 @@ const SoC_ops_t RK35_ops = {
   RK35_getResetInfoPtr,
   NULL,
   NULL,
-  NULL,
+  RK35_getFreeHeap,
   RK35_random,
-  NULL,
-  NULL,
+  RK35_Sound_test,
+  RK35_Sound_tone,
   NULL,
   NULL,
   RK35_WiFi_transmit_UDP,
   NULL,
   NULL,
   NULL,
-  NULL,
-  NULL,
+  RK35_EEPROM_begin,
+  RK35_EEPROM_extension,
   RK35_SPI_begin,
   RK35_swSer_begin,
-  NULL,
+  RK35_swSer_enableRx,
   NULL,
   NULL,
   NULL,
@@ -564,7 +1143,7 @@ const SoC_ops_t RK35_ops = {
   RK35_Battery_param,
   NULL,
   RK35_get_PPS_TimeMarker,
-  NULL,
+  RK35_Baro_setup,
   RK35_UATSerial_begin,
   RK35_UATModule_restart,
   RK35_WDT_setup,
@@ -733,11 +1312,16 @@ static void RK35_ReadTraffic()
 
 void normal_loop()
 {
+#if defined(USE_LGPIO)
+    Baro_loop();
+#endif /* USE_LGPIO */
+
     /* Read GNSS data from standard input */
-    RK35_PickGNSSFix();
+//    RK35_PickGNSSFix();
 
     /* Read NMEA data from GNSS module on GPIO pins */
 //    PickGNSSFix();
+    GNSS_loop();
 
     RK35_ReadTraffic();
 
@@ -746,6 +1330,28 @@ void normal_loop()
     ThisAircraft.timestamp = now();
 
     if (isValidFix()) {
+      ThisAircraft.latitude  = gnss.location.lat();
+      ThisAircraft.longitude = gnss.location.lng();
+      ThisAircraft.altitude  = gnss.altitude.meters();
+      ThisAircraft.course    = gnss.course.deg();
+      ThisAircraft.speed     = gnss.speed.knots();
+      ThisAircraft.hdop      = (uint16_t) gnss.hdop.value();
+      ThisAircraft.geoid_separation = gnss.separation.meters();
+
+#if !defined(EXCLUDE_EGM96)
+      /*
+       * When geoidal separation is zero or not available - use approx. EGM96 value
+       */
+      if (ThisAircraft.geoid_separation == 0.0) {
+        ThisAircraft.geoid_separation = (float) LookupSeparation(
+                                                  ThisAircraft.latitude,
+                                                  ThisAircraft.longitude
+                                                );
+        /* we can assume the GPS unit is giving ellipsoid height */
+        ThisAircraft.altitude -= ThisAircraft.geoid_separation;
+      }
+#endif /* EXCLUDE_EGM96 */
+
       RF_Transmit(RF_Encode(&ThisAircraft), true);
     }
 
@@ -756,6 +1362,17 @@ void normal_loop()
     if (isValidFix()) {
       Traffic_loop();
     }
+
+#if defined(USE_NEOPIXEL)
+    if (isTimeToDisplay()) {
+      if (isValidFix()) {
+        LED_DisplayTraffic();
+      } else {
+        LED_Clear();
+      }
+      LEDTimeMarker = millis();
+    }
+#endif /* USE_NEOPIXEL */
 
     if (isTimeToExport()) {
 
@@ -870,6 +1487,10 @@ void txrx_test_loop()
   ThisAircraft.speed = TXRX_TEST_SPEED;
   ThisAircraft.vs = TXRX_TEST_VS;
 
+#if defined(USE_LGPIO)
+  Baro_loop();
+#endif /* USE_LGPIO */
+
 #if DEBUG_TIMING
   tx_start_ms = millis();
 #endif
@@ -894,6 +1515,13 @@ void txrx_test_loop()
 #endif
 
   Traffic_loop();
+
+#if defined(USE_NEOPIXEL)
+  if (isTimeToDisplay()) {
+    LED_DisplayTraffic();
+    LEDTimeMarker = millis();
+  }
+#endif /* USE_NEOPIXEL */
 
 #if DEBUG_TIMING
   export_start_ms = millis();
@@ -939,6 +1567,8 @@ void txrx_test_loop()
 
   // Handle Air Connect
   NMEA_loop();
+
+  SoC->Display_loop();
 
   ClearExpired();
 }
@@ -1015,6 +1645,10 @@ int main()
   Serial.println(F("Copyright (C) 2015-2025 Linar Yusupov. All rights reserved."));
   Serial.flush();
 
+#if !defined(EXCLUDE_EEPROM)
+  EEPROM_setup();
+#endif /* EXCLUDE_EEPROM */
+
   mode_s_init(&state);
 
 #if defined(ENABLE_RTLSDR) || defined(ENABLE_HACKRF) || defined(ENABLE_MIRISDR)
@@ -1049,9 +1683,11 @@ int main()
 
   hw_info.rf = RF_setup();
 
+#if 0
   if (hw_info.rf == RF_IC_NONE) {
       exit(EXIT_FAILURE);
   }
+#endif
 
 #if defined(ENABLE_RTLSDR) || defined(ENABLE_HACKRF) || defined(ENABLE_MIRISDR)
   if (hw_info.rf == RF_IC_R820T   ||
@@ -1062,8 +1698,12 @@ int main()
   }
 #endif /* ENABLE_RTLSDR || ENABLE_HACKRF || ENABLE_MIRISDR */
 
-#if defined(USE_EPAPER)
-  Serial.print("Intializing E-ink display module (may take up to 10 seconds)... ");
+#if defined(USE_LGPIO)
+  hw_info.baro = Baro_setup();
+#endif /* USE_LGPIO */
+
+#if defined(USE_EPAPER) || defined(USE_OLED)
+  Serial.print("Intializing display module (may take up to 10 seconds)... ");
   Serial.flush();
   hw_info.display = SoC->Display_setup();
   if (hw_info.display != DISPLAY_NONE) {
@@ -1079,9 +1719,14 @@ int main()
   ThisAircraft.stealth  = settings->stealth;
   ThisAircraft.no_track = settings->no_track;
 
-//  hw_info.gnss = GNSS_setup();
+  hw_info.gnss = GNSS_setup();
 
   Traffic_setup();
+
+#if defined(USE_NEOPIXEL)
+  LED_setup();
+#endif /* USE_NEOPIXEL */
+
   NMEA_setup();
 
   Traffic_TCP_Server.setup(JSON_SRV_TCP_PORT);
@@ -1091,6 +1736,43 @@ int main()
     fprintf( stderr, "pthread_create(traffic_tcpserv_thread) Failed\n\n" );
     exit(EXIT_FAILURE);
   }
+
+#if defined(USE_BRIDGE)
+  Bridge.begin();
+
+  WebApp.get("/", &index_page);
+  WebApp.get("/settings", &settings_page);
+  WebApp.get("/input", &input_page);
+  WebApp.get("/about", &about_page);
+  WebApp.notFound(&notFound);
+
+  WebServer.listenOnLocalhost();
+  WebServer.begin();
+
+  struct hostent *this_host = gethostbyname("pione.local");
+
+  if (this_host == NULL) {
+    dest_IP = IPAddress(255,255,255,255);
+  } else {
+    IPAddress this_IP = IPAddress((const uint8_t *)(this_host->h_addr_list[0]));
+    dest_IP = IPAddress((uint32_t) this_IP | ~((uint32_t) 0x00FFFFFF));
+  }
+
+  Serial.print(F("HTTP server has started at port: "));
+  Serial.println((unsigned long) HTTP_SRV_PORT);
+
+  Uni_Udp.begin(RELAY_SRC_PORT);
+
+  Serial.print(F("UDP  server has started at port: "));
+  Serial.println((unsigned long) RELAY_SRC_PORT);
+#endif /* USE_BRIDGE */
+
+#if defined(USE_NEOPIXEL)
+  LED_test();
+#endif /* USE_NEOPIXEL */
+
+  Sound_setup();
+  SoC->Sound_test(reset_info.reason);
 
   SoC->post_init();
 
@@ -1117,6 +1799,8 @@ int main()
 
     SoC->loop();
 
+    Time_loop();
+
 #if defined(TAKE_CARE_OF_MILLIS_ROLLOVER)
     /* take care of millis() rollover on a long term run */
     if (millis() > (47 * 24 * 3600 * 1000UL)) {
@@ -1140,6 +1824,11 @@ int main()
 #endif /* TAKE_CARE_OF_MILLIS_ROLLOVER */
   }
 
+#if defined(USE_BRIDGE)
+  WebServer.end();
+  Uni_Udp.stop();
+#endif /* USE_BRIDGE */
+
   Traffic_TCP_Server.detach();
   return 0;
 }
@@ -1152,9 +1841,18 @@ void shutdown(int reason)
     SoC->Display_fini(reason);
   }
 
+#if defined(USE_NEOPIXEL)
+  spi_exit(spi_fd);
+#endif /* USE_NEOPIXEL */
+
+#if defined(USE_BRIDGE)
+  WebServer.end();
+  Uni_Udp.stop();
+#endif /* USE_BRIDGE */
+
   Traffic_TCP_Server.detach();
-  fprintf( stderr, "Program termination. Reason code: %d.\n", reason );
-  exit(EXIT_SUCCESS);
+
+  SoC->fini(reason);
 }
 
 #endif /* LUCKFOX_LYRA */

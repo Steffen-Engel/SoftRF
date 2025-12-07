@@ -21,7 +21,7 @@
 
 #include "../../system/SoC.h"
 
-#if defined(CONFIG_BLUEDROID_ENABLED) && !defined(USE_NIMBLE) && !defined(USE_ARDUINOBLE)
+#if !defined(EXCLUDE_BLUETOOTH) && !defined(USE_NIMBLE) && !defined(USE_ARDUINOBLE)
 /*
  *  BLE code is based on Neil Kolban example for IDF:
  *    https://github.com/nkolban/esp32-snippets/blob/master/cpp_utils/tests/BLE%20Tests/SampleNotify.cpp
@@ -32,7 +32,9 @@
 #include <BLEServer.h>
 #include <BLE2902.h>
 
+#if defined(CONFIG_IDF_TARGET_ESP32)
 #include "esp_gap_bt_api.h"
+#endif /* CONFIG_IDF_TARGET_ESP32 */
 
 #include "../../driver/EEPROM.h"
 #include "../../driver/Bluetooth.h"
@@ -221,6 +223,7 @@ static void ESP32_Bluetooth_setup()
                                   hw_info.model == SOFTRF_MODEL_INK        ? "Ink Edition"        :
                                   hw_info.model == SOFTRF_MODEL_GIZMO      ? "Gizmo Edition"      :
                                   hw_info.model == SOFTRF_MODEL_NANO       ? "Nano Edition"       :
+                                  hw_info.model == SOFTRF_MODEL_AIRVENTURE ? "Airventure Edition" :
                                   "Unknown";
       char SerialNum[9];
       snprintf(SerialNum, sizeof(SerialNum), "%08X", SoC->getChipId());
@@ -265,7 +268,7 @@ static void ESP32_Bluetooth_setup()
 
       // Start advertising
       BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-#if 0
+#if defined(CONFIG_IDF_TARGET_ESP32C5) || defined(CONFIG_IDF_TARGET_ESP32P4)
       pAdvertising->addServiceUUID(BLEUUID(UART_SERVICE_UUID16));
       pAdvertising->addServiceUUID(BLEUUID(UUID16_SVC_BATTERY));
 #if defined(USE_BLE_MIDI)

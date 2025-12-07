@@ -59,7 +59,7 @@ void EEPROM_setup()
     EEPROM_defaults();
   } else {
     Serial.print(F("EEPROM version: "));
-    Serial.println(eeprom_block.field.version);
+    Serial.println((unsigned long) eeprom_block.field.version);
 
     if (eeprom_block.field.version != SKYVIEW_EEPROM_VERSION) {
       Serial.println(F("WARNING! Version mismatch of user defined settings. Loading defaults..."));
@@ -79,10 +79,14 @@ void EEPROM_defaults()
 
   if (SoC->id == SOC_ESP8266)
     eeprom_block.field.settings.adapter       = ADAPTER_NODEMCU;
-  else if (SoC->id == SOC_ESP32C3)
+  else if (SoC->id == SOC_ESP32C3 || SoC->id == SOC_ESP32C5 ||
+           SoC->id == SOC_ESP32C6)
     eeprom_block.field.settings.adapter       = ADAPTER_WAVESHARE_ESP32;
+  else if (SoC->id == SOC_ESP32P4)
+    eeprom_block.field.settings.adapter       = ADAPTER_WAVESHARE_PI_HAT_2_7;
   else if (SoC->id == SOC_RP2040     || SoC->id == SOC_RP2350_RISC ||
-           SoC->id == SOC_RP2350_ARM || SoC->id == SOC_ESP32S3)
+           SoC->id == SOC_RP2350_ARM || SoC->id == SOC_ESP32S3     ||
+           SoC->id == SOC_RK3506)
     eeprom_block.field.settings.adapter       = ADAPTER_WAVESHARE_PICO_2_7_V2;
   else
 #if defined(BUILD_SKYVIEW_HD)
@@ -126,7 +130,7 @@ void EEPROM_store()
     EEPROM.write(i, eeprom_block.raw[i]);  
   }
 
-  EEPROM.commit();
+  EEPROM_commit();
 }
 
 #endif /* EXCLUDE_EEPROM */

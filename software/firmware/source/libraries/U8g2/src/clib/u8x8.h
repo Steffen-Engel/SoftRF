@@ -174,7 +174,8 @@ uint8_t u8x8_pgm_read_esp(const uint8_t * addr);   /* u8x8_8x8.c */
 #  define U8X8_PROGMEM
 #endif
 
-#if defined(ARDUINO) || defined(HACKRF_ONE)
+#if defined(ARDUINO) || defined(HACKRF_ONE) || defined(RASPBERRY_PI) || \
+    defined(LUCKFOX_LYRA)
 #define U8X8_USE_PINS
 #endif
 
@@ -836,7 +837,7 @@ uint8_t u8x8_d_lc7981_160x160(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *
 uint8_t u8x8_d_lc7981_240x128(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr);
 uint8_t u8x8_d_ist3020_erc19264(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr);
 uint8_t u8x8_d_max7219_32x8(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr);
-
+uint8_t u8x8_d_ssd1315_128x64_noname(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr);
 
 
 /*==========================================*/

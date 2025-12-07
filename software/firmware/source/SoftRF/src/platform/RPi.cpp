@@ -114,8 +114,19 @@ void onEvent (ev_t ev) {
 #endif
 }
 
+#if defined(EXCLUDE_EEPROM)
 eeprom_t eeprom_block;
 settings_t *settings = &eeprom_block.field.settings;
+#else
+EEPROMClass EEPROM;
+#endif /* EXCLUDE_EEPROM */
+
+#if defined(USE_OLED)
+#include "../driver/OLED.h"
+
+extern U8X8 u8x8_i2c;
+#endif /* USE_OLED */
+
 ufo_t ThisAircraft;
 
 #if !defined(EXCLUDE_MAVLINK)
@@ -185,10 +196,298 @@ const char *Hardware_Rev[] = {
   [0] = "Unknown"
 };
 
+static int RPi_hat = RPI_DRAGINO_LORA_GPS; /* default */
+
 #include "mode-s.h"
 #include "sdr/common.h"
 
 mode_s_t state;
+
+#if defined(USE_BRIDGE)
+#include <Bridge.h>
+#include <BridgeServer.h>
+#include <BridgeClient.h>
+#include <BridgeUdp.h>
+#include <aWOT.h>
+#include <../ui/Web.h>
+
+#include <netdb.h>
+
+BridgeServer WebServer(HTTP_SRV_PORT);
+Application WebApp;
+BridgeUDP Uni_Udp;
+
+static IPAddress dest_IP;
+
+void index_page(Request &req, Response &res) {
+  char *content = Root_content();
+
+  if (content) {
+    res.set(F("Cache-Control"), F("no-cache, no-store, must-revalidate"));
+    res.set(F("Pragma"), F("no-cache"));
+    res.set(F("Expires"), F("-1"));
+    res.set("Content-Type", "text/html;");
+    res.write( (uint8_t *) content, strlen(content) );
+
+    free(content);
+  }
+}
+
+void settings_page(Request &req, Response &res) {
+  char *content = Settings_content();
+
+  if (content) {
+    res.set(F("Cache-Control"), F("no-cache, no-store, must-revalidate"));
+    res.set(F("Pragma"), F("no-cache"));
+    res.set(F("Expires"), F("-1"));
+    res.set("Content-Type", "text/html;");
+    res.write( (uint8_t *) content, strlen(content) );
+
+    free(content);
+  }
+}
+
+#define MAX_PARAM_LEN   (32 + 1)
+
+void input_page(Request &req, Response &res) {
+  char buf[MAX_PARAM_LEN];
+
+  if (req.query("mode", buf, MAX_PARAM_LEN)) {
+    settings->mode = atoi(buf);
+  }
+  if (req.query("protocol", buf, MAX_PARAM_LEN)) {
+    settings->rf_protocol = atoi(buf);
+  }
+  if (req.query("band", buf, MAX_PARAM_LEN)) {
+    settings->band = atoi(buf);
+  }
+  if (req.query("acft_type", buf, MAX_PARAM_LEN)) {
+    settings->aircraft_type = atoi(buf);
+  }
+  if (req.query("alarm", buf, MAX_PARAM_LEN)) {
+    settings->alarm = atoi(buf);
+  }
+  if (req.query("txpower", buf, MAX_PARAM_LEN)) {
+    settings->txpower = atoi(buf);
+  }
+  if (req.query("volume", buf, MAX_PARAM_LEN)) {
+    settings->volume = atoi(buf);
+  }
+  if (req.query("pointer", buf, MAX_PARAM_LEN)) {
+    settings->pointer = atoi(buf);
+  }
+  if (req.query("bluetooth", buf, MAX_PARAM_LEN)) {
+    settings->bluetooth = atoi(buf);
+  }
+  if (req.query("nmea_g", buf, MAX_PARAM_LEN)) {
+    settings->nmea_g = atoi(buf);
+  }
+  if (req.query("nmea_p", buf, MAX_PARAM_LEN)) {
+    settings->nmea_p = atoi(buf);
+  }
+  if (req.query("nmea_l", buf, MAX_PARAM_LEN)) {
+    settings->nmea_l = atoi(buf);
+  }
+  if (req.query("nmea_s", buf, MAX_PARAM_LEN)) {
+    settings->nmea_s = atoi(buf);
+  }
+  if (req.query("nmea_out", buf, MAX_PARAM_LEN)) {
+    settings->nmea_out = atoi(buf);
+  }
+  if (req.query("gdl90", buf, MAX_PARAM_LEN)) {
+    settings->gdl90 = atoi(buf);
+  }
+  if (req.query("d1090", buf, MAX_PARAM_LEN)) {
+    settings->d1090 = atoi(buf);
+  }
+  if (req.query("stealth", buf, MAX_PARAM_LEN)) {
+    settings->stealth = atoi(buf);
+  }
+  if (req.query("no_track", buf, MAX_PARAM_LEN)) {
+    settings->no_track = atoi(buf);
+  }
+  if (req.query("power_save", buf, MAX_PARAM_LEN)) {
+    settings->power_save = atoi(buf);
+  }
+  if (req.query("rfc", buf, MAX_PARAM_LEN)) {
+    settings->freq_corr = atoi(buf);
+  }
+#if defined(USE_OGN_ENCRYPTION)
+  if (req.query("igc_key", buf, MAX_PARAM_LEN)) {
+    buf[32] = 0;
+    settings->igc_key[3] = strtoul(buf + 24, NULL, 16);
+    buf[24] = 0;
+    settings->igc_key[2] = strtoul(buf + 16, NULL, 16);
+    buf[16] = 0;
+    settings->igc_key[1] = strtoul(buf +  8, NULL, 16);
+    buf[ 8] = 0;
+    settings->igc_key[0] = strtoul(buf +  0, NULL, 16);
+  }
+#endif
+
+  char *content = Input_content();
+
+  if (content) {
+    res.set(F("Cache-Control"), F("no-cache, no-store, must-revalidate"));
+    res.set(F("Pragma"), F("no-cache"));
+    res.set(F("Expires"), F("-1"));
+    res.set("Content-Type", "text/html;");
+    res.write( (uint8_t *) content, strlen(content) );
+
+    delay(1000);
+    free(content);
+
+#if !defined(EXCLUDE_EEPROM)
+    EEPROM_store();
+#endif /* EXCLUDE_EEPROM */
+
+    WebServer.end();
+
+    Sound_fini();
+    RF_Shutdown();
+
+    delay(1000);
+    SoC->reset();
+  }
+}
+
+void about_page(Request &req, Response &res) {
+  res.set("Content-Type", "text/html;");
+  res.print(about_html);
+}
+
+void notFound(Request &req, Response &res) {
+  res.set("Content-Type", "application/json");
+  res.print("{\"error\":\"This is not the page you are looking for.\"}");
+}
+#endif /* USE_BRIDGE */
+
+#if defined(USE_NEOPIXEL)
+#include "clk.h"
+#include "gpio.h"
+#include "dma.h"
+#include "pwm.h"
+
+#include "ws2811.h"
+
+#define ARRAY_SIZE(stuff)       (sizeof(stuff) / sizeof(stuff[0]))
+
+#define TARGET_FREQ             WS2811_TARGET_FREQ
+#define GPIO_PIN                12
+#define DMA                     10
+//#define STRIP_TYPE            WS2811_STRIP_RGB		// WS2812/SK6812RGB integrated chip+leds
+#define STRIP_TYPE              WS2811_STRIP_GBR		// WS2812/SK6812RGB integrated chip+leds
+//#define STRIP_TYPE            SK6812_STRIP_RGBW		// SK6812RGBW (NOT SK6812RGB)
+
+#define WIDTH                   12
+#define HEIGHT                  1
+#define LED_COUNT               (WIDTH * HEIGHT)
+
+#define isTimeToDisplay() (millis() - LEDTimeMarker     > 1000)
+
+unsigned long LEDTimeMarker = 0;
+
+static int width = WIDTH;
+static int height = HEIGHT;
+static int led_count = LED_COUNT;
+
+ws2811_t ledstring =
+{
+    .render_wait_time = 0,
+    .device = NULL,
+    .rpi_hw = NULL,
+    .freq = TARGET_FREQ,
+    .dmanum = DMA,
+    .channel =
+    {
+        [0] =
+        {
+            .gpionum = GPIO_PIN,
+            .invert = 0,
+            .count = LED_COUNT,
+            .strip_type = STRIP_TYPE,
+            .leds = 0,
+            .brightness = 255,
+            .wshift = 0,
+            .rshift = 0,
+            .gshift = 0,
+            .bshift = 0,
+            .gamma = NULL,
+        },
+        [1] =
+        {
+            .gpionum = 0,
+            .invert = 0,
+            .count = 0,
+            .strip_type = 0,
+            .leds = 0,
+            .brightness = 0,
+            .wshift = 0,
+            .rshift = 0,
+            .gshift = 0,
+            .bshift = 0,
+            .gamma = NULL,
+        },
+    },
+};
+
+static ws2811_led_t *matrix;
+static int dotspos[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+
+void matrix_render(void)
+{
+    int x, y;
+
+    for (x = 0; x < width; x++)
+    {
+        for (y = 0; y < height; y++)
+        {
+            ledstring.channel[0].leds[(y * width) + x] = matrix[y * width + x];
+        }
+    }
+}
+
+int ws281x_init(void)
+{
+    ws2811_return_t ret;
+
+    matrix = (ws2811_led_t *) malloc(sizeof(ws2811_led_t) * width * height);
+
+    if ((ret = ws2811_init(&ledstring)) != WS2811_SUCCESS)
+    {
+        fprintf(stderr, "ws2811_init failed: %s\n", ws2811_get_return_t_str(ret));
+        return ret;
+    }
+
+    return ret;
+}
+
+void ws281x_show(void)
+{
+    ws2811_return_t ret;
+    matrix_render();
+
+    if ((ret = ws2811_render(&ledstring)) != WS2811_SUCCESS)
+    {
+        fprintf(stderr, "ws2811_render failed: %s\n", ws2811_get_return_t_str(ret));
+    }
+}
+
+int ws281x_numPixels(void)
+{
+    return ledstring.channel[0].count;
+}
+
+void ws281x_setPixelColor(int n, color_t c)
+{
+    matrix[dotspos[n] + (height - 1) * width] = c;
+}
+
+color_t ws281x_Color(uint8_t r, uint8_t g, uint8_t b)
+{
+    return ((uint32_t)r << 16) | ((uint32_t)g <<  8) | b;
+}
+#endif /* USE_NEOPIXEL */
 
 //-------------------------------------------------------------------------
 //
@@ -268,6 +567,7 @@ void RPi_SerialNumber(void)
 
 static void RPi_setup()
 {
+#if defined(EXCLUDE_EEPROM)
   eeprom_block.field.magic                  = SOFTRF_EEPROM_MAGIC;
   eeprom_block.field.version                = SOFTRF_EEPROM_VERSION;
   eeprom_block.field.settings.mode          = SOFTRF_MODE_NORMAL;
@@ -296,14 +596,53 @@ static void RPi_setup()
   eeprom_block.field.settings.igc_key[1]    = 0;
   eeprom_block.field.settings.igc_key[2]    = 0;
   eeprom_block.field.settings.igc_key[3]    = 0;
+#endif /* EXCLUDE_EEPROM */
 
   ui = &ui_settings;
 
   RPi_SerialNumber();
 
+#if !defined(USE_SPI1)
+  pinMode(SOC_GPIO_PIN_WS_RST,  OUTPUT);
+  pinMode(SOC_GPIO_PIN_WS_BUSY, INPUT);
+
+  digitalWrite(SOC_GPIO_PIN_WS_RST, LOW);
+
+  delay(10);
+
+  if (digitalRead(SOC_GPIO_PIN_WS_BUSY) == HIGH) {
+    digitalWrite(SOC_GPIO_PIN_WS_RST, HIGH);
+
+    delay(50);
+
+    if (digitalRead(SOC_GPIO_PIN_WS_BUSY) == LOW) {
+      RPi_hat = RPI_WAVESHARE_LORA_GNSS;
+    }
+  }
+
+  pinMode(SOC_GPIO_PIN_WS_RST, INPUT);
+#endif /* USE_SPI1 */
+
+  switch (RPi_hat)
+  {
+    case RPI_WAVESHARE_LORA_GNSS:
+      lmic_pins.nss    = SOC_GPIO_PIN_WS_SS;
+      lmic_pins.rst    = SOC_GPIO_PIN_WS_RST;
+      lmic_pins.busy   = SOC_GPIO_PIN_WS_BUSY;
+      if (SoC->getChipId() != 0xD3374780) {
+        lmic_pins.tcxo = lmic_pins.rst; /* SX1262 with XTAL */
+      }
 #if defined(USE_RADIOLIB)
-  lmic_pins.dio[0] = SOC_GPIO_PIN_DIO0;
+      lmic_pins.dio[0] = SOC_GPIO_PIN_WS_DIO1;
 #endif /* USE_RADIOLIB */
+      break;
+    case RPI_DRAGINO_LORA_GPS:
+    default:
+#if defined(USE_RADIOLIB)
+      lmic_pins.dio[0] = SOC_GPIO_PIN_DIO0;
+#endif /* USE_RADIOLIB */
+      break;
+  }
 }
 
 static void RPi_post_init()
@@ -311,7 +650,7 @@ static void RPi_post_init()
 
 #if 0
   Serial.println();
-  Serial.println(F("Raspberry Pi Power-on Self Test"));
+  Serial.println(F("Raspberry Edition Power-on Self Test"));
   Serial.println();
   Serial.flush();
 
@@ -352,16 +691,27 @@ static void RPi_loop()
     prev_PPS_state = PPS_state;
   }
 #endif
+
+#if defined(USE_BRIDGE)
+  BridgeClient client = WebServer.available();
+
+  if (client.connected()) {
+    WebApp.process(&client);
+    client.stop();
+  }
+#endif /* USE_BRIDGE */
 }
 
 static void RPi_fini(int reason)
 {
-
+  fprintf( stderr, "Program termination. Reason code: %d.\n", reason );
+  exit(EXIT_SUCCESS);
 }
 
 static void RPi_reset()
 {
-
+  fprintf( stderr, "Program restart.\n" );
+  exit(EXIT_SUCCESS + 2);
 }
 
 static uint32_t RPi_getChipId()
@@ -376,14 +726,115 @@ static void* RPi_getResetInfoPtr()
   return (void *) &reset_info;
 }
 
+static uint32_t RPi_getFreeHeap()
+{
+  return 0; /* TBD */
+}
+
 static long RPi_random(long howsmall, long howBig)
 {
   return howsmall + random() % (howBig - howsmall);
 }
 
+#if defined(USE_LGPIO) && defined(USE_RADIOLIB) && !defined(EXCLUDE_LR11XX)
+#include <hal/RPi/PiHal.h>
+
+extern PiHal *RadioLib_HAL;
+#endif /* USE_RADIOLIB */
+
+static void RPi_Sound_test(int var)
+{
+#if defined(USE_LGPIO)
+  if (SOC_GPIO_PIN_BUZZER != SOC_UNUSED_PIN && settings->volume != BUZZER_OFF) {
+#if defined(USE_RADIOLIB) && !defined(EXCLUDE_LR11XX)
+    if (rf_chip && RadioLib_HAL && rf_chip->type == RF_IC_LR1121) {
+      RadioLib_HAL->tone(SOC_GPIO_PIN_BUZZER, 440,  220); delay(500);
+      RadioLib_HAL->tone(SOC_GPIO_PIN_BUZZER, 640,  320); delay(500);
+      RadioLib_HAL->tone(SOC_GPIO_PIN_BUZZER, 840,  420); delay(500);
+      RadioLib_HAL->tone(SOC_GPIO_PIN_BUZZER, 1040, 520); delay(600);
+      RadioLib_HAL->noTone(SOC_GPIO_PIN_BUZZER);
+      RadioLib_HAL->pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
+    } else
+#endif /* USE_RADIOLIB */
+    {
+      tone(SOC_GPIO_PIN_BUZZER, 440,  220); delay(500);
+      tone(SOC_GPIO_PIN_BUZZER, 640,  320); delay(500);
+      tone(SOC_GPIO_PIN_BUZZER, 840,  420); delay(500);
+      tone(SOC_GPIO_PIN_BUZZER, 1040, 520); delay(600);
+      noTone(SOC_GPIO_PIN_BUZZER);
+      pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
+    }
+  }
+#endif /* USE_LGPIO */
+}
+
+static void RPi_Sound_tone(int hz, uint8_t volume)
+{
+#if defined(USE_LGPIO)
+  if (SOC_GPIO_PIN_BUZZER != SOC_UNUSED_PIN && volume != BUZZER_OFF) {
+#if defined(USE_RADIOLIB) && !defined(EXCLUDE_LR11XX)
+    if (rf_chip && RadioLib_HAL && rf_chip->type == RF_IC_LR1121) {
+      if (hz > 0) {
+        RadioLib_HAL->tone(SOC_GPIO_PIN_BUZZER, hz, (hz * ALARM_TONE_MS) / 1000);
+      } else {
+        RadioLib_HAL->noTone(SOC_GPIO_PIN_BUZZER);
+        RadioLib_HAL->pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
+      }
+    } else
+#endif /* USE_RADIOLIB */
+    {
+      if (hz > 0) {
+        tone(SOC_GPIO_PIN_BUZZER, hz, (hz * ALARM_TONE_MS) / 1000);
+      } else {
+        noTone(SOC_GPIO_PIN_BUZZER);
+        pinMode(SOC_GPIO_PIN_BUZZER, INPUT);
+      }
+    }
+  }
+#endif /* USE_LGPIO */
+}
+
 static void RPi_WiFi_transmit_UDP(int port, byte *buf, size_t size)
 {
-  /* TBD */
+#if defined(USE_BRIDGE)
+  // printf("%08X\n", (unsigned long) dest_IP);
+
+  Uni_Udp.beginPacket(dest_IP, port);
+  Uni_Udp.write(buf, size);
+  Uni_Udp.endPacket();
+#endif /* USE_BRIDGE */
+}
+
+static bool RPi_EEPROM_begin(size_t size)
+{
+#if !defined(EXCLUDE_EEPROM)
+  if (size > EEPROM.length()) {
+    return false;
+  }
+
+  EEPROM.begin();
+#endif /* EXCLUDE_EEPROM */
+
+  return true;
+}
+
+static void RPi_EEPROM_extension(int cmd)
+{
+  if (cmd == EEPROM_EXT_LOAD) {
+    if (settings->mode != SOFTRF_MODE_NORMAL
+#if !defined(EXCLUDE_TEST_MODE)
+        &&
+        settings->mode != SOFTRF_MODE_TXRX_TEST
+#endif /* EXCLUDE_TEST_MODE */
+        ) {
+      settings->mode = SOFTRF_MODE_NORMAL;
+    }
+
+    /* AUTO and UK RF bands are deprecated since Release v1.3 */
+    if (settings->band == RF_BAND_AUTO || settings->band == RF_BAND_UK) {
+      settings->band = RF_BAND_EU;
+    }
+  }
 }
 
 static void RPi_SPI_begin()
@@ -396,7 +847,35 @@ static void RPi_swSer_begin(unsigned long baud)
   Serial_GNSS_In.begin(baud);
 }
 
+static void RPi_swSer_enableRx(boolean arg)
+{
+  /* NONE */
+}
+
 pthread_t RPi_EPD_update_thread;
+
+#if defined(USE_OLED)
+bool RPi_OLED_probe_func()
+{
+  bool ret = false;
+
+#if defined(USE_LGPIO)
+  uint8_t i2cDevice = 1;
+  uint8_t buf[2] = { 0x00 };
+
+  int i2cHandle = -1;
+  if ((i2cHandle = lgI2cOpen(i2cDevice, SSD1306_OLED_I2C_ADDR, 0)) < 0) {
+    fprintf(stderr, "Could not open I2C handle on 0: %s\n", lguErrorText(i2cHandle));
+  } else {
+    int status = lgI2cWriteDevice(i2cHandle, (char *) buf, 1);
+    if (status < 0) { ret = false; } else { ret = true; }
+    lgI2cClose(i2cHandle);
+  }
+#endif /* USE_LGPIO */
+
+  return ret;
+}
+#endif /* USE_OLED */
 
 static byte RPi_Display_setup()
 {
@@ -427,29 +906,67 @@ static byte RPi_Display_setup()
   }
 #endif /* USE_EPAPER */
 
+#if defined(USE_OLED)
+  if (rval == DISPLAY_NONE) {
+    // u8x8_i2c.setI2CAddress(SH1106_OLED_I2C_ADDR_ALT << 1);
+    rval = OLED_setup();
+  }
+#endif /* USE_OLED */
+
   return rval;
 }
 
 static void RPi_Display_loop()
 {
+  switch (hw_info.display)
+  {
 #if defined(USE_EPAPER)
-  if (hw_info.display == DISPLAY_EPD_2_7) {
+  case DISPLAY_EPD_2_7:
     EPD_loop();
-  }
+    break;
 #endif /* USE_EPAPER */
+
+#if defined(USE_OLED)
+  case DISPLAY_OLED_1_3:
+  case DISPLAY_OLED_TTGO:
+  case DISPLAY_OLED_HELTEC:
+    OLED_loop();
+    break;
+#endif /* USE_OLED */
+
+  case DISPLAY_NONE:
+  default:
+    break;
+  }
 }
 
 static void RPi_Display_fini(int reason)
 {
-#if defined(USE_EPAPER)
-
-  EPD_fini(reason, false);
-
-  if ( RPi_EPD_update_thread != (pthread_t) 0)
+  switch (hw_info.display)
   {
-    pthread_cancel( RPi_EPD_update_thread );
-  }
+#if defined(USE_EPAPER)
+  case DISPLAY_EPD_2_7:
+    EPD_fini(reason, false);
+
+    if ( RPi_EPD_update_thread != (pthread_t) 0)
+    {
+      pthread_cancel( RPi_EPD_update_thread );
+    }
+    break;
 #endif /* USE_EPAPER */
+
+#if defined(USE_OLED)
+  case DISPLAY_OLED_1_3:
+  case DISPLAY_OLED_TTGO:
+  case DISPLAY_OLED_HELTEC:
+    OLED_fini(reason);
+    break;
+#endif /* USE_OLED */
+
+  case DISPLAY_NONE:
+  default:
+    break;
+  }
 }
 
 static void RPi_Battery_setup()
@@ -492,6 +1009,10 @@ void RPi_GNSS_PPS_Interrupt_handler() {
 
 static unsigned long RPi_get_PPS_TimeMarker() {
   return PPS_TimeMarker;
+}
+
+static bool RPi_Baro_setup() {
+  return true;
 }
 
 static void RPi_UATSerial_begin(unsigned long baud)
@@ -559,21 +1080,21 @@ const SoC_ops_t RPi_ops = {
   RPi_getResetInfoPtr,
   NULL,
   NULL,
-  NULL,
+  RPi_getFreeHeap,
   RPi_random,
-  NULL,
-  NULL,
+  RPi_Sound_test,
+  RPi_Sound_tone,
   NULL,
   NULL,
   RPi_WiFi_transmit_UDP,
   NULL,
   NULL,
   NULL,
-  NULL,
-  NULL,
+  RPi_EEPROM_begin,
+  RPi_EEPROM_extension,
   RPi_SPI_begin,
   RPi_swSer_begin,
-  NULL,
+  RPi_swSer_enableRx,
   NULL,
   NULL,
   NULL,
@@ -584,7 +1105,7 @@ const SoC_ops_t RPi_ops = {
   RPi_Battery_param,
   NULL,
   RPi_get_PPS_TimeMarker,
-  NULL,
+  RPi_Baro_setup,
   RPi_UATSerial_begin,
   RPi_UATModule_restart,
   RPi_WDT_setup,
@@ -753,6 +1274,10 @@ static void RPi_ReadTraffic()
 
 void normal_loop()
 {
+#if defined(USE_LGPIO)
+    Baro_loop();
+#endif /* USE_LGPIO */
+
     /* Read GNSS data from standard input */
     RPi_PickGNSSFix();
 
@@ -776,6 +1301,17 @@ void normal_loop()
     if (isValidFix()) {
       Traffic_loop();
     }
+
+#if defined(USE_NEOPIXEL)
+    if (isTimeToDisplay()) {
+      if (isValidFix()) {
+        LED_DisplayTraffic();
+      } else {
+        LED_Clear();
+      }
+      LEDTimeMarker = millis();
+    }
+#endif /* USE_NEOPIXEL */
 
     if (isTimeToExport()) {
 
@@ -890,6 +1426,10 @@ void txrx_test_loop()
   ThisAircraft.speed = TXRX_TEST_SPEED;
   ThisAircraft.vs = TXRX_TEST_VS;
 
+#if defined(USE_LGPIO)
+  Baro_loop();
+#endif /* USE_LGPIO */
+
 #if DEBUG_TIMING
   tx_start_ms = millis();
 #endif
@@ -914,6 +1454,13 @@ void txrx_test_loop()
 #endif
 
   Traffic_loop();
+
+#if defined(USE_NEOPIXEL)
+  if (isTimeToDisplay()) {
+    LED_DisplayTraffic();
+    LEDTimeMarker = millis();
+  }
+#endif /* USE_NEOPIXEL */
 
 #if DEBUG_TIMING
   export_start_ms = millis();
@@ -959,6 +1506,8 @@ void txrx_test_loop()
 
   // Handle Air Connect
   NMEA_loop();
+
+  SoC->Display_loop();
 
   ClearExpired();
 }
@@ -1035,6 +1584,23 @@ int main()
   Serial.println(F("Copyright (C) 2015-2025 Linar Yusupov. All rights reserved."));
   Serial.flush();
 
+#if !defined(EXCLUDE_EEPROM)
+  EEPROM_setup();
+#endif /* EXCLUDE_EEPROM */
+
+  Serial.print(F("Radio & GNSS adapter: "));
+
+  switch (RPi_hat)
+  {
+    case RPI_WAVESHARE_LORA_GNSS:
+      Serial.println(F("Waveshare SX1262 LoRaWAN/GNSS HAT"));
+      break;
+    case RPI_DRAGINO_LORA_GPS:
+    default:
+      Serial.println(F("Dragino SX1276 LoRa/GPS HAT"));
+      break;
+  }
+
   mode_s_init(&state);
 
 #if defined(ENABLE_RTLSDR) || defined(ENABLE_HACKRF) || defined(ENABLE_MIRISDR)
@@ -1069,9 +1635,11 @@ int main()
 
   hw_info.rf = RF_setup();
 
+#if 0
   if (hw_info.rf == RF_IC_NONE) {
       exit(EXIT_FAILURE);
   }
+#endif
 
 #if defined(ENABLE_RTLSDR) || defined(ENABLE_HACKRF) || defined(ENABLE_MIRISDR)
   if (hw_info.rf == RF_IC_R820T   ||
@@ -1082,8 +1650,12 @@ int main()
   }
 #endif /* ENABLE_RTLSDR || ENABLE_HACKRF || ENABLE_MIRISDR */
 
-#if defined(USE_EPAPER)
-  Serial.print("Intializing E-ink display module (may take up to 10 seconds)... ");
+#if defined(USE_LGPIO)
+  hw_info.baro = Baro_setup();
+#endif /* USE_LGPIO */
+
+#if defined(USE_EPAPER) || defined(USE_OLED)
+  Serial.print("Intializing display module (may take up to 10 seconds)... ");
   Serial.flush();
   hw_info.display = SoC->Display_setup();
   if (hw_info.display != DISPLAY_NONE) {
@@ -1102,6 +1674,11 @@ int main()
 //  hw_info.gnss = GNSS_setup();
 
   Traffic_setup();
+
+#if defined(USE_NEOPIXEL)
+  LED_setup();
+#endif /* USE_NEOPIXEL */
+
   NMEA_setup();
 
   Traffic_TCP_Server.setup(JSON_SRV_TCP_PORT);
@@ -1111,6 +1688,43 @@ int main()
     fprintf( stderr, "pthread_create(traffic_tcpserv_thread) Failed\n\n" );
     exit(EXIT_FAILURE);
   }
+
+#if defined(USE_BRIDGE)
+  Bridge.begin();
+
+  WebApp.get("/", &index_page);
+  WebApp.get("/settings", &settings_page);
+  WebApp.get("/input", &input_page);
+  WebApp.get("/about", &about_page);
+  WebApp.notFound(&notFound);
+
+  WebServer.listenOnLocalhost();
+  WebServer.begin();
+
+  struct hostent *this_host = gethostbyname("pione.local");
+
+  if (this_host == NULL) {
+    dest_IP = IPAddress(255,255,255,255);
+  } else {
+    IPAddress this_IP = IPAddress((const uint8_t *)(this_host->h_addr_list[0]));
+    dest_IP = IPAddress((uint32_t) this_IP | ~((uint32_t) 0x00FFFFFF));
+  }
+
+  Serial.print(F("HTTP server has started at port: "));
+  Serial.println((unsigned long) HTTP_SRV_PORT);
+
+  Uni_Udp.begin(RELAY_SRC_PORT);
+
+  Serial.print(F("UDP  server has started at port: "));
+  Serial.println((unsigned long) RELAY_SRC_PORT);
+#endif /* USE_BRIDGE */
+
+#if defined(USE_NEOPIXEL)
+  LED_test();
+#endif /* USE_NEOPIXEL */
+
+  Sound_setup();
+  SoC->Sound_test(reset_info.reason);
 
   SoC->post_init();
 
@@ -1137,6 +1751,8 @@ int main()
 
     SoC->loop();
 
+    Time_loop();
+
 #if defined(TAKE_CARE_OF_MILLIS_ROLLOVER)
     /* take care of millis() rollover on a long term run */
     if (millis() > (47 * 24 * 3600 * 1000UL)) {
@@ -1160,6 +1776,11 @@ int main()
 #endif /* TAKE_CARE_OF_MILLIS_ROLLOVER */
   }
 
+#if defined(USE_BRIDGE)
+  WebServer.end();
+  Uni_Udp.stop();
+#endif /* USE_BRIDGE */
+
   Traffic_TCP_Server.detach();
   return 0;
 }
@@ -1172,9 +1793,18 @@ void shutdown(int reason)
     SoC->Display_fini(reason);
   }
 
+#if defined(USE_NEOPIXEL)
+  ws2811_fini(&ledstring);
+#endif /* USE_NEOPIXEL */
+
+#if defined(USE_BRIDGE)
+  WebServer.end();
+  Uni_Udp.stop();
+#endif /* USE_BRIDGE */
+
   Traffic_TCP_Server.detach();
-  fprintf( stderr, "Program termination. Reason code: %d.\n", reason );
-  exit(EXIT_SUCCESS);
+
+  SoC->fini(reason);
 }
 
 #endif /* RASPBERRY_PI */

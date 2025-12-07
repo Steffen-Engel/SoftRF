@@ -33,8 +33,19 @@
 
 #define SerialInput           Serial1
 
+#define EEPROM_commit()       EEPROM.commit()
+
 /* Peripherals */
 #define INA219_ADDRESS_ALT    (0x43) // 1000011 (A0=SCL, A1=GND)
+
+#define ES8311_ADDRESS        (0x18)
+
+#define GT911_ADDRESS         (0x5D)
+#define GT911_ADDRESS_ALT     (0x14)
+#define HI8561_ADDRESS        (0x68)
+#define GT9895_ADDRESS        (0x5D) /* same as GT911,TBD */
+
+#define OV5647_ADDRESS        (0x36)
 
 #define EXCLUDE_ETHERNET
 
@@ -163,22 +174,33 @@
 #define SOC_GPIO_PIN_MCK      8
 
 #elif defined(CONFIG_IDF_TARGET_ESP32P4)
-#define SOC_GPIO_PIN_GNSS_RX  5
-#define SOC_GPIO_PIN_GNSS_TX  4
+
+/* Waveshare Pi HAT 2.7" mapping */
+#define SOC_GPIO_PIN_GNSS_RX  38 // +
+#define SOC_GPIO_PIN_GNSS_TX  37 // +
+
+#define SOC_GPIO_PIN_MOSI_WS  3  // - 5
+#define SOC_GPIO_PIN_MISO_WS  2  // +
+#define SOC_GPIO_PIN_SCK_WS   0  // +
+#define SOC_GPIO_PIN_SS_WS    36 // +
+
+#define SOC_EPD_PIN_DC_WS     1  // +
+#define SOC_EPD_PIN_RST_WS    21 // - 6
+#define SOC_EPD_PIN_BUSY_WS   4  // +
+
+#define SOC_GPIO_BUTTON_MODE  33 // +
+#define SOC_GPIO_BUTTON_UP    26 // +
+#define SOC_GPIO_BUTTON_DOWN  49 // - 32
+#define SOC_GPIO_BUTTON_4     53 // - 27
 
 #define SOC_BUTTON_MODE_DEF   35 /* BOOT, active LOW, strapping pin */
 
-#define SOC_GPIO_PIN_MOSI_WS  32
-#define SOC_GPIO_PIN_MISO_WS  33
-#define SOC_GPIO_PIN_SCK_WS   36 /* strapping pin */
-#define SOC_GPIO_PIN_SS_WS    26
+#define SOC_GPIO_PIN_SDA      7  // +
+#define SOC_GPIO_PIN_SCL      8  // +
 
-#define SOC_EPD_PIN_DC_WS     47
-#define SOC_EPD_PIN_RST_WS    48
-#define SOC_EPD_PIN_BUSY_WS   27
-
-#define SOC_GPIO_PIN_SDA      7
-#define SOC_GPIO_PIN_SCL      8
+// LilyGO T-Display-P4 I2C #2 (ES8311, AW86224, SGM38121, ICM20948, Camera)
+#define SOC_GPIO_PIN_TDP4_SDA 20
+#define SOC_GPIO_PIN_TDP4_SCL 21
 
 // USB
 #define SOC_GPIO_PIN_USB_DP   25
@@ -196,10 +218,17 @@
 #endif /* EXCLUDE_AUDIO */
 
 /* I2S ES8311 + MIC */
-#define SOC_GPIO_PIN_DATA     11
+#define SOC_GPIO_PIN_DATA     9
 #define SOC_GPIO_PIN_BCK      12
 #define SOC_GPIO_PIN_LRCK     10
 #define SOC_GPIO_PIN_MCK      13
+
+// LilyGO T-Display-P4 I2S ES8311
+#define SOC_GPIO_PIN_TDP4_LR  9
+#define SOC_GPIO_PIN_TDP4_BCK 12
+#define SOC_GPIO_PIN_TDP4_MCK 13
+#define SOC_GPIO_PIN_TDP4_DO  10
+#define SOC_GPIO_PIN_TDP4_DI  11
 
 // SDIO 1 - SDMMC
 #define SOC_GPIO_PIN_SD_CLK   43
@@ -209,7 +238,7 @@
 #define SOC_GPIO_PIN_SD_D2    41
 #define SOC_GPIO_PIN_SD_D3    42
 #define SOC_GPIO_PIN_SD_DET   45
-#define SOC_GPIO_PIN_SD_PWR   46 /* NC ? */
+#define SOC_GPIO_PIN_SD_PWR   46 /* NC */
 
 // SDIO 2 - WIFI - ESP32-C5
 #define SOC_GPIO_PIN_ESPH_CLK 18
@@ -227,8 +256,28 @@
 #define SOC_GPIO_PIN_ETH_MDIO 52
 #define SOC_GPIO_PIN_ETH_PWR  51 /* PHY_RSTN */
 
+// 7 inch 1024x600 EK79007 / EK73217 MIPI LCD display
+#define SOC_GPIO_PIN_LCD_EN   22 /* NC */
+#define SOC_GPIO_PIN_LCD_RST  23 /* shared with TP_RST */
+#define SOC_GPIO_PIN_LCD_BLED 20
+#define SOC_GPIO_PIN_LCD_UPDN 26
+#define SOC_GPIO_PIN_LCD_SHLR 27
+
+// LilyGO T-Display-P4 HI8561 TFT display backlight
+#define SOC_GPIO_PIN_TDP4_BL  51
+
+//#define USE_TFT
+//#define USE_USB_HOST
+
+// GT911 I2C touch sensor
+#define SOC_GPIO_PIN_TP_INT   21
+#define SOC_GPIO_PIN_TP_RST   23 /* shared with LCD_RST */
+
+// Misc.
+#define SOC_GPIO_PIN_BATTERY  22 /* RSVD, shared with LCD_EN */
+#define SOC_GPIO_PIN_PAMP_EN  53
+
 #elif defined(CONFIG_IDF_TARGET_ESP32C3) || \
-      defined(CONFIG_IDF_TARGET_ESP32C5) || \
       defined(CONFIG_IDF_TARGET_ESP32C6)
 #define SOC_GPIO_PIN_GNSS_RX  10  /* D4 */
 #define SOC_GPIO_PIN_GNSS_TX  7
@@ -250,9 +299,35 @@
 #define SOC_GPIO_PIN_USB_DP   19 /* D1 */
 #define SOC_GPIO_PIN_USB_DN   18 /* D2 */
 
-#if defined(CONFIG_IDF_TARGET_ESP32C5) || defined(CONFIG_IDF_TARGET_ESP32C6)
+#if defined(CONFIG_IDF_TARGET_ESP32C6)
 #define USE_NIMBLE
-#endif
+#endif /* CONFIG_IDF_TARGET_ESP32C6 */
+#define EXCLUDE_AUDIO
+
+#elif defined(CONFIG_IDF_TARGET_ESP32C5)
+
+#define SOC_GPIO_PIN_GNSS_RX  23
+#define SOC_GPIO_PIN_GNSS_TX  24
+
+#define SOC_BUTTON_MODE_DEF   28 /* BOOT */
+
+#define SOC_GPIO_PIN_MOSI_WS  10
+#define SOC_GPIO_PIN_MISO_WS  8
+#define SOC_GPIO_PIN_SCK_WS   9
+#define SOC_GPIO_PIN_SS_WS    7
+
+#define SOC_EPD_PIN_DC_WS     0
+#define SOC_EPD_PIN_RST_WS    3
+#define SOC_EPD_PIN_BUSY_WS   1
+
+// USB CDC/JTAG
+#define SOC_GPIO_PIN_USB_DP   14
+#define SOC_GPIO_PIN_USB_DN   13
+
+// Misc.
+#define SOC_GPIO_PIN_BATTERY  6
+
+#define USE_NIMBLE
 #define EXCLUDE_AUDIO
 
 #else
@@ -267,6 +342,10 @@
 #define ST_ID                 0x20
 #define XMC_XM25QH128C        0x4018
 #define XMC_XM25QH32B         0x4016
+
+/* Zbit Semiconductor, Inc. */
+#define ZBIT_ID               0x5E
+#define ZBIT_ZB25VQ128A       0x4018
 
 #define MakeFlashId(v,d)      ((v  << 16) | d)
 #define CCCC(c1, c2, c3, c4)  ((c4 << 24) | (c3 << 16) | (c2 << 8) | c1)

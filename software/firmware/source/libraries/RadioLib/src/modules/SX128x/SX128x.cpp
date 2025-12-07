@@ -361,7 +361,7 @@ int16_t SX128x::receive(uint8_t* data, size_t len) {
 
   // calculate timeout (1000% of expected time-on-air)
   RadioLibTime_t timeout = getTimeOnAir(len) * 10;
-  RADIOLIB_DEBUG_BASIC_PRINTLN("Timeout in %lu ms", timeout);
+  RADIOLIB_DEBUG_BASIC_PRINTLN("Timeout in %lu ms", (uint32_t)((timeout + 999) / 1000));
 
   // start reception
   uint32_t timeoutValue = (uint32_t)((float)timeout / 15.625);
@@ -370,11 +370,11 @@ int16_t SX128x::receive(uint8_t* data, size_t len) {
 
   // wait for packet reception or timeout
   bool softTimeout = false;
-  RadioLibTime_t start = this->mod->hal->millis();
+  RadioLibTime_t start = this->mod->hal->micros();
   while(!this->mod->hal->digitalRead(this->mod->getIrq())) {
     this->mod->hal->yield();
     // safety check, the timeout should be done by the radio
-    if(this->mod->hal->millis() - start > timeout) {
+    if(this->mod->hal->micros() - start > timeout) {
       softTimeout = true;
       break;
     }
@@ -800,7 +800,7 @@ int16_t SX128x::setSpreadingFactor(uint8_t sf) {
   int16_t state = setModulationParams(this->spreadingFactor, this->bandwidth, this->codingRateLoRa);
   RADIOLIB_ASSERT(state);
 
-  // update mystery register in LoRa mode - SX1280 datasheet v3.0 section 13.4.1
+  // update mystery register in LoRa mode - SX1280 datasheet rev 3.2 section 14.4.1
   if(modem == RADIOLIB_SX128X_PACKET_TYPE_LORA) {
     uint8_t data = 0;
     if((this->spreadingFactor == RADIOLIB_SX128X_LORA_SF_5) || (this->spreadingFactor == RADIOLIB_SX128X_LORA_SF_6)) {
@@ -811,6 +811,15 @@ int16_t SX128x::setSpreadingFactor(uint8_t sf) {
       data = 0x32;
     }
     state = SX128x::writeRegister(RADIOLIB_SX128X_REG_LORA_SF_CONFIG, &data, 1);
+    RADIOLIB_ASSERT(state);
+
+    // this register must also be updated for some reason
+    state = SX128x::readRegister(RADIOLIB_SX128X_REG_FREQ_ERROR_CORRECTION, &data, 1);
+    RADIOLIB_ASSERT(state);
+
+    data |= 0x01;
+    state = SX128x::writeRegister(RADIOLIB_SX128X_REG_FREQ_ERROR_CORRECTION, &data, 1);
+    RADIOLIB_ASSERT(state);
   }
 
   return(state);

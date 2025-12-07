@@ -83,7 +83,8 @@ bool EPD_setup(bool splash_screen)
   const char *partner_text = EPD_SoftRF_text3;
   uint8_t rotate           = ROTATE_270; /* 270 deg. is default angle */;
 
-  if (hw_info.model == SOFTRF_MODEL_HANDHELD) {
+  if (hw_info.model == SOFTRF_MODEL_HANDHELD ||
+      hw_info.model == SOFTRF_MODEL_AIRVENTURE) {
     partner_text = EPD_SoftRF_text7;
     rotate       = ROTATE_0;
   }
@@ -91,6 +92,7 @@ bool EPD_setup(bool splash_screen)
   display->init( /* 38400 */ );
 
   display->setRotation((rotate + ui->rotate) & 0x3);
+  display->mirror(false);
 
   display->setTextColor(GxEPD_BLACK);
   display->setTextWrap(false);
@@ -108,9 +110,10 @@ bool EPD_setup(bool splash_screen)
   display->getTextBounds(EPD_SoftRF_text1, 0, 0, &tbx1, &tby1, &tbw1, &tbh1);
   display->getTextBounds(partner_text    , 0, 0, &tbx3, &tby3, &tbw3, &tbh3);
 
-  if (hw_info.model == SOFTRF_MODEL_BADGE ||
-      hw_info.model == SOFTRF_MODEL_INK   ||
-      hw_info.model == SOFTRF_MODEL_HANDHELD) {
+  if (hw_info.model == SOFTRF_MODEL_BADGE    ||
+      hw_info.model == SOFTRF_MODEL_INK   /* || */
+   /* hw_info.model == SOFTRF_MODEL_HANDHELD || */
+   /* hw_info.model == SOFTRF_MODEL_AIRVENTURE  */) {
 
     x = (display->width()  - tbw1) / 2;
     y = (display->height() + tbh1) / 2 - tbh3;
@@ -144,16 +147,22 @@ bool EPD_setup(bool splash_screen)
 #endif /* EPD_ASPECT_RATIO_2C1 */
     display->setCursor(x, y);
     display->print(partner_text);
+  } else {
+    x = (display->width()  - tbw1) / 2;
+    y = (display->height() + tbh1) / 2;
+    display->setCursor(x, y);
+    display->print(EPD_SoftRF_text1);
+  }
 
-    char buf[32];
-    snprintf(buf, sizeof(buf), "HW: %s SW: %s", hw_info.revision > 2 ?
-                  Hardware_Rev[3] : Hardware_Rev[hw_info.revision],
-                  SOFTRF_FIRMWARE_VERSION);
+  char buf[32];
+  snprintf(buf, sizeof(buf), "HW: %s SW: %s", hw_info.revision > 2 ?
+                Hardware_Rev[3] : Hardware_Rev[hw_info.revision],
+                SOFTRF_FIRMWARE_VERSION);
 
-    display->setFont(&Org_01);
-    display->getTextBounds(buf, 0, 0, &tbx4, &tby4, &tbw4, &tbh4);
-    x = (display->width() - tbw4) / 2;
-    y = display->height() - tbh4;
+  display->setFont(&Org_01);
+  display->getTextBounds(buf, 0, 0, &tbx4, &tby4, &tbw4, &tbh4);
+  x = (display->width() - tbw4) / 2;
+  y = display->height() - tbh4;
 #if defined(EPD_ASPECT_RATIO_2C1)
   if (display->epd2.panel    == GxEPD2::DEPG0213BN &&
       display->height()      == 128                &&
@@ -161,15 +170,9 @@ bool EPD_setup(bool splash_screen)
     y -= 6;
   }
 #endif /* EPD_ASPECT_RATIO_2C1 */
-    display->setCursor(x, y);
-    display->print(buf);
+  display->setCursor(x, y);
+  display->print(buf);
 
-  } else {
-    x = (display->width()  - tbw1) / 2;
-    y = (display->height() + tbh1) / 2;
-    display->setCursor(x, y);
-    display->print(EPD_SoftRF_text1);
-  }
 #endif /* EPD_ASPECT_RATIO_1C1 || EPD_ASPECT_RATIO_2C1 */
 
   // first update should be full refresh
@@ -267,8 +270,9 @@ void EPD_info1()
     display->print(EPD_GNSS_text);
     display->print(hw_info.gnss != GNSS_MODULE_NONE ? "+" : "-");
 
-    if (hw_info.model == SOFTRF_MODEL_BADGE ||
-        hw_info.model == SOFTRF_MODEL_HANDHELD) {
+    if (hw_info.model == SOFTRF_MODEL_BADGE    ||
+        hw_info.model == SOFTRF_MODEL_HANDHELD ||
+        hw_info.model == SOFTRF_MODEL_AIRVENTURE) {
       y += (tbh + INFO_1_LINE_SPACING);
 
       display->setCursor(x, y);
@@ -281,12 +285,13 @@ void EPD_info1()
       display->print(EPD_RTC_text);
       display->print(hw_info.rtc != RTC_NONE ? "+" : "-");
 
-      y += (tbh + INFO_1_LINE_SPACING);
+      if (hw_info.model != SOFTRF_MODEL_AIRVENTURE) {
+        y += (tbh + INFO_1_LINE_SPACING);
 
-      display->setCursor(x, y);
-      display->print(EPD_Flash_text);
-      display->print(hw_info.storage == STORAGE_FLASH ? "+" : "-");
-
+        display->setCursor(x, y);
+        display->print(EPD_Flash_text);
+        display->print(hw_info.storage == STORAGE_FLASH ? "+" : "-");
+      }
     } else if (hw_info.model == SOFTRF_MODEL_INK) {
       y += (tbh + INFO_1_LINE_SPACING);
 
@@ -295,15 +300,18 @@ void EPD_info1()
       display->print(hw_info.storage == STORAGE_CARD  ? "+" : "-");
     }
 
-    y += (tbh + INFO_1_LINE_SPACING);
+    if (hw_info.model != SOFTRF_MODEL_HANDHELD &&
+        hw_info.model != SOFTRF_MODEL_AIRVENTURE) {
+      y += (tbh + INFO_1_LINE_SPACING);
 
-    if (hw_info.baro == BARO_MODULE_NONE) {
-      display->setFont(&FreeMono18pt7b);
+      if (hw_info.baro == BARO_MODULE_NONE) {
+        display->setFont(&FreeMono18pt7b);
+      }
+
+      display->setCursor(x, y);
+      display->print(EPD_Baro_text);
+      display->print(hw_info.baro != BARO_MODULE_NONE ? "  +" : "N/A");
     }
-
-    display->setCursor(x, y);
-    display->print(EPD_Baro_text);
-    display->print(hw_info.baro != BARO_MODULE_NONE ? "  +" : "N/A");
 
     if (hw_info.model == SOFTRF_MODEL_BADGE) {
       y += (tbh + INFO_1_LINE_SPACING);

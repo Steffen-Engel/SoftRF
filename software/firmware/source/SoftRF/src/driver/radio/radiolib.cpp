@@ -259,6 +259,7 @@ static const Module::RfSwitchMode_t rfswitch_table_hpdtek[] = {
     END_OF_MODE_TABLE,
 };
 
+/* setDioAsRfSwitch(0x0f, 0x0, 0x09, 0x0B, 0x0A, 0x0, 0x4, 0x0) */
 static const uint32_t rfswitch_dio_pins_seeed[] = {
     RADIOLIB_LR11X0_DIO5, RADIOLIB_LR11X0_DIO6,
     RADIOLIB_LR11X0_DIO7, RADIOLIB_LR11X0_DIO8,
@@ -294,6 +295,62 @@ static const Module::RfSwitchMode_t rfswitch_table_ebyte[] = {
     { LR11x0::MODE_TX_HF,  { LOW,  LOW,  LOW  } },
     { LR11x0::MODE_GNSS,   { LOW,  LOW,  HIGH } },
     { LR11x0::MODE_WIFI,   { LOW,  LOW,  LOW  } },
+    END_OF_MODE_TABLE,
+};
+
+/* setDioAsRfSwitch(0x0F, 0x0, 0x0C, 0x08, 0x08, 0x6, 0x0, 0x5) */
+static const uint32_t rfswitch_dio_pins_radiomaster[] = {
+    RADIOLIB_LR11X0_DIO5, RADIOLIB_LR11X0_DIO6,
+    RADIOLIB_LR11X0_DIO7, RADIOLIB_LR11X0_DIO8,
+    RADIOLIB_NC
+};
+
+static const Module::RfSwitchMode_t rfswitch_table_radiomaster[] = {
+    // mode                  DIO5  DIO6  DIO7  DIO8
+    { LR11x0::MODE_STBY,   { LOW,  LOW,  LOW,  LOW  } },
+    // SKY13373 ( V1-DIO7 V2-DIO8 )
+    { LR11x0::MODE_RX,     { LOW,  LOW,  HIGH, HIGH } },
+    { LR11x0::MODE_TX,     { LOW,  LOW,  LOW,  HIGH } },
+    { LR11x0::MODE_TX_HP,  { LOW,  LOW,  LOW,  HIGH } },
+    // AT2401C ( RXEN-DIO5 TXEN-DIO6 )
+    { LR11x0::MODE_TX_HF,  { LOW,  HIGH, HIGH, LOW  } },
+    { LR11x0::MODE_GNSS,   { LOW,  LOW,  LOW,  LOW  } },
+    { LR11x0::MODE_WIFI,   { HIGH, LOW,  HIGH, LOW  } },
+    END_OF_MODE_TABLE,
+};
+
+static const uint32_t rfswitch_dio_pins_elecrow[] = {
+    RADIOLIB_LR11X0_DIO5, RADIOLIB_LR11X0_DIO6,
+    RADIOLIB_NC, RADIOLIB_NC, RADIOLIB_NC
+};
+
+static const Module::RfSwitchMode_t rfswitch_table_elecrow[] = {
+    // mode                  DIO5  DIO6
+    { LR11x0::MODE_STBY,   { LOW,  LOW  } },
+    { LR11x0::MODE_RX,     { HIGH, LOW  } },
+    { LR11x0::MODE_TX,     { HIGH, HIGH } },
+    { LR11x0::MODE_TX_HP,  { LOW,  HIGH } },
+    { LR11x0::MODE_TX_HF,  { LOW,  LOW  } },
+    { LR11x0::MODE_GNSS,   { LOW,  LOW  } },
+    { LR11x0::MODE_WIFI,   { LOW,  LOW  } },
+    END_OF_MODE_TABLE,
+};
+
+static const uint32_t rfswitch_dio_pins_lilygo[] = {
+    RADIOLIB_LR11X0_DIO5, RADIOLIB_LR11X0_DIO6,
+    10 /* SOC_GPIO_PIN_ELRS_HF_RX */, 14 /* SOC_GPIO_PIN_ELRS_HF_TX */,
+    RADIOLIB_NC
+};
+
+static const Module::RfSwitchMode_t rfswitch_table_lilygo[] = {
+    // mode                  DIO5  DIO6  HF_RX HF_TX
+    { LR11x0::MODE_STBY,   { LOW,  LOW,  LOW,  LOW  } },
+    { LR11x0::MODE_RX,     { LOW,  HIGH, HIGH, LOW  } },
+    { LR11x0::MODE_TX,     { HIGH, LOW,  LOW,  LOW  } },
+    { LR11x0::MODE_TX_HP,  { HIGH, LOW,  LOW,  LOW  } },
+    { LR11x0::MODE_TX_HF,  { LOW,  LOW,  LOW,  HIGH } },
+    { LR11x0::MODE_GNSS,   { LOW,  LOW,  LOW,  LOW  } },
+    { LR11x0::MODE_WIFI,   { LOW,  LOW,  LOW,  LOW  } },
     END_OF_MODE_TABLE,
 };
 #endif /* USE_LR11XX */
@@ -470,6 +527,10 @@ static void lr11xx_channel(int8_t channel)
   }
 }
 
+#if defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)
+PiHal *RadioLib_HAL = NULL;
+#endif // RASPBERRY_PI
+
 static void lr11xx_setup()
 {
   int state;
@@ -483,16 +544,16 @@ static void lr11xx_setup()
 
 #if defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)
 
-  // deinit GPIO lgpio to let PiHal catch it
+  // deinit LGPIO resources for PiHal to re-acquire them
   lgpio_fini();
 
 #if defined(USE_SPI1)
-  PiHal* hal = new PiHal(2, 2000000, 1); // use SPI bus #1, channel 2
+  RadioLib_HAL = new PiHal(0, 2000000, 1); // use SPI bus #1, channel 0
 #else
-  PiHal* hal = new PiHal(0);             // use SPI bus #0, channel 0
+  RadioLib_HAL = new PiHal(0);             // use SPI bus #0, channel 0
 #endif /* USE_SPI1 */
 
-  mod   = new Module(hal, lmic_pins.nss, irq, lmic_pins.rst, busy);
+  mod   = new Module(RadioLib_HAL, lmic_pins.nss, irq, lmic_pins.rst, busy);
 #else
   mod   = new Module(lmic_pins.nss, irq, lmic_pins.rst, busy, RadioSPI);
 #endif // RASPBERRY_PI
@@ -609,6 +670,11 @@ static void lr11xx_setup()
     // HPDTeK HPD-16E
     // LR1121 TCXO Voltage 2.85~3.15V
     Vtcxo = 3.0;
+    break;
+
+  case SOFTRF_MODEL_POCKET:
+    // LR1110 TCXO Voltage
+    Vtcxo = 3.3;
     break;
 
   case SOFTRF_MODEL_CARD:
@@ -965,9 +1031,24 @@ static void lr11xx_setup()
 #endif
       state = radio_semtech->setOutputPower(txpow, false);
     } else {
-      radio_semtech->setDioAsRfSwitch(0x0F, 0x0, 0x0C, 0x08, 0x08, 0x6, 0x0, 0x5);
+      if (hw_info.revision == 2) {
+        /* LilyGO T-Lora Dual LR, a.k.a. LilyGO T-ELRS-LR1121 */
+        radio_semtech->setRfSwitchTable(rfswitch_dio_pins_lilygo, rfswitch_table_lilygo);
+      } else {
+        /* RadioMaster XR1 */
+#if 1
+        radio_semtech->setRfSwitchTable(rfswitch_dio_pins_radiomaster, rfswitch_table_radiomaster);
+#else
+        radio_semtech->setDioAsRfSwitch(0x0F, 0x0, 0x0C, 0x08, 0x08, 0x6, 0x0, 0x5);
+#endif
+      }
       state = radio_semtech->setOutputPower(txpow, high ? false : true);
     }
+    break;
+
+  case SOFTRF_MODEL_POCKET:
+    radio_semtech->setRfSwitchTable(rfswitch_dio_pins_elecrow, rfswitch_table_elecrow);
+    state = radio_semtech->setOutputPower(txpow, false);
     break;
 
   case SOFTRF_MODEL_NEO:

@@ -40,6 +40,9 @@
 
 #include "SoCHelper.h"
 #include "EPDHelper.h"
+#if defined(USE_TFT)
+#include "TFTHelper.h"
+#endif /* USE_TFT */
 #include "EEPROMHelper.h"
 #include "WiFiHelper.h"
 #include "BluetoothHelper.h"
@@ -164,7 +167,11 @@ static union {
   uint64_t chipmacid;
 };
 
-#if defined(CONFIG_IDF_TARGET_ESP32)
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32P4)
+#if SOC_SDMMC_IO_POWER_EXTERNAL
+#include "esp_ldo_regulator.h"
+#endif /* SOC_SDMMC_IO_POWER_EXTERNAL */
+
 static sqlite3 *fln_db  = NULL;
 static sqlite3 *ogn_db  = NULL;
 static sqlite3 *icao_db = NULL;
@@ -202,12 +209,24 @@ i2s_config_t i2s_config = {
     };
 
 #if 1
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+i2s_pin_config_t pin_config = {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 0)
+    .mck_io_num   = SOC_GPIO_PIN_MCK,
+#endif
+    .bck_io_num   = SOC_GPIO_PIN_BCK,
+    .ws_io_num    = SOC_GPIO_PIN_LRCK,
+    .data_out_num = SOC_GPIO_PIN_DATA,
+    .data_in_num  = -1  // Not used
+};
+#else
 i2s_pin_config_t pin_config = {
     .bck_io_num   = SOC_GPIO_PIN_BCLK,
     .ws_io_num    = SOC_GPIO_PIN_LRCLK,
     .data_out_num = SOC_GPIO_PIN_DOUT,
     .data_in_num  = -1  // Not used
 };
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 #else
 i2s_pin_config_t pin_config = {
     .bck_io_num   = I2S_PIN_NO_CHANGE,
@@ -360,6 +379,37 @@ const uint16_t ESP32SX_Device_Version = SKYVIEW_USB_FW_VERSION;
 
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
 
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+#include "esp_check.h"
+#include "es8311.h"
+
+#define EXAMPLE_SAMPLE_RATE     11025
+#define EXAMPLE_VOICE_VOLUME    75 // 0 - 100
+#define EXAMPLE_MIC_GAIN        (es8311_mic_gain_t)(3) // 0 - 7
+
+const char *TAG_ES83 = "esp32p4_i2s_es8311";
+
+esp_err_t es8311_codec_init(const unsigned int i2c_num) {
+    es8311_handle_t es_handle = es8311_create(i2c_num, ES8311_ADDRRES_0);
+    ESP_RETURN_ON_FALSE(es_handle, ESP_FAIL, TAG_ES83, "es8311 create failed");
+    const es8311_clock_config_t es_clk = {
+        .mclk_inverted = false,
+        .sclk_inverted = false,
+        .mclk_from_mclk_pin = true,
+        .mclk_frequency = EXAMPLE_SAMPLE_RATE * 256,
+        .sample_frequency = EXAMPLE_SAMPLE_RATE
+    };
+
+    ESP_ERROR_CHECK(es8311_init(es_handle, &es_clk, ES8311_RESOLUTION_16, ES8311_RESOLUTION_16));
+    ESP_RETURN_ON_ERROR(es8311_sample_frequency_config(es_handle, es_clk.mclk_frequency, es_clk.sample_frequency), TAG_ES83, "set es8311 sample frequency failed");
+    ESP_RETURN_ON_ERROR(es8311_microphone_config(es_handle, false), TAG_ES83, "set es8311 microphone failed");
+
+    ESP_RETURN_ON_ERROR(es8311_voice_volume_set(es_handle, EXAMPLE_VOICE_VOLUME, NULL), TAG_ES83, "set es8311 volume failed");
+    ESP_RETURN_ON_ERROR(es8311_microphone_gain_set(es_handle, EXAMPLE_MIC_GAIN), TAG_ES83, "set es8311 microphone gain failed");
+    return ESP_OK;
+}
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
+
 #if CONFIG_TINYUSB_ENABLED && \
     (defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32S3))
 #include <USB.h>
@@ -370,8 +420,8 @@ static uint32_t ESP32_getFlashId()
   return g_rom_flashchip.device_id;
 }
 
-#if defined(CORE_DEBUG_LEVEL) && CORE_DEBUG_LEVEL>0 && !defined(TAG)
-#define TAG "MAC"
+#if defined(CORE_DEBUG_LEVEL) && CORE_DEBUG_LEVEL>0 && !defined(TAG_MAC)
+#define TAG_MAC "MAC"
 #endif
 
 static void ESP32_setup()
@@ -383,17 +433,17 @@ static void ESP32_setup()
 
   ret = esp_efuse_mac_get_custom(efuse_mac);
   if (ret != ESP_OK) {
-      ESP_LOGE(TAG, "Get base MAC address from BLK3 of EFUSE error (%s)", esp_err_to_name(ret));
+      ESP_LOGE(TAG_MAC, "Get base MAC address from BLK3 of EFUSE error (%s)", esp_err_to_name(ret));
     /* If get custom base MAC address error, the application developer can decide what to do:
      * abort or use the default base MAC address which is stored in BLK0 of EFUSE by doing
      * nothing.
      */
 
-    ESP_LOGI(TAG, "Use base MAC address which is stored in BLK0 of EFUSE");
+    ESP_LOGI(TAG_MAC, "Use base MAC address which is stored in BLK0 of EFUSE");
     chipmacid = ESP.getEfuseMac();
   } else {
     if (memcmp(efuse_mac, null_mac, 6) == 0) {
-      ESP_LOGI(TAG, "Use base MAC address which is stored in BLK0 of EFUSE");
+      ESP_LOGI(TAG_MAC, "Use base MAC address which is stored in BLK0 of EFUSE");
       chipmacid = ESP.getEfuseMac();
     }
   }
@@ -432,26 +482,37 @@ static void ESP32_setup()
   uint32_t flash_id = ESP32_getFlashId();
 
   /*
-   *    Board         |   Module      |  Flash memory IC
-   *  ----------------+---------------+--------------------
-   *  DoIt ESP32      | WROOM         | GIGADEVICE_GD25Q32
-   *  TTGO T3  V2.0   | PICO-D4 IC    | GIGADEVICE_GD25Q32
-   *  TTGO T3  V2.1.6 | PICO-D4 IC    | GIGADEVICE_GD25Q32
-   *  TTGO T22 V06    |               | WINBOND_NEX_W25Q32_V
-   *  TTGO T22 V08    |               | WINBOND_NEX_W25Q32_V
-   *  TTGO T22 V11    |               | BOYA_BY25Q32AL
-   *  TTGO T8  V1.8   | WROVER        | GIGADEVICE_GD25LQ32
-   *  TTGO T8 S2 V1.1 |               | WINBOND_NEX_W25Q32_V
-   *  TTGO T5S V1.9   |               | WINBOND_NEX_W25Q32_V
-   *  TTGO T5S V2.8   |               | BOYA_BY25Q32AL
-   *  TTGO T5  4.7    | WROVER-E      | XMC_XM25QH128C
-   *  TTGO T-Watch    |               | WINBOND_NEX_W25Q128_V
-   *  Ai-T NodeMCU-S3 | ESP-S3-12K    | GIGADEVICE_GD25Q64C
-   *  TTGO T-Dongle   |               | BOYA_BY25Q32AL
-   *  TTGO S3 Core    |               | GIGADEVICE_GD25Q64C
-   *  TTGO T-01C3     |               | BOYA_BY25Q32AL
-   *                  | ESP-C3-12F    | XMC_XM25QH32B
-   *  LilyGO T-TWR    | WROOM-1-N16R8 | GIGADEVICE_GD25Q128
+   *    Board         |   Module         |  Flash memory IC
+   *  ----------------+------------------+--------------------
+   *  DoIt ESP32      | WROOM            | GIGADEVICE_GD25Q32
+   *  TTGO T3  V2.0   | PICO-D4 IC       | GIGADEVICE_GD25Q32
+   *  TTGO T3  V2.1.6 | PICO-D4 IC       | GIGADEVICE_GD25Q32
+   *  TTGO T22 V06    |                  | WINBOND_NEX_W25Q32_V
+   *  TTGO T22 V08    |                  | WINBOND_NEX_W25Q32_V
+   *  TTGO T22 V11    |                  | BOYA_BY25Q32AL
+   *  TTGO T22 V12    |                  | WINBOND_NEX_W25Q32_V
+   *  TTGO T8  V1.8   | WROVER           | GIGADEVICE_GD25LQ32
+   *  TTGO T8 S2 V1.1 |                  | WINBOND_NEX_W25Q32_V
+   *  TTGO T5S V1.9   |                  | WINBOND_NEX_W25Q32_V
+   *  TTGO T5S V2.8   |                  | BOYA_BY25Q32AL
+   *  TTGO T5  4.7    | WROVER-E         | XMC_XM25QH128C
+   *  TTGO T-Watch    |                  | WINBOND_NEX_W25Q128_V
+   *  Ai-T NodeMCU-S3 | ESP-S3-12K       | GIGADEVICE_GD25Q64C
+   *  TTGO T-Dongle   |                  | BOYA_BY25Q32AL
+   *  TTGO S3 Core    |                  | GIGADEVICE_GD25Q64C
+   *  TTGO T-01C3     |                  | BOYA_BY25Q32AL
+   *                  | ESP-C3-12F       | XMC_XM25QH32B
+   *  LilyGO T-TWR    | WROOM-1-N16R8    | GIGADEVICE_GD25Q128
+   *  Heltec Tracker  |                  | GIGADEVICE_GD25Q64
+   *                  | WT0132C6-S5      | ZBIT_ZB25VQ32B
+   *  LilyGO T3-C6    | ESP32-C6-MINI    | XMC_XM25QH32B
+   *  LilyGO T3-S3-EP | ESP32-S3-MINI    | XMC_XM25QH32B
+   *  LilyGO T3-S3-OL | ESP32-S3FH4R2    |
+   *  Elecrow TN-M2   | ESP32-S3-N4R8    | ZBIT_ZB25VQ32B
+   *  Elecrow TN-M5   | ESP32-S3-N4R8    |
+   *  Ebyte EoRa-HUB  | ESP32-S3FH4R2    |
+   *  WT99P4C5-S1 CPU | WT0132P4-A1      | ZBIT_ZB25VQ128ASIG
+   *  WT99P4C5-S1 NCU | ESP32-C5-WROOM-1 | XMC_XM25QH64B
    */
 
   if (psramFound()) {
@@ -474,6 +535,11 @@ static void ESP32_setup()
       hw_info.revision = HW_REV_DEVKIT;
       break;
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    case MakeFlashId(ZBIT_ID, ZBIT_ZB25VQ128A): /* WT0132P4-A1 ESP32-P4NRW32 */
+      hw_info.revision = HW_REV_DEVKIT;
+      break;
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
     default:
       hw_info.revision = HW_REV_UNKNOWN;
       break;
@@ -635,6 +701,55 @@ static void ESP32_setup()
 #endif /* ARDUINO_USB_CDC_ON_BOOT && (CONFIG_IDF_TARGET_ESP32S2 || S3) */
 
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
+  Wire.begin(SOC_GPIO_PIN_SDA, SOC_GPIO_PIN_SCL);
+
+  Wire.beginTransmission(GT911_ADDRESS);
+  if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_DEVKIT;
+  Wire.beginTransmission(GT911_ADDRESS_ALT);
+  if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_DEVKIT;
+  Wire.beginTransmission(HI8561_ADDRESS);
+  if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_TDISPLAY_P4_TFT;
+  // Wire.beginTransmission(GT9895_ADDRESS);
+  // if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_TDISPLAY_P4_AMOLED;
+
+  switch (hw_info.revision)
+  {
+  case HW_REV_TDISPLAY_P4_TFT:
+  case HW_REV_TDISPLAY_P4_AMOLED:
+
+    // I2C #2 (ES8311, AW86224, SGM38121, ICM20948, Camera)
+    Wire1.begin(SOC_GPIO_PIN_TDP4_SDA, SOC_GPIO_PIN_TDP4_SCL);
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 0)
+    pin_config.mck_io_num   = SOC_GPIO_PIN_TDP4_MCK;
+#endif
+    pin_config.bck_io_num   = SOC_GPIO_PIN_TDP4_BCK;
+    pin_config.ws_io_num    = SOC_GPIO_PIN_TDP4_LR;
+    pin_config.data_out_num = SOC_GPIO_PIN_TDP4_DO;
+
+    es8311_codec_init(1);
+    break;
+
+  case HW_REV_DEVKIT:
+  default:
+    pinMode(SOC_GPIO_PIN_PAMP_EN,      OUTPUT);
+    digitalWrite(SOC_GPIO_PIN_PAMP_EN, HIGH);
+
+#if SOC_SDMMC_IO_POWER_EXTERNAL
+    {
+      esp_ldo_channel_handle_t ldo_sdio = NULL;
+      esp_ldo_channel_config_t ldo_sdio_config = {
+          .chan_id = BOARD_SDMMC_POWER_CHANNEL,
+          .voltage_mv = 3300,
+      };
+      esp_ldo_acquire_channel(&ldo_sdio_config, &ldo_sdio);
+    }
+#endif /* SOC_SDMMC_IO_POWER_EXTERNAL */
+
+    es8311_codec_init(0);
+    break;
+  }
+
 #if !defined(EXCLUDE_ETHERNET)
   Ethernet_setup();
 
@@ -645,6 +760,13 @@ static void ESP32_setup()
             SOC_GPIO_PIN_ETH_PWR,
             ETH_CLK_MODE);
 #endif /* EXCLUDE_ETHERNET */
+
+  /* SD-SPI init */
+  uSD_SPI.begin(SOC_GPIO_PIN_SD_CLK,
+                SOC_GPIO_PIN_SD_D0,
+                SOC_GPIO_PIN_SD_CMD,
+                SOC_GPIO_PIN_SD_D3);
+
 #endif /* CONFIG_IDF_TARGET_ESP32P4 */
 }
 
@@ -687,12 +809,16 @@ static void ESP32_post_init()
   case HW_REV_T5S_1_9    : Serial.println(F("LilyGO T5S"));   break;
   case HW_REV_T5S_2_8    : Serial.println(F("LilyGO T5S"));   break;
   case HW_REV_BPI        : Serial.println(F("Banana PicoW")); break;
+  case HW_REV_DEVKIT     : Serial.print(SoC->name);
+                           Serial.println(F(" DevKit"));      break;
   default                : Serial.println(F("OTHER"));        break;
   }
 
   Serial.print(F("Display      : "));
 
-  if (hw_info.display != DISPLAY_EPD_2_7 || display == NULL) {
+  if (hw_info.display == DISPLAY_TFT_7_0) {
+    Serial.println(F("7 inch TFT"));
+  } else if (hw_info.display != DISPLAY_EPD_2_7 || display == NULL) {
     Serial.println(F("NONE"));
   } else {
     switch (display->epd2.panel)
@@ -947,15 +1073,19 @@ static void ESP32_Battery_setup()
   calibrate_voltage((adc1_channel_t) ADC1_GPIO3_CHANNEL);
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
   calibrate_voltage((adc1_channel_t) ADC1_GPIO1_CHANNEL); /* TBD */
-#elif defined(CONFIG_IDF_TARGET_ESP32C5)
-  /* TBD */
-#elif defined(CONFIG_IDF_TARGET_ESP32C6)
-  /* TBD */
 #else
 #error "This ESP32 family build variant is not supported!"
 #endif /* CONFIG_IDF_TARGET_ESP32 */
 #else
+#if defined(CONFIG_IDF_TARGET_ESP32C5) || defined(CONFIG_IDF_TARGET_ESP32P4)
+  calibrate_voltage(SOC_GPIO_PIN_BATTERY);
+#elif defined(CONFIG_IDF_TARGET_ESP32C6)  || \
+      defined(CONFIG_IDF_TARGET_ESP32C61) || \
+      defined(CONFIG_IDF_TARGET_ESP32H2)
   /* TBD */
+#else
+#error "This ESP32 family build variant is not supported!"
+#endif /* CONFIG_IDF_TARGET_ESP32C5 */
 #endif /* ESP_IDF_VERSION_MAJOR */
 }
 
@@ -1114,12 +1244,333 @@ static TaskHandle_t EPD_Task_Handle = NULL;
 
 static ep_model_id ESP32_display = EP_UNKNOWN;
 
-static void ESP32_EPD_setup()
+#if defined(USE_TFT)
+
+#include <esp_display_panel.hpp>
+
+using namespace esp_panel::drivers;
+using namespace esp_panel::board;
+
+extern Board *panel;
+
+#undef _TO_STR
+#undef TO_STR
+#define _TO_STR(name) #name
+#define TO_STR(name) _TO_STR(name)
+
+const BoardConfig Board_Config_WTP4C5MP07S = {
+    .name = "WTP4C5MP07S",
+
+    .lcd = BoardConfig::LCD_Config{
+
+        .bus_config = BusDSI::Config{
+            .host = BusDSI::HostPartialConfig{
+                .num_data_lanes = 2,
+                .lane_bit_rate_mbps = 1000,
+            },
+            .refresh_panel = BusDSI::RefreshPanelPartialConfig{
+                .dpi_clock_freq_mhz = 52,
+                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565,
+                .h_size = 1024,
+                .v_size = 600,
+                .hsync_pulse_width = 10,
+                .hsync_back_porch = 160,
+                .hsync_front_porch = 160,
+                .vsync_pulse_width = 1,
+                .vsync_back_porch = 23,
+                .vsync_front_porch = 12,
+            },
+            .phy_ldo = BusDSI::PHY_LDO_PartialConfig{
+                .chan_id = 3
+            },
+        },
+        .device_name = TO_STR(EK79007),
+        .device_config = {
+            .device = LCD::DevicePartialConfig{
+                .reset_gpio_num = SOC_GPIO_PIN_LCD_RST,
+                .rgb_ele_order = 0,
+                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565,
+                .flags_reset_active_high = 1,
+            },
+            .vendor = LCD::VendorPartialConfig{
+                .hor_res = 1024,
+                .ver_res = 600,
+            },
+        },
+        .pre_process = {
+            .invert_color = 0,
+        },
+    },
+
+    .touch = BoardConfig::TouchConfig{
+        .bus_config = BusI2C::Config{
+            .host_id = 0,
+            .host = BusI2C::HostPartialConfig{
+                .sda_io_num = SOC_GPIO_PIN_SDA,
+                .scl_io_num = SOC_GPIO_PIN_SCL,
+                .sda_pullup_en = 0,
+                .scl_pullup_en = 0,
+                .clk_speed = 400 * 1000,
+            },
+            .control_panel = BusI2C::ControlPanelFullConfig
+                ESP_PANEL_TOUCH_I2C_CONTROL_PANEL_CONFIG_WITH_ADDR(GT911, 0x5D),
+        },
+        .device_name = TO_STR(GT911),
+        .device_config = {
+            .device = Touch::DevicePartialConfig{
+                .x_max = 1024,
+                .y_max = 600,
+                .rst_gpio_num = -1, // SOC_GPIO_PIN_TP_RST
+                .int_gpio_num = SOC_GPIO_PIN_TP_INT,
+                .levels_reset = 1,
+                .levels_interrupt = 0,
+            },
+        },
+        .pre_process = {
+            .swap_xy = 0,
+            .mirror_x = 1,
+            .mirror_y = 1,
+        },
+    },
+
+    .backlight = BoardConfig::BacklightConfig{
+        .config = BacklightSwitchGPIO::Config{
+            .io_num = SOC_GPIO_PIN_LCD_BLED,
+            .on_level = 1,
+        },
+        .pre_process = {
+            .idle_off = 0,
+        },
+    },
+
+    .stage_callbacks = {
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+    },
+};
+
+const BoardConfig Board_Config_LilyGO_TDP4_TFT = {
+    .name = "T-DISPLAY-P4-TFT",
+
+    .lcd = BoardConfig::LCD_Config{
+
+        .bus_config = BusDSI::Config{
+            .host = BusDSI::HostPartialConfig{
+                .num_data_lanes = 2,
+                .lane_bit_rate_mbps = 1000,
+            },
+            .refresh_panel = BusDSI::RefreshPanelPartialConfig{
+                .dpi_clock_freq_mhz = 52,
+                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565, /* TBD */
+                .h_size = 1168,
+                .v_size = 540,
+                .hsync_pulse_width = 10,
+                .hsync_back_porch = 160,
+                .hsync_front_porch = 160,
+                .vsync_pulse_width = 1,
+                .vsync_back_porch = 23,
+                .vsync_front_porch = 12,
+            },
+            .phy_ldo = BusDSI::PHY_LDO_PartialConfig{
+                .chan_id = 3
+            },
+        },
+        .device_name = TO_STR(HI8561),
+        .device_config = {
+            .device = LCD::DevicePartialConfig{
+                .reset_gpio_num = -1, /* XL 2 */
+                .rgb_ele_order = 0,
+                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565, /* TBD */
+                .flags_reset_active_high = 1, /* TBD */
+            },
+            .vendor = LCD::VendorPartialConfig{
+                .hor_res = 1168,
+                .ver_res = 540,
+            },
+        },
+        .pre_process = {
+            .invert_color = 0,
+        },
+    },
+
+    .touch = BoardConfig::TouchConfig{
+        .bus_config = BusI2C::Config{
+            .host_id = 0,
+            .host = BusI2C::HostPartialConfig{
+                .sda_io_num = SOC_GPIO_PIN_SDA,
+                .scl_io_num = SOC_GPIO_PIN_SCL,
+                .sda_pullup_en = 0,
+                .scl_pullup_en = 0,
+                .clk_speed = 400 * 1000,
+            },
+            .control_panel = BusI2C::ControlPanelFullConfig
+                ESP_PANEL_TOUCH_I2C_CONTROL_PANEL_CONFIG(GT911), /* HI8561 */
+        },
+        .device_name = TO_STR(GT911),/* HI8561 */
+        .device_config = {
+            .device = Touch::DevicePartialConfig{
+                .x_max = 1168,
+                .y_max = 540,
+                .rst_gpio_num = -1, /* XL 3 */
+                .int_gpio_num = -1, /* XL 4 */
+                .levels_reset = 0,
+                .levels_interrupt = 0,
+            },
+        },
+        .pre_process = {
+            .swap_xy = 0,
+            .mirror_x = 1,
+            .mirror_y = 1,
+        },
+    },
+
+    .backlight = BoardConfig::BacklightConfig{
+        .config = BacklightSwitchGPIO::Config{
+            .io_num = SOC_GPIO_PIN_TDP4_BL,
+            .on_level = 1,
+        },
+        .pre_process = {
+            .idle_off = 0,
+        },
+    },
+
+    .stage_callbacks = {
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+    },
+};
+
+const BoardConfig Board_Config_LilyGO_TDP4_AMOLED = {
+    .name = "T-DISPLAY-P4-AMOLED",
+
+    .lcd = BoardConfig::LCD_Config{
+
+        .bus_config = BusDSI::Config{
+            .host = BusDSI::HostPartialConfig{
+                .num_data_lanes = 2,
+                .lane_bit_rate_mbps = 1000,
+            },
+            .refresh_panel = BusDSI::RefreshPanelPartialConfig{
+                .dpi_clock_freq_mhz = 52,
+                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565, /* TBD */
+                .h_size = 1232,
+                .v_size = 568,
+                .hsync_pulse_width = 10,
+                .hsync_back_porch = 160,
+                .hsync_front_porch = 160,
+                .vsync_pulse_width = 1,
+                .vsync_back_porch = 23,
+                .vsync_front_porch = 12,
+            },
+            .phy_ldo = BusDSI::PHY_LDO_PartialConfig{
+                .chan_id = 3
+            },
+        },
+        .device_name = TO_STR(RM69A10),
+        .device_config = {
+            .device = LCD::DevicePartialConfig{
+                .reset_gpio_num = -1, /* XL 2 */
+                .rgb_ele_order = 0,
+                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565, /* TBD */
+                .flags_reset_active_high = 1, /* TBD */
+            },
+            .vendor = LCD::VendorPartialConfig{
+                .hor_res = 1232,
+                .ver_res = 568,
+            },
+        },
+        .pre_process = {
+            .invert_color = 0,
+        },
+    },
+
+    .touch = BoardConfig::TouchConfig{
+        .bus_config = BusI2C::Config{
+            .host_id = 0,
+            .host = BusI2C::HostPartialConfig{
+                .sda_io_num = SOC_GPIO_PIN_SDA,
+                .scl_io_num = SOC_GPIO_PIN_SCL,
+                .sda_pullup_en = 0,
+                .scl_pullup_en = 0,
+                .clk_speed = 400 * 1000,
+            },
+            .control_panel = BusI2C::ControlPanelFullConfig
+                ESP_PANEL_TOUCH_I2C_CONTROL_PANEL_CONFIG(GT911), /* GT9895 */
+        },
+        .device_name = TO_STR(GT911), /* GT9895 */
+        .device_config = {
+            .device = Touch::DevicePartialConfig{
+                .x_max = 1232,
+                .y_max = 568,
+                .rst_gpio_num = -1, /* XL 3 */
+                .int_gpio_num = -1, /* XL 4 */
+                .levels_reset = 0,
+                .levels_interrupt = 0,
+            },
+        },
+        .pre_process = {
+            .swap_xy = 0,
+            .mirror_x = 1,
+            .mirror_y = 1,
+        },
+    },
+
+    .backlight = BoardConfig::BacklightConfig{
+        .config = BacklightSwitchGPIO::Config{
+            .io_num = -1, /* AMOLED */
+            .on_level = 1,
+        },
+        .pre_process = {
+            .idle_off = 0,
+        },
+    },
+
+    .stage_callbacks = {
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+    },
+};
+#endif /* USE_TFT */
+
+static byte ESP32_Display_setup(bool splash_screen)
 {
   switch(settings->adapter)
   {
   case ADAPTER_WAVESHARE_ESP32:
   case ADAPTER_WAVESHARE_PICO_2_7:
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  case ADAPTER_WAVESHARE_PI_HAT_2_7:
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
     if (ESP32_display == EP_UNKNOWN) {
       ESP32_display = ESP32_EPD_ident();
     }
@@ -1142,6 +1593,9 @@ static void ESP32_EPD_setup()
               SOC_GPIO_PIN_SS_WS);
     break;
   case ADAPTER_WAVESHARE_PICO_2_7_V2:
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  case ADAPTER_WAVESHARE_PI_HAT_2_7_V2:
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
     display = &epd_waveshare_T91;
     display->epd2.selectSPI(SPI, SPISettings(4000000, MSBFIRST, SPI_MODE0));
     SPI.begin(SOC_GPIO_PIN_SCK_WS,
@@ -1176,26 +1630,128 @@ static void ESP32_EPD_setup()
 
   xTaskCreateUniversal(EPD_Task, "EPD update", EPD_STACK_SZ, NULL, 1,
                        &EPD_Task_Handle, CONFIG_ARDUINO_RUNNING_CORE);
+
+  byte rval = EPD_setup(splash_screen);
+
+#if defined(USE_TFT)
+  if (rval == DISPLAY_NONE) {
+
+    if( EPD_Task_Handle != NULL )
+    {
+      vTaskDelete( EPD_Task_Handle );
+    }
+
+    switch (hw_info.revision)
+    {
+    case HW_REV_TDISPLAY_P4_TFT:
+      panel = new Board(Board_Config_LilyGO_TDP4_TFT);
+      break;
+    case HW_REV_TDISPLAY_P4_AMOLED:
+      panel = new Board(Board_Config_LilyGO_TDP4_AMOLED);
+      break;
+    case HW_REV_DEVKIT:
+    default:
+      panel = new Board(Board_Config_WTP4C5MP07S);
+      break;
+    }
+
+    panel->init();
+
+#if LVGL_PORT_AVOID_TEARING_MODE
+    auto lcd = panel->getLCD();
+    lcd->configFrameBufferNumber(LVGL_PORT_DISP_BUFFER_NUM);
+#endif
+
+    static_cast<esp_panel::drivers::BusI2C *>(panel->getTouch()->getBus())->configI2C_HostSkipInit();
+
+    assert(panel->begin());
+
+    rval = TFT_setup();
+  }
+#endif /* USE_TFT */
+
+  return rval;
 }
 
-static void ESP32_EPD_fini()
+static void ESP32_Display_loop()
 {
-  if( EPD_Task_Handle != NULL )
+  switch (hw_info.display)
   {
-    vTaskDelete( EPD_Task_Handle );
+#if defined(USE_TFT)
+  case DISPLAY_TFT_7_0:
+    TFT_loop();
+    break;
+#endif /* USE_TFT */
+  case DISPLAY_EPD_2_7:
+    EPD_loop();
+    break;
+  case DISPLAY_NONE:
+  default:
+    break;
   }
 }
 
-static bool ESP32_EPD_is_ready()
+static void ESP32_Display_fini(const char *msg, bool screen_saver)
 {
-//  return true;
-  return (EPD_task_command == EPD_UPDATE_NONE);
+  switch (hw_info.display)
+  {
+#if defined(USE_TFT)
+  case DISPLAY_TFT_7_0:
+    TFT_fini();
+    break;
+#endif /* USE_TFT */
+  case DISPLAY_EPD_2_7:
+    if( EPD_Task_Handle != NULL )
+    {
+      vTaskDelete( EPD_Task_Handle );
+    }
+
+    EPD_fini(msg, screen_saver);
+    break;
+  case DISPLAY_NONE:
+  default:
+    break;
+  }
 }
 
-static void ESP32_EPD_update(int val)
+static bool ESP32_Display_is_ready()
 {
-//  EPD_Update_Sync(val);
-  EPD_task_command = val;
+  switch (hw_info.display)
+  {
+#if defined(USE_TFT)
+  case DISPLAY_TFT_7_0:
+    /* TBD */
+    break;
+#endif /* USE_TFT */
+  case DISPLAY_EPD_2_7:
+//    return true;
+    return (EPD_task_command == EPD_UPDATE_NONE);
+    break;
+  case DISPLAY_NONE:
+  default:
+    break;
+  }
+
+  return true;
+}
+
+static void ESP32_Display_update(int val)
+{
+  switch (hw_info.display)
+  {
+#if defined(USE_TFT)
+  case DISPLAY_TFT_7_0:
+    /* TBD */
+    break;
+#endif /* USE_TFT */
+  case DISPLAY_EPD_2_7:
+//    EPD_Update_Sync(val);
+    EPD_task_command = val;
+    break;
+  case DISPLAY_NONE:
+  default:
+    break;
+  }
 }
 
 static size_t ESP32_WiFi_Receive_UDP(uint8_t *buf, size_t max_size)
@@ -1235,8 +1791,12 @@ static bool ESP32_DB_init()
 
   switch (settings->adapter)
   {
-#if defined(CONFIG_IDF_TARGET_ESP32)
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32P4)
   case ADAPTER_TTGO_T5S:
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  case ADAPTER_WAVESHARE_PI_HAT_2_7:
+  case ADAPTER_WAVESHARE_PI_HAT_2_7_V2:
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 #if !defined(BUILD_SKYVIEW_HD)
     {
       sdcard_files_to_open += (settings->adb   == DB_FLN    ? 1 : 0);
@@ -1244,7 +1804,14 @@ static bool ESP32_DB_init()
       sdcard_files_to_open += (settings->adb   == DB_ICAO   ? 1 : 0);
       sdcard_files_to_open += (settings->voice != VOICE_OFF ? 1 : 0);
 
-      if (!SD.begin(SOC_SD_PIN_SS_T5S, uSD_SPI, 4000000, "/sd", sdcard_files_to_open)) {
+#if defined(CONFIG_IDF_TARGET_ESP32)
+      int uSD_SS_pin = SOC_SD_PIN_SS_T5S;
+#endif /* CONFIG_IDF_TARGET_ESP32 */
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+      int uSD_SS_pin = SOC_GPIO_PIN_SD_D3;
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
+
+      if (!SD.begin(uSD_SS_pin, uSD_SPI, 4000000, "/sd", sdcard_files_to_open)) {
         Serial.println(F("ERROR: Failed to mount microSD card."));
         return rval;
       }
@@ -1337,8 +1904,12 @@ static bool ESP32_DB_query(uint8_t type, uint32_t id, char *buf, size_t size)
 
   switch (settings->adapter)
   {
-#if defined(CONFIG_IDF_TARGET_ESP32)
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32P4)
   case ADAPTER_TTGO_T5S:
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  case ADAPTER_WAVESHARE_PI_HAT_2_7:
+  case ADAPTER_WAVESHARE_PI_HAT_2_7_V2:
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 #if !defined(BUILD_SKYVIEW_HD)
     {
       sqlite3_stmt *stmt;
@@ -1513,8 +2084,12 @@ static void ESP32_DB_fini()
 {
   switch (settings->adapter)
   {
-#if defined(CONFIG_IDF_TARGET_ESP32)
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32P4)
   case ADAPTER_TTGO_T5S:
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  case ADAPTER_WAVESHARE_PI_HAT_2_7:
+  case ADAPTER_WAVESHARE_PI_HAT_2_7_V2:
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 #if !defined(BUILD_SKYVIEW_HD)
     if (settings->adb != DB_NONE) {
       if (fln_db != NULL) {
@@ -1708,9 +2283,13 @@ static void ESP32_TTS(char *message)
   char filename[MAX_FILENAME_LEN];
 
   if (strcmp(message, "POST")) {
-    if ( settings->voice   != VOICE_OFF                  &&
-        (settings->adapter == ADAPTER_TTGO_T5S           ||
-         settings->adapter == ADAPTER_WAVESHARE_PICO_2_7 ||
+    if ( settings->voice   != VOICE_OFF                       &&
+        (settings->adapter == ADAPTER_TTGO_T5S                ||
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+         settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7    ||
+         settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7_V2 ||
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
+         settings->adapter == ADAPTER_WAVESHARE_PICO_2_7      ||
          settings->adapter == ADAPTER_WAVESHARE_PICO_2_7_V2)) {
 
 #if defined(CONFIG_IDF_TARGET_ESP32)   || \
@@ -1728,10 +2307,10 @@ static void ESP32_TTS(char *message)
         return;
 
       if (hw_info.display == DISPLAY_EPD_2_7) {
-        while (!SoC->EPD_is_ready()) {yield();}
+        while (!SoC->Display_is_ready()) {yield();}
         EPD_Message("VOICE", "ALERT");
-        SoC->EPD_update(EPD_UPDATE_FAST);
-        while (!SoC->EPD_is_ready()) {yield();}
+        SoC->Display_update(EPD_UPDATE_FAST);
+        while (!SoC->Display_is_ready()) {yield();}
       }
 
       bool wdt_status = loopTaskWDTEnabled;
@@ -1765,9 +2344,13 @@ static void ESP32_TTS(char *message)
       }
     }
   } else {
-    if ( settings->voice   != VOICE_OFF                  &&
-        (settings->adapter == ADAPTER_TTGO_T5S           ||
-         settings->adapter == ADAPTER_WAVESHARE_PICO_2_7 ||
+    if ( settings->voice   != VOICE_OFF                       &&
+        (settings->adapter == ADAPTER_TTGO_T5S                ||
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+         settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7    ||
+         settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7_V2 ||
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
+         settings->adapter == ADAPTER_WAVESHARE_PICO_2_7      ||
          settings->adapter == ADAPTER_WAVESHARE_PICO_2_7_V2)) {
 
       strcpy(filename, WAV_FILE_PREFIX);
@@ -1891,8 +2474,19 @@ static void ESP32_Button_setup()
   }
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
 
-  pinMode(mode_button_pin, settings->adapter == ADAPTER_WAVESHARE_PICO_2_7 ||
-                           settings->adapter == ADAPTER_WAVESHARE_PICO_2_7_V2 ?
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  if (settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7 ||
+      settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7_V2) {
+    mode_button_pin = SOC_GPIO_BUTTON_MODE;
+  }
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
+
+  pinMode(mode_button_pin, settings->adapter == ADAPTER_WAVESHARE_PICO_2_7      ||
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+                           settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7    ||
+                           settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7_V2 ||
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
+                           settings->adapter == ADAPTER_WAVESHARE_PICO_2_7_V2   ?
                            INPUT_PULLUP : INPUT);
 
   button_mode.init(mode_button_pin);
@@ -1980,14 +2574,43 @@ static void ESP32_Button_setup()
     DownButtonConfig->setLongPressDelay(2000);
   }
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  if (settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7 ||
+      settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7_V2) {
+    pinMode(SOC_GPIO_BUTTON_UP,   INPUT_PULLUP);
+    pinMode(SOC_GPIO_BUTTON_DOWN, INPUT_PULLUP);
+
+    button_up.init(SOC_GPIO_BUTTON_UP,     HIGH);
+    button_down.init(SOC_GPIO_BUTTON_DOWN, HIGH);
+
+    ButtonConfig* UpButtonConfig = button_up.getButtonConfig();
+    UpButtonConfig->setEventHandler(handleEvent);
+    UpButtonConfig->setFeature(ButtonConfig::kFeatureClick);
+    UpButtonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterClick);
+    UpButtonConfig->setClickDelay(100);
+    UpButtonConfig->setLongPressDelay(2000);
+
+    ButtonConfig* DownButtonConfig = button_down.getButtonConfig();
+    DownButtonConfig->setEventHandler(handleEvent);
+    DownButtonConfig->setFeature(ButtonConfig::kFeatureClick);
+    DownButtonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterClick);
+    DownButtonConfig->setClickDelay(100);
+    DownButtonConfig->setLongPressDelay(2000);
+  }
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 }
 
 static void ESP32_Button_loop()
 {
   button_mode.check();
 
-  if (settings->adapter == ADAPTER_TTGO_T5S           ||
-      settings->adapter == ADAPTER_WAVESHARE_PICO_2_7 ||
+  if (settings->adapter == ADAPTER_TTGO_T5S                ||
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+      settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7    ||
+      settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7_V2 ||
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
+      settings->adapter == ADAPTER_WAVESHARE_PICO_2_7      ||
       settings->adapter == ADAPTER_WAVESHARE_PICO_2_7_V2) {
     button_up.check();
     button_down.check();
@@ -2013,6 +2636,13 @@ static void ESP32_Button_fini()
   }
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
 
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  if (settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7 ||
+      settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7_V2) {
+    mode_button_pin = SOC_GPIO_BUTTON_MODE;
+  }
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
+
 //  detachInterrupt(digitalPinToInterrupt(mode_button_pin));
   while (digitalRead(mode_button_pin) == LOW);
 }
@@ -2026,6 +2656,363 @@ static void ESP32_WDT_fini()
 {
   disableLoopWDT();
 }
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(USE_USB_HOST)
+
+#include "libusb.h"
+#include "rtl-sdr.h"
+
+#include <mode-s.h>
+#include <sdr/common.h>
+
+#include "freertos/ringbuf.h"
+#include "esp_heap_caps.h"
+
+#define MODE_S_PREAMBLE_US      8
+#define MODE_S_LONG_MSG_BITS    112
+#define MODE_S_SHORT_MSG_BITS   56
+#define MODE_S_ASYNC_BUF_NUMBER 3
+#define MODE_S_DATA_LEN         65536
+#define MODE_S_FULL_LEN         (MODE_S_PREAMBLE_US + MODE_S_LONG_MSG_BITS)
+
+#define SDR_RINGBUFFER_SIZE     (1024 * 1024)
+#define RTLSDR_TASK_PRIORITY    10 // 4
+
+rtlsdr_dev_t *rtlsdr_dev;
+TaskHandle_t rtlsdr_task_handle = NULL;
+
+mag_t *mag;
+
+int do_exit = 0;
+
+mode_s_t state;
+
+char STR_TMP_BUFFER[128];
+
+StaticRingbuffer_t *buffer_struct = nullptr;
+uint8_t *buffer_storage = nullptr;
+RingbufHandle_t s_ringbuf_sdr;
+bool rb_reader_is_ready = false;
+
+extern int rtlsdr_is_connected;
+extern mag_t maglut[129*129];
+
+void on_msg(mode_s_t *self, struct mode_s_msg *mm) {
+
+    MODES_NOTUSED(self);
+
+#if 0
+    if (self->check_crc == 0 || mm->crcok) {
+      sprintf(STR_TMP_BUFFER, "%02d %03d %02x%02x%02x\r\n",
+                              mm->msgtype, mm->msgbits, mm->aa1, mm->aa2, mm->aa3);
+
+      Serial.write(STR_TMP_BUFFER, strlen(STR_TMP_BUFFER));
+      Serial.flush();
+    }
+#endif
+
+    if (self->check_crc == 0 || mm->crcok) {
+
+//    printf("%02d %03d %02x%02x%02x\r\n", mm->msgtype, mm->msgbits, mm->aa1, mm->aa2, mm->aa3);
+
+        int acfts_in_sight = 0;
+        struct mode_s_aircraft *a = state.aircrafts;
+
+        while (a) {
+          acfts_in_sight++;
+          a = a->next;
+        }
+
+        if (acfts_in_sight < MAX_TRACKING_OBJECTS) {
+          interactiveReceiveData(self, mm);
+        }
+    }
+}
+
+void process_iq8u_buffer(uint8_t *buf, size_t size) {
+
+    for (int j=0; j<size; j+=2) {
+      int8_t i = buf[j    ] - 127;
+      int8_t q = buf[j + 1] - 127;
+
+      if (i < 0) i = -i;
+      if (q < 0) q = -q;
+
+      mag[(MODE_S_FULL_LEN-1)*2 + (j>>1)] = maglut[i*129+q];
+    }
+
+    mode_s_detect(&state, mag, (size + (MODE_S_FULL_LEN-1)*4) / 2, on_msg);
+    memcpy(mag, mag + size/2, (MODE_S_FULL_LEN-1)*2);
+}
+
+static void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx)
+{
+  if (do_exit)
+    return;
+
+  if (rtlsdr_is_connected == 0) {
+    do_exit = 1;
+    rtlsdr_cancel_async(rtlsdr_dev);
+  }
+
+  if (rb_reader_is_ready) {
+    if (xRingbufferSend(s_ringbuf_sdr, buf, len, pdMS_TO_TICKS(10)) != pdTRUE) {
+        Serial.println("Failed to send message into ring buffer!");
+    }
+  }
+}
+
+void rtlsdr_task()
+{
+  while (true)
+  {
+    while (rtlsdr_is_connected == 0) {
+      delay(10);
+    }
+
+    int i;
+    char vendor[256], product[256], serial[256];
+
+    int device_count = rtlsdr_get_device_count();
+
+    fprintf(stderr, "Found %d device(s):\n", device_count);
+	for (i = 0; i < device_count; i++) {
+		rtlsdr_get_device_usb_strings(i, vendor, product, serial);
+		fprintf(stderr, "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
+	}
+
+    int r = rtlsdr_open(&rtlsdr_dev, 0);
+    if (r < 0) {
+        fprintf(stderr, "Failed to open rtlsdr device #%d.\n", 0);
+    }
+
+    r = rtlsdr_set_sample_rate(rtlsdr_dev, 2000000);
+    if (r < 0) {
+        fprintf(stderr, "WARNING: Failed to set sample rate.\n");
+    } else {
+        fprintf(stderr, "Sampling at %u S/s.\n", 2000000);
+    }
+
+    r = rtlsdr_set_center_freq(rtlsdr_dev, 1090000000);
+    if (r < 0) {
+        fprintf(stderr, "WARNING: Failed to set center freq.\n");
+    } else {
+        fprintf(stderr, "Tuned to %u Hz.\n", 1090000000);
+    }
+#if 1
+    r = rtlsdr_set_tuner_gain_mode(rtlsdr_dev, 0);
+    if (r != 0)
+    {
+        fprintf(stderr, "WARNING: Failed to set tuner gain.\r\n");
+    }
+    else
+    {
+        fprintf(stderr, "Tuner gain set to automatic.\r\n");
+    }
+#else
+    r = rtlsdr_set_tuner_gain_mode(rtlsdr_dev, 1);
+    if (r < 0) {
+        fprintf(stderr, "WARNING: Failed to enable manual gain.\r\n");
+    }
+
+    int gain = nearest_gain(rtlsdr_dev, 316);
+    r = rtlsdr_set_tuner_gain(rtlsdr_dev, gain);
+    if (r != 0) {
+        fprintf(stderr, "WARNING: Failed to set tuner gain.\r\n");
+    } else {
+        fprintf(stderr, "Tuner gain set to %0.2f dB.\r\n", gain/10.0);
+    }
+#endif
+    r = rtlsdr_reset_buffer(rtlsdr_dev);
+    if (r < 0) {
+        fprintf(stderr, "WARNING: Failed to reset buffers.\n");}
+
+    r = rtlsdr_read_async(rtlsdr_dev, rtlsdr_callback, 0,
+                          MODE_S_ASYNC_BUF_NUMBER, MODE_S_DATA_LEN);
+
+    rtlsdr_close(rtlsdr_dev);
+
+    do_exit = 0;
+  }
+}
+
+static void ESP32PX_USB_setup()
+{
+  mode_s_init(&state);
+
+  mag = (mag_t *) ps_malloc((MODE_S_DATA_LEN + (MODE_S_FULL_LEN-1)*4) / (sizeof(mag_t) * 2));
+
+  buffer_struct = (StaticRingbuffer_t *)heap_caps_malloc(
+                                                    sizeof(StaticRingbuffer_t),
+                                                    MALLOC_CAP_SPIRAM);
+  buffer_storage = (uint8_t *)heap_caps_malloc(SDR_RINGBUFFER_SIZE,
+                                               MALLOC_CAP_SPIRAM);
+  s_ringbuf_sdr = xRingbufferCreateStatic(SDR_RINGBUFFER_SIZE,
+                                          RINGBUF_TYPE_BYTEBUF,
+                                          buffer_storage,
+                                          buffer_struct);
+  if (s_ringbuf_sdr == NULL) {
+     fprintf(stderr, "xRingbufferCreateStatic failure\n");
+     while (true);
+  }
+
+  usbhost_begin();
+
+  if (libusb_init() == 1) {
+	BaseType_t rtlsdr_task_status = xTaskCreatePinnedToCore(
+		(TaskFunction_t) rtlsdr_task,
+		"rtlsdr_reader",
+		4096,
+		NULL,
+		RTLSDR_TASK_PRIORITY,
+		&rtlsdr_task_handle,
+		CONFIG_ARDUINO_RUNNING_CORE
+	);
+
+	if (rtlsdr_task_status != pdPASS) {
+		ESP_LOGE("rtlsdr","Error creating rtlsdr reader task!");
+		while (1) {
+		  vTaskDelay(1000 / portTICK_PERIOD_MS);
+		}
+	}
+  }
+}
+
+#include <TinyGPS++.h>
+
+#include "GDL90Helper.h"
+#include "NMEAHelper.h"
+#include "TrafficHelper.h"
+
+#define MODES_TASK_INTERVAL 998
+
+unsigned long ModeS_Time_Marker = 0;
+
+bool es1090_decode(void *pkt, traffic_t *this_aircraft, traffic_t *fop) {
+
+  struct mode_s_aircraft *a = (struct mode_s_aircraft *) pkt;
+
+  fop->ID        = a->addr;
+  fop->IDType = ADDR_TYPE_ICAO;
+
+  fop->latitude  = a->lat;
+  fop->longitude = a->lon;
+  if (a->unit == MODE_S_UNIT_FEET) {
+    fop->altitude = a->altitude / _GPS_FEET_PER_METER;
+  } else {
+    fop->altitude = a->altitude;
+  }
+
+  fop->AlarmLevel = ALARM_LEVEL_NONE;
+
+  fop->Track = a->track;
+//  fop->ClimbRate = a->vert_rate;                              /* TBD */
+  fop->TurnRate = 0;                                            /* TBD */
+  fop->GroundSpeed = a->speed;
+  fop->AcftType = GDL90_TO_AT(a->aircraft_type);
+
+  /* sizeof(mdb.callsign) = 9 ; sizeof(fop->callsign) = 8 */
+  memcpy(fop->callsign, a->flight, sizeof(fop->callsign));
+
+  fop->timestamp = now();
+
+  return true;
+}
+
+static void ESP32PX_USB_loop()
+{
+  if (!rb_reader_is_ready) { rb_reader_is_ready = true; }
+
+  if (rtlsdr_is_connected == 1) {
+    size_t receivedMessageSize;
+    uint8_t *receivedMessage;
+    receivedMessage = (uint8_t *) xRingbufferReceiveUpTo(s_ringbuf_sdr,
+                                                         &receivedMessageSize,
+                                                         pdMS_TO_TICKS(1000),
+                                                         MODE_S_DATA_LEN);
+    if (receivedMessage != NULL) {
+        process_iq8u_buffer(receivedMessage, receivedMessageSize);
+        vRingbufferReturnItem(s_ringbuf_sdr, (void*) receivedMessage);
+    } else {
+        Serial.println("Failed to receive message from ring buffer!");
+    }
+  }
+
+  if (millis() - ModeS_Time_Marker > MODES_TASK_INTERVAL) {
+    struct mode_s_aircraft *a;
+
+    for (a = state.aircrafts; a; a = a->next) {
+#if 0
+      Serial.print("even_cprtime = ");  Serial.print(a->even_cprtime);
+      Serial.print(" ");
+      Serial.print("odd_cprtime = ");   Serial.println(a->odd_cprtime);
+#endif
+      if (a->even_cprtime && a->odd_cprtime &&
+          abs((long) (a->even_cprtime - a->odd_cprtime)) <= MODE_S_INTERACTIVE_TTL * 1000 ) {
+#if 0
+        fo = EmptyFO;
+        if (es1090_decode(a, &ThisAircraft, &fo)) {
+          Traffic_Update(&fo);
+          Traffic_Add();
+        }
+#else
+        Serial.print("addr = "); Serial.print(a->addr, HEX); Serial.print(" ");
+        Serial.print("lat = ");  Serial.print(a->lat);       Serial.print(" ");
+        Serial.print("lon = ");  Serial.println(a->lon);
+#endif
+      }
+    }
+
+    interactiveRemoveStaleAircrafts(&state);
+
+    ModeS_Time_Marker = millis();
+  }
+}
+
+static void ESP32PX_USB_fini()
+{
+  if (libusb_init() == 1) {
+      do_exit = 1;
+      vTaskDelete( rtlsdr_task_handle );
+  }
+
+  vRingbufferDelete(s_ringbuf_sdr);
+  free(buffer_storage);
+  free(buffer_struct);
+  free(mag);
+}
+
+static int ESP32PX_USB_available()
+{
+  int rval = 0;
+
+  return rval;
+}
+
+static int ESP32PX_USB_read()
+{
+  int rval = -1;
+
+  return rval;
+}
+
+static size_t ESP32PX_USB_write(const uint8_t *buffer, size_t size)
+{
+  size_t rval = size;
+
+  return rval;
+}
+
+IODev_ops_t ESP32PX_USB_ops = {
+  "ESP32PX USB",
+  ESP32PX_USB_setup,
+  ESP32PX_USB_loop,
+  ESP32PX_USB_fini,
+  ESP32PX_USB_available,
+  ESP32PX_USB_read,
+  ESP32PX_USB_write
+};
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 
 const SoC_ops_t ESP32_ops = {
 #if defined(CONFIG_IDF_TARGET_ESP32)
@@ -2069,10 +3056,11 @@ const SoC_ops_t ESP32_ops = {
   ESP32_WiFiUDP_stopAll,
   ESP32_Battery_setup,
   ESP32_Battery_voltage,
-  ESP32_EPD_setup,
-  ESP32_EPD_fini,
-  ESP32_EPD_is_ready,
-  ESP32_EPD_update,
+  ESP32_Display_setup,
+  ESP32_Display_loop,
+  ESP32_Display_fini,
+  ESP32_Display_is_ready,
+  ESP32_Display_update,
   ESP32_WiFi_Receive_UDP,
   ESP32_WiFi_clients_count,
   ESP32_DB_init,
@@ -2084,12 +3072,16 @@ const SoC_ops_t ESP32_ops = {
   ESP32_Button_fini,
   ESP32_WDT_setup,
   ESP32_WDT_fini,
-#if !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32P4)
+#if !defined(CONFIG_IDF_TARGET_ESP32S2)
   &ESP32_Bluetooth_ops,
 #else
   NULL,
 #endif /* CONFIG_IDF_TARGET_ESP32S2 */
+#if defined(CONFIG_IDF_TARGET_ESP32P4) && defined(USE_USB_HOST)
+  &ESP32PX_USB_ops,
+#else
   NULL,
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 };
 
 #endif /* ESP32 */

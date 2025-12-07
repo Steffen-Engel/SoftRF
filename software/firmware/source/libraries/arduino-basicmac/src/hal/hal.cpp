@@ -13,7 +13,7 @@
 #include <SPI.h>
 #endif /* ARDUINO */
 
-#if defined(RASPBERRY_PI)
+#if defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)
 #include <raspi/raspi.h>
 #endif /* RASPBERRY_PI */
 
@@ -26,7 +26,7 @@
 #define SPI SPI1
 #endif /* ARDUINO_ARCH_RP2040 || ARDUINO_ARCH_RP2350 */
 
-#if defined(ARDUINO_ARCH_RENESAS)
+#if defined(ARDUINO_ARCH_RENESAS) // || defined(CONFIG_IDF_TARGET_ESP32C5)
 #include <SoftSPI.h>
 extern  SoftSPI RadioSPI;
 #undef  SPI
@@ -128,7 +128,7 @@ bool hal_pin_rst (u1_t val) {
 
     return true;
 }
-#elif defined(ARDUINO_GENERIC_WLE5CCUX)
+#elif defined(ARDUINO_GENERIC_WLE5CCUX) || defined(ARDUINO_GENERIC_WL55CCUX)
 bool hal_pin_rst (u1_t val) {
 #if 0
     if (val == 0)
@@ -154,7 +154,7 @@ bool hal_pin_rst (u1_t val) {
         digitalWrite(lmic_pins.rst, val == 1 ? HIGH : LOW);
     } else {
         pinMode(lmic_pins.rst, INPUT);
-#if defined(RASPBERRY_PI)
+#if (defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)) && defined(USE_BCMLIB)
         //  with a pullup
         bcm2835_gpio_set_pud(lmic_pins.rst, BCM2835_GPIO_PUD_UP);
 #else
@@ -176,7 +176,7 @@ static void hal_interrupt_init() {
             check_dio = 1; 
             pinMode(lmic_pins.dio[i], INPUT);
 
-#ifdef RASPBERRY_PI
+#if (defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)) && defined(USE_BCMLIB)
             // Enable pull down an rising edge detection on this one
             bcm2835_gpio_set_pud(lmic_pins.dio[i], BCM2835_GPIO_PUD_DOWN);
             bcm2835_gpio_ren(lmic_pins.dio[i]);
@@ -195,7 +195,7 @@ static void hal_io_check() {
             if (lmic_pins.dio[i] == LMIC_UNUSED_PIN)
                 continue;
 
-#ifdef RASPBERRY_PI
+#if (defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)) && defined(USE_BCMLIB)
             // Rising edge fired ?
             if (bcm2835_gpio_eds(lmic_pins.dio[i])) {
                 // Now clear the eds flag by setting it to 1
@@ -283,7 +283,7 @@ void hal_pin_tcxo_init()
 #endif /* ARDUINO_NUCLEO_L073RZ */
 
 bool hal_pin_tcxo (u1_t val) {
-#if !defined(__ASR6501__)
+#if !defined(__ASR6501__) && !defined(RASPBERRY_PI) && !defined(LUCKFOX_LYRA)
     if (lmic_pins.tcxo == LMIC_UNUSED_PIN)
         return false;
 
@@ -296,7 +296,7 @@ bool hal_pin_tcxo (u1_t val) {
 
     digitalWrite(lmic_pins.tcxo, val == 1 ? HIGH : LOW);
 
-#if !defined(ARDUINO_GENERIC_WLE5CCUX)
+#if !defined(ARDUINO_GENERIC_WLE5CCUX) && !defined(ARDUINO_GENERIC_WL55CCUX)
     return true;
 #else
     return false;
@@ -312,7 +312,7 @@ void hal_pin_busy_wait (void) {
 
     while(((micros() - start) < MAX_BUSY_TIME) && (LORAC->SR & 0x100)) /* wait */;
 }
-#elif defined(ARDUINO_GENERIC_WLE5CCUX)
+#elif defined(ARDUINO_GENERIC_WLE5CCUX) || defined(ARDUINO_GENERIC_WL55CCUX)
 void hal_pin_busy_wait (void) {
     unsigned long start = micros();
 
@@ -339,7 +339,7 @@ void hal_pin_busy_wait (void) {
 // -----------------------------------------------------------------------------
 // SPI
 
-#if defined(RASPBERRY_PI)
+#if (defined(RASPBERRY_PI) || defined(LUCKFOX_LYRA)) && defined(USE_BCMLIB)
 // Raspberry Pi 2:
 //    BCM2835_CORE_CLK_HZ = 250000000
 //    Clock divider / 64 = 3.906 MHz
@@ -366,7 +366,7 @@ u1_t hal_spi (u1_t out) {
     return res;
 }
 
-#elif defined(ARDUINO_GENERIC_WLE5CCUX)
+#elif defined(ARDUINO_GENERIC_WLE5CCUX) || defined(ARDUINO_GENERIC_WL55CCUX)
 #ifdef HAL_SUBGHZ_MODULE_ENABLED
 
 #define SUBGHZ_DEFAULT_TIMEOUT     100U    /* HAL Timeout in ms               */
@@ -567,7 +567,7 @@ u1_t hal_checkTimer (u4_t time) {
     defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_ARCH_ASR6601) || \
     defined(ARDUINO_ARCH_RP2040)  || defined(ARDUINO_ARCH_RP2350)  || \
     defined(ARDUINO_ARCH_RENESAS) || defined(ARDUINO_ARCH_SILABS)  || \
-    defined(ARDUINO_ARCH_CH32)
+    defined(ARDUINO_ARCH_CH32)    || defined(LUCKFOX_LYRA)
 
 // Fix for STM32 HAL based cores.
 

@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-BASICMAC      ?= no
+BASICMAC      ?= yes
 NOMAVLINK     ?= no
 
 GDEY027T91    ?= no
@@ -24,20 +24,21 @@ RTLSDR        ?= no
 HACKRF        ?= no
 MIRISDR       ?= no
 
-BCM2835       ?= yes
-LGPIO         ?= no
+BCM2835       ?= no
+LGPIO         ?= yes
 
 ifeq ($(LGPIO), yes)
   RADIOLIB    ?= yes
 endif
+
+BRIDGE        ?= yes
+NEOPIXEL      ?= yes
 
 CC            = gcc
 CXX           = g++
 
 CFLAGS        = -Winline -MMD -D__BASEFILE__=\"$*\" \
                 -DBCM2835_NO_DELAY_COMPATIBILITY
-pi:           CFLAGS += -DRASPBERRY_PI
-lyra:         CFLAGS += -DLUCKFOX_LYRA
 
 CXXFLAGS      = -std=c++11 $(CFLAGS)
 
@@ -97,12 +98,16 @@ JSON_PATH     = $(LIB_PATH)/ArduinoJson/src
 TCPSRV_PATH   = $(LIB_PATH)/SimpleNetwork/src
 DUMP978_PATH  = $(LIB_PATH)/dump978/src
 GFX_PATH      = $(LIB_PATH)/Adafruit-GFX-Library
-U8G2_PATH     = $(LIB_PATH)/U8g2_for_Adafruit_GFX/src
+U8G2_PATH     = $(LIB_PATH)/U8g2/src
+U8G2_AF_PATH  = $(LIB_PATH)/U8g2_for_Adafruit_GFX/src
 EPD2_PATH     = $(LIB_PATH)/GxEPD2/src
 MODES_PATH    = $(LIB_PATH)/libmodes/src
 APRS_PATH     = $(LIB_PATH)/LibAPRS_ESP32
 LGPIO_PATH    = $(LIB_PATH)/lg-0.1
 RADIOLIB_PATH = $(LIB_PATH)/RadioLib/src
+BRIDGE_PATH   = $(LIB_PATH)/Bridge/src
+BMP280_PATH   = $(LIB_PATH)/Adafruit_BMP280_Library
+WS281X_PATH   = $(LIB_PATH)/rpi_ws281x-1.0.0
 
 ifeq ($(BASICMAC), yes)
 RADIO_PATH    = $(BASICMAC_PATH)
@@ -116,9 +121,10 @@ INCLUDE       = -I$(PRODAT_PATH) -I$(PRORAD_PATH)  -I$(PLATFORM_PATH) \
                 -I$(BCMLIB_PATH) -I$(MAVLINK_PATH) -I$(AIRCRAFT_PATH) \
                 -I$(ADSB_PATH)   -I$(NMEALIB_PATH) -I$(GEOID_PATH)    \
                 -I$(JSON_PATH)   -I$(TCPSRV_PATH)  -I$(DUMP978_PATH)  \
-                -I$(GFX_PATH)    -I$(U8G2_PATH)    -I$(EPD2_PATH)     \
+                -I$(GFX_PATH)    -I$(U8G2_AF_PATH) -I$(EPD2_PATH)     \
                 -I$(MODES_PATH)  -I$(APRS_PATH)    -I$(RADIOLIB_PATH) \
-                -I$(LGPIO_PATH)
+                -I$(LGPIO_PATH)  -I$(BRIDGE_PATH)  -I$(BMP280_PATH)   \
+                -I$(U8G2_PATH)   -I$(WS281X_PATH)
 
 SRC_CPPS      := $(SRC_PATH)/TrafficHelper.cpp \
                  $(SRC_PATH)/Library.cpp
@@ -242,7 +248,14 @@ OBJS          := $(SRC_CPPS:.cpp=.o) \
                  $(GFX_PATH)/Adafruit_GFX.o $(LMIC_PATH)/raspi/Print.o \
                  $(EPD2_PATH)/GxEPD2_EPD.o $(EPD2_PATH)/epd/GxEPD2_270.o \
                  $(EPD2_PATH)/epd/GxEPD2_270_T91.o \
-                 $(U8G2_PATH)/U8g2_for_Adafruit_GFX.o $(U8G2_PATH)/u8g2_fonts.o
+                 $(U8G2_AF_PATH)/U8g2_for_Adafruit_GFX.o \
+                 $(U8G2_AF_PATH)/u8g2_fonts.o \
+                 $(U8G2_PATH)/U8x8lib.o $(U8G2_PATH)/clib/u8x8_8x8.o \
+                 $(U8G2_PATH)/clib/u8x8_setup.o $(U8G2_PATH)/clib/u8x8_byte.o \
+                 $(U8G2_PATH)/clib/u8x8_gpio.o $(U8G2_PATH)/clib/u8x8_display.o \
+                 $(U8G2_PATH)/clib/u8x8_cad.o $(U8G2_PATH)/clib/u8x8_fonts.o \
+                 $(U8G2_PATH)/clib/u8x8_d_ssd1306_128x64_noname.o \
+                 $(BMP280_PATH)/Adafruit_BMP280.o
 
 ifeq ($(BASICMAC), yes)
   OBJS        += $(RADIO_PATH)/lmic/radio-sx127x.o $(RADIO_PATH)/lmic/radio-sx126x.o \
@@ -259,6 +272,20 @@ ifeq ($(RADIOLIB), yes)
                  $(RADIOLIB_PATH)/modules/LR11x0/LR1120.o \
                  $(RADIOLIB_PATH)/modules/LR11x0/LR1121.o
   CFLAGS      += -DUSE_RADIOLIB
+endif
+
+ifeq ($(BRIDGE), yes)
+  OBJS        += $(BRIDGE_PATH)/Bridge.o $(BRIDGE_PATH)/BridgeUdp.o \
+                 $(BRIDGE_PATH)/BridgeServer.o $(BRIDGE_PATH)/BridgeClient.o \
+                 $(BRIDGE_PATH)/HttpClient.o $(BRIDGE_PATH)/Process.o \
+                 $(BRIDGE_PATH)/Mailbox.o $(BRIDGE_PATH)/aWOT.o \
+                 $(RADIO_PATH)/raspi/IPAddress.o $(RADIO_PATH)/raspi/cbuf.o \
+                 $(RADIO_PATH)/raspi/Stream.o
+  CFLAGS      += -DUSE_BRIDGE
+endif
+
+ifeq ($(NEOPIXEL), yes)
+  CFLAGS      += -DUSE_NEOPIXEL
 endif
 
 ifeq ($(NOMAVLINK), no)
@@ -279,6 +306,7 @@ endif
 ifeq ($(LGPIO), yes)
   LIBS        := -L$(LGPIO_PATH) -llgpio -lpthread
   CFLAGS      += -DUSE_LGPIO
+  OBJS        += $(RADIO_PATH)/raspi/Wire.o
 endif
 
 ifeq ($(RTLSDR), yes)
@@ -286,6 +314,8 @@ ifeq ($(RTLSDR), yes)
                  $(MODES_PATH)/sdr/flavor.armv7a_neon_vfpv4.o
   CFLAGS      += -DENABLE_RTLSDR -march=armv7-a -mfpu=neon-vfpv4 -DSTARCH_MIX_ARM
   LIBS        += -lrtlsdr
+  # INCLUDE   += -I/tmp/rtl-sdr-2.0.2/include
+  # LIBS      += -L/tmp/rtl-sdr-2.0.2/build/src -lrtlsdr
 endif
 
 ifeq ($(HACKRF), yes)
@@ -346,8 +376,17 @@ e3uf2:
 e6uf2:
 	$(UF2CONV) $(HEXDIR)/$(BIN_RAW) -c -f 0x540ddf62 -b 0 -o $(HEXDIR)/$(BIN_UF2)
 
+pi:
+ifeq ($(NEOPIXEL), yes)
+  OBJS        += $(WS281X_PATH)/mailbox.o $(WS281X_PATH)/ws2811.o \
+                 $(WS281X_PATH)/pwm.o $(WS281X_PATH)/pcm.o \
+                 $(WS281X_PATH)/dma.o $(WS281X_PATH)/rpihw.o
+endif
+
+pi: CFLAGS += -DRASPBERRY_PI
 pi: bcm lgpio $(PROGNAME) $(PROGNAME)-aux
 
+lyra: CFLAGS += -DLUCKFOX_LYRA
 lyra: bcm lgpio $(PROGNAME)
 
 %.o: %.cpp
