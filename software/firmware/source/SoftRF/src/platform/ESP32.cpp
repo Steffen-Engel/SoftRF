@@ -1876,7 +1876,8 @@ static void ESP32_setup()
           if (imu_qmi8658.getAccelerometer(a_x, a_y, a_z)) {
             if (a_x > OLED_FLIP_THRESHOLD) {
 #if defined(USE_OLED)
-              OLED_flip = 1;
+              if (!settings->aerobaticbox)
+                OLED_flip = 1;
 #endif /* USE_OLED */
             }
           }
