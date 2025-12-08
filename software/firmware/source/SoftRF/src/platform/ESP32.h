@@ -596,15 +596,15 @@ extern const USB_Device_List_t supported_USB_devices[];
 #define EXCLUDE_EGM96
 //#undef USE_NMEALIB
 #define USE_U10_EXT
-#define ENABLE_RECORDER
-#define USE_SA8X8
+//#define ENABLE_RECORDER
+//#define USE_SA8X8
 /* Experimental */
-#define ENABLE_REMOTE_ID
+//#define ENABLE_REMOTE_ID
 //#define EXCLUDE_VOICE_MESSAGE
 //#define USE_ARDUINOBLE
 //#define USE_NIMBLE
 //#undef USE_BLE_MIDI
-#define USE_EPAPER
+//#define USE_EPAPER
 #define EPD_ASPECT_RATIO_1C1
 //#define EPD_ASPECT_RATIO_2C1
 #define USE_EPD_TASK
