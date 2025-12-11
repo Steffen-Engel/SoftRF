@@ -442,6 +442,7 @@ struct rst_info {
 #define USE_SKYVIEW_CFG
 #define USE_RADIOLIB
 //#define EXCLUDE_LR11XX
+#define EXCLUDE_LR20XX
 #define EXCLUDE_CC1101
 #define EXCLUDE_SI443X
 #define EXCLUDE_SI446X
@@ -458,6 +459,7 @@ struct rst_info {
 //#define USE_RADIOHEAD
 #endif /* ARDUINO_USB_CDC_ON_BOOT */
 //#define EXCLUDE_LR11XX
+#define EXCLUDE_LR20XX
 #define EXCLUDE_CC1101
 #define EXCLUDE_SI443X
 #define EXCLUDE_SI446X
@@ -499,6 +501,7 @@ struct rst_info {
 
 //#define USE_RADIOLIB
 //#define EXCLUDE_LR11XX
+#define EXCLUDE_LR20XX
 #define EXCLUDE_CC1101
 #define EXCLUDE_SI443X
 #define EXCLUDE_SI446X

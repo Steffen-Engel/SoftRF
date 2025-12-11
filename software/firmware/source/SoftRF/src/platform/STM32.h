@@ -87,7 +87,7 @@ enum stm32_board_id {
   STM32_SEEED_E5,      /* RFO_HP, 32 MHz TCXO */
   STM32_ACSIP_ST50H,   /* a.k.a. "RAK3172-SiP", RFO_HP, 32 MHz TCXO */
   STM32_RAK_3172_EB,   /* RFO_HP, 32 MHz XTAL (10 ppm) */
-  STM32_LILYGO_T3_1_0,
+  STM32_LILYGO_T3_1_0, /* RFO_HP, 32 MHz XTAL - V1.0 25-10-13 */
 };
 
 enum stm32_boot_action {
@@ -184,6 +184,7 @@ typedef struct stm32_backup_struct {
 #define EXCLUDE_IMU
 //#define USE_RADIOLIB
 //#define EXCLUDE_LR11XX
+#define EXCLUDE_LR20XX
 #define EXCLUDE_CC1101
 #define EXCLUDE_SI443X
 #define EXCLUDE_SI446X
@@ -266,8 +267,8 @@ typedef struct stm32_backup_struct {
 #define UATSerial             Serial
 #define SerialOutput          Serial
 
-#define SOC_ADC_VOLTAGE_DIV   1    /* TBD */
-#define VREFINT               1200 /* TBD */
+#define SOC_ADC_VOLTAGE_DIV   1     /* TBD */
+#define VREFINT               1212  // mV, STM32WLE5 datasheet value
 
 #include "iomap/Olimex_STM32WL.h"
 
@@ -309,6 +310,7 @@ typedef struct stm32_backup_struct {
 #define EXCLUDE_SX1276           //  -  3 kb
 //#define USE_RADIOLIB
 //#define EXCLUDE_LR11XX
+#define EXCLUDE_LR20XX
 #define EXCLUDE_CC1101
 #define EXCLUDE_SI443X
 #define EXCLUDE_SI446X
@@ -329,8 +331,8 @@ typedef struct stm32_backup_struct {
 #define UATSerial             Serial
 #define SerialOutput          Serial
 
-#define SOC_ADC_VOLTAGE_DIV   1    /* TBD */
-#define VREFINT               1200 /* TBD */
+#define SOC_ADC_VOLTAGE_DIV   2.0   // T3-STM32 has 100k/100k voltage divider
+#define VREFINT               1212  // mV, STM32WL55 datasheet value
 
 #include "iomap/LilyGO_T3_STM32.h"
 
@@ -372,6 +374,7 @@ typedef struct stm32_backup_struct {
 #define EXCLUDE_SX1276           //  -  3 kb
 //#define USE_RADIOLIB
 //#define EXCLUDE_LR11XX
+#define EXCLUDE_LR20XX
 #define EXCLUDE_CC1101
 #define EXCLUDE_SI443X
 #define EXCLUDE_SI446X
@@ -380,6 +383,8 @@ typedef struct stm32_backup_struct {
 
 #define USE_TIME_SLOTS
 #define USE_OGN_ENCRYPTION
+
+//#define ENABLE_RECORDER
 
 /* Experimental */
 #define ENABLE_ADSL
@@ -436,6 +441,7 @@ typedef struct stm32_backup_struct {
 #define EXCLUDE_SX1276           //  -  3 kb
 //#define USE_RADIOLIB
 //#define EXCLUDE_LR11XX
+#define EXCLUDE_LR20XX
 #define EXCLUDE_CC1101
 #define EXCLUDE_SI443X
 #define EXCLUDE_SI446X

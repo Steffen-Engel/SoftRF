@@ -36,6 +36,7 @@
 #include "../protocol/data/NMEA.h"
 #include "../protocol/data/GDL90.h"
 #include "../protocol/data/D1090.h"
+#include "../protocol/data/JSON.h"
 
 #if !defined(ARDUINO_WisDuo_RAK3172_Evaluation_Board)
 #include <STM32LowPower.h>
@@ -102,6 +103,25 @@ void HAL_SUBGHZ_MspInit(SUBGHZ_HandleTypeDef * hsubghz)
     __HAL_RCC_SUBGHZSPI_RELEASE_RESET();
 }
 #endif /* HAL_SUBGHZ_MODULE_ENABLED */
+
+#if defined(ARDUINO_GENERIC_WL55CCUX)
+#include <SdFat_Adafruit_Fork.h>
+
+#define SD_CONFIG SdSpiConfig(uSD_SS_pin, SHARED_SPI, SD_SCK_MHZ(8), &SPI)
+#define STM32_JSON_BUFFER_SIZE  1024
+#define LED_BLINK_TIME          100
+
+SdFat uSD;
+StaticJsonBuffer<STM32_JSON_BUFFER_SIZE> STM32_jsonBuffer;
+
+static bool uSD_is_attached  = false;
+static bool FATFS_is_mounted = false;
+
+static uint32_t prev_tx_packets_counter = 0;
+static uint32_t prev_rx_packets_counter = 0;
+static unsigned long tx_led_time_marker = 0;
+static unsigned long rx_led_time_marker = 0;
+#endif /* ARDUINO_GENERIC_WL55CCUX */
 
 #elif defined(ARDUINO_WisDuo_RAK3172_Evaluation_Board)
 
@@ -536,13 +556,42 @@ static void STM32_setup()
 
     lmic_pins.rxe  = SOC_GPIO_ANT_RX;
     lmic_pins.txe  = SOC_GPIO_ANT_TX;
-    STM32_has_TCXO = false; /* TBD */
+    STM32_has_TCXO = false; /* LilyGO T3-STM32 V1.0 25-10-13 */
 
     if (STM32_has_TCXO) {
       lmic_pins.tcxo = SOC_GPIO_TCXO;
       hal_pin_tcxo(1);
       pinMode(lmic_pins.tcxo, OUTPUT);
     }
+
+    {
+      int uSD_SS_pin = SOC_GPIO_PIN_SD_SS;
+
+      /* micro-SD SPI is shared with OLED SPI */
+      SPI.setMISO(SOC_GPIO_PIN_MISO);
+      SPI.setMOSI(SOC_GPIO_PIN_MOSI);
+      SPI.setSCLK(SOC_GPIO_PIN_SCK);
+
+      digitalWrite(uSD_SS_pin, HIGH);
+      pinMode(uSD_SS_pin, OUTPUT);
+
+      uSD_is_attached = uSD.cardBegin(SD_CONFIG);
+
+      if (uSD_is_attached && uSD.card()->cardSize() > 0) {
+        hw_info.storage = STORAGE_CARD;
+
+        FATFS_is_mounted = uSD.volumeBegin();
+      }
+    }
+
+#if SOC_GPIO_RADIO_LED_TX != SOC_UNUSED_PIN
+    pinMode(SOC_GPIO_RADIO_LED_TX, OUTPUT);
+    digitalWrite(SOC_GPIO_RADIO_LED_TX, ! LED_STATE_ON);
+#endif /* SOC_GPIO_RADIO_LED_TX */
+#if SOC_GPIO_RADIO_LED_RX != SOC_UNUSED_PIN
+    pinMode(SOC_GPIO_RADIO_LED_RX, OUTPUT);
+    digitalWrite(SOC_GPIO_RADIO_LED_RX, ! LED_STATE_ON);
+#endif /* SOC_GPIO_RADIO_LED_RX */
 
 #endif /* NUCLEO_L073RZ || GENERIC_WLE5CCUX || GENERIC_WL55CCUX */
 
@@ -632,7 +681,65 @@ static void STM32_post_init()
     Serial.println();
     Serial.flush();
   }
-#endif /* ARDUINO_NUCLEO_L073RZ || ARDUINO_GENERIC_WLE5CCUX */
+#elif defined(ARDUINO_GENERIC_WL55CCUX)
+  if (hw_info.model == SOFTRF_MODEL_LABUBU) {
+    Serial.println();
+    Serial.println(F("SoftRF Labubu Edition Power-on Self Test"));
+    Serial.println();
+    Serial.flush();
+
+    Serial.println(F("Built-in components:"));
+
+    Serial.print(F("RADIO   : "));
+    Serial.println(hw_info.rf      == RF_IC_SX1262       ? F("PASS") : F("FAIL"));
+    Serial.print(F("CLK SRC : "));
+    Serial.println(STM32_has_TCXO                        ? F("TCXO") : F("XTAL"));
+    Serial.print(F("DISPLAY : "));
+    Serial.println(hw_info.display != DISPLAY_NONE       ? F("PASS") : F("FAIL"));
+
+    Serial.println();
+    Serial.println(F("External components:"));
+    Serial.print(F("GNSS    : "));
+    Serial.println(hw_info.gnss    != GNSS_MODULE_NONE   ? F("PASS") : F("N/A"));
+    Serial.print(F("BMx280  : "));
+    Serial.println(hw_info.baro    == BARO_MODULE_BMP280 ? F("PASS") : F("N/A"));
+
+    Serial.println();
+    Serial.println(F("Power-on Self Test is complete."));
+    Serial.println();
+    Serial.flush();
+
+    if (!uSD_is_attached) {
+      Serial.println(F("WARNING: unable to attach micro-SD card."));
+    } else {
+      // The number of 512 byte sectors in the card
+      // or zero if an error occurs.
+      size_t cardSize = uSD.card()->cardSize();
+
+      if (cardSize == 0) {
+        Serial.println(F("WARNING: invalid micro-SD card size."));
+      } else {
+        uint8_t cardType = uSD.card()->type();
+
+        Serial.print(F("SD Card Type: "));
+        if(cardType == SD_CARD_TYPE_SD1){
+            Serial.println(F("V1"));
+        } else if(cardType == SD_CARD_TYPE_SD2){
+            Serial.println(F("V2"));
+        } else if(cardType == SD_CARD_TYPE_SDHC){
+            Serial.println(F("SDHC"));
+        } else {
+            Serial.println(F("UNKNOWN"));
+        }
+
+        Serial.print("SD Card Size: ");
+        Serial.print(cardSize / (2 * 1024));
+        Serial.println(" MB");
+      }
+    }
+    Serial.println();
+  }
+#endif /* NUCLEO_L073RZ || GENERIC_WLE5CCUX || GENERIC_WL55CCUX */
 
   Serial.println(F("Data output device(s):"));
 
@@ -704,6 +811,38 @@ static void STM32_loop()
     IMU_Time_Marker = millis();
   }
 #endif /* EXCLUDE_IMU */
+
+#if defined(ARDUINO_GENERIC_WL55CCUX)
+#if SOC_GPIO_RADIO_LED_TX != SOC_UNUSED_PIN
+  if (digitalRead(SOC_GPIO_RADIO_LED_TX) != LED_STATE_ON) {
+    if (tx_packets_counter != prev_tx_packets_counter) {
+      digitalWrite(SOC_GPIO_RADIO_LED_TX, LED_STATE_ON);
+      prev_tx_packets_counter = tx_packets_counter;
+      tx_led_time_marker = millis();
+    }
+  } else {
+    if (millis() - tx_led_time_marker > LED_BLINK_TIME) {
+      digitalWrite(SOC_GPIO_RADIO_LED_TX, ! LED_STATE_ON);
+      prev_tx_packets_counter = tx_packets_counter;
+    }
+  }
+#endif /* SOC_GPIO_RADIO_LED_TX */
+
+#if SOC_GPIO_RADIO_LED_RX != SOC_UNUSED_PIN
+  if (digitalRead(SOC_GPIO_RADIO_LED_RX) != LED_STATE_ON) {
+    if (rx_packets_counter != prev_rx_packets_counter) {
+      digitalWrite(SOC_GPIO_RADIO_LED_RX, LED_STATE_ON);
+      prev_rx_packets_counter = rx_packets_counter;
+      rx_led_time_marker = millis();
+    }
+  } else {
+    if (millis() - rx_led_time_marker > LED_BLINK_TIME) {
+      digitalWrite(SOC_GPIO_RADIO_LED_RX, ! LED_STATE_ON);
+      prev_rx_packets_counter = rx_packets_counter;
+    }
+  }
+#endif /* SOC_GPIO_RADIO_LED_RX */
+#endif /* ARDUINO_GENERIC_WL55CCUX */
 }
 
 static void STM32_fini(int reason)
@@ -719,6 +858,17 @@ static void STM32_fini(int reason)
 #endif /* EXCLUDE_IMU */
   }
 #endif /* ARDUINO_NUCLEO_L073RZ */
+
+#if defined(ARDUINO_GENERIC_WL55CCUX)
+#if SOC_GPIO_RADIO_LED_TX != SOC_UNUSED_PIN
+  digitalWrite(SOC_GPIO_RADIO_LED_TX, ! LED_STATE_ON);
+  pinMode(SOC_GPIO_RADIO_LED_TX, INPUT);
+#endif /* SOC_GPIO_RADIO_LED_TX */
+#if SOC_GPIO_RADIO_LED_RX != SOC_UNUSED_PIN
+  digitalWrite(SOC_GPIO_RADIO_LED_RX, ! LED_STATE_ON);
+  pinMode(SOC_GPIO_RADIO_LED_RX, INPUT);
+#endif /* SOC_GPIO_RADIO_LED_RX */
+#endif /* ARDUINO_GENERIC_WL55CCUX */
 
   Serial_GNSS_In.end();
   Wire.end();
@@ -864,6 +1014,48 @@ static bool STM32_EEPROM_begin(size_t size)
 static void STM32_EEPROM_extension(int cmd)
 {
   if (cmd == EEPROM_EXT_LOAD) {
+#if defined(ARDUINO_GENERIC_WL55CCUX)
+    if ( uSD_is_attached && FATFS_is_mounted ) {
+      File32 file = uSD.open(SETTINGS_JSON_PATH, FILE_READ);
+
+      if (file) {
+        // StaticJsonBuffer<STM32_JSON_BUFFER_SIZE> STM32_jsonBuffer;
+
+        JsonObject &root = STM32_jsonBuffer.parseObject(file);
+
+        if (root.success()) {
+          JsonVariant msg_class = root["class"];
+
+          if (msg_class.success()) {
+            const char *msg_class_s = msg_class.as<char*>();
+
+            if (!strcmp(msg_class_s,"SOFTRF")) {
+              parseSettings  (root);
+
+#if defined(ENABLE_PROL)
+              JsonVariant fromcall = root["fromcall"];
+              if (fromcall.success()) {
+                const char * fromcall_s = fromcall.as<char*>();
+                if (strlen(fromcall_s) < sizeof(APRS_FromCall)) {
+                  strncpy(APRS_FromCall, fromcall_s, sizeof(APRS_FromCall));
+                }
+              }
+              JsonVariant tocall = root["tocall"];
+              if (tocall.success()) {
+                const char * tocall_s = tocall.as<char*>();
+                if (strlen(tocall_s) < sizeof(APRS_ToCall)) {
+                  strncpy(APRS_ToCall, tocall_s, sizeof(APRS_ToCall));
+                }
+              }
+#endif /* ENABLE_PROL */
+            }
+          }
+        }
+        file.close();
+      }
+    }
+#endif /* ARDUINO_GENERIC_WL55CCUX */
+
     if (settings->mode != SOFTRF_MODE_NORMAL
 #if !defined(EXCLUDE_TEST_MODE)
         &&
