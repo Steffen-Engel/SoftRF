@@ -107,7 +107,9 @@
       !defined(CONFIG_IDF_TARGET_ESP32P4)
 #define USE_NEOPIXELBUS_LIBRARY
 #else
+#if !defined(EXCLUDE_LED_RING)
 #define USE_ADAFRUIT_NEO_LIBRARY
+#endif
 #endif /* CONFIG_IDF_TARGET_ESP32C6 */
 
 #if !defined(EXCLUDE_LED_RING)
@@ -435,7 +437,7 @@ struct rst_info {
 #define USE_OLED
 #define EXCLUDE_OLED_049
 //#define EXCLUDE_OLED_BARO_PAGE
-#define USE_TFT
+//#define USE_TFT
 #define USE_NMEA_CFG
 #define USE_BASICMAC
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
