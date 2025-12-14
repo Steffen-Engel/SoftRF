@@ -1129,6 +1129,7 @@ static void ESP32_setup()
       /* Wake up Quectel L76K GNSS */
       digitalWrite(SOC_GPIO_PIN_S3_GNSS_WAKE, HIGH);
       pinMode(SOC_GPIO_PIN_S3_GNSS_WAKE, OUTPUT);
+      digitalWrite(SOC_GPIO_PIN_S3_GNSS_WAKE, HIGH);
 
       Wire1.beginTransmission(PCF8563_SLAVE_ADDRESS);
       bool esp32_has_rtc = (Wire1.endTransmission() == 0);
