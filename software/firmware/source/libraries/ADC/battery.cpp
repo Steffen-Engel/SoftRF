@@ -170,6 +170,11 @@ uint16_t adc2_read_voltage() {
 
 #else
 
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
+uint16_t adc1_read_voltage () {return 0;}
+uint16_t adc2_read_voltage () {return 0;}
+
+#else
 static uint8_t adc_pin = 1;
 
 void calibrate_voltage(uint8_t pin, adc_attenuation_t atten) {
@@ -191,6 +196,6 @@ uint16_t adc1_read_voltage() {
 
   return (uint16_t) adc_reading;
 }
-
+#endif
 #endif /* ESP_IDF_VERSION_MAJOR */
 #endif /* ESP32 */

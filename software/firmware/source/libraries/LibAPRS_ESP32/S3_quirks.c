@@ -3,6 +3,9 @@
 
 #include <Arduino.h>
 
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
+#else
+
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
 #include "hal/i2s_hal.h"
 #include "esp_err.h"
@@ -76,3 +79,5 @@ int S3_i2s_mclk_quirk(int i2s_num, uint16_t *a, uint16_t *b, uint16_t *c)
 }
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
 #endif /* ESP32 */
+
+#endif
