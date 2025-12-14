@@ -16,6 +16,7 @@
 - [RP2040](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#rp2040)
 - [RP2350](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#rp2350)
 - [STM32WLE5](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#stm32wle5)
+- [STM32WL55](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#stm32wl55)
 - [CH32](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#ch32)
 
 ## List by Model
@@ -27,22 +28,26 @@ Model|Instructions|Firmware folder
 [Ham Edition](https://github.com/lyusupov/SoftRF/wiki/Ham-Edition)|[ESP32-S3](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#esp32-s3)|[ESP32S3](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/ESP32S3/SoftRF/MassStorage)
 [Midi Edition](https://github.com/lyusupov/SoftRF/wiki/Midi-Edition)|[ESP32-S3](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#esp32-s3)|[ESP32S3](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/ESP32S3/SoftRF/MassStorage)
 [Gizmo Edition](https://github.com/lyusupov/SoftRF/wiki/Gizmo-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[Web Flasher](https://github.com/lyusupov/SoftRF/wiki/Gizmo-Edition#quick-start)|[ESP32S3](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/ESP32S3/SoftRF/OTA)
+[Airventure Edition](https://github.com/lyusupov/SoftRF/wiki/Airventure-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[Web Flasher](https://github.com/lyusupov/SoftRF/wiki/Airventure-Edition#quick-start)|TODO
 [Nano Edition](https://github.com/lyusupov/SoftRF/wiki/Nano-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[ESP32-C3](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#esp32-c3)|[ESP32C3](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/ESP32C3/SoftRF)
 [Badge Edition](https://github.com/lyusupov/SoftRF/wiki/Badge-Edition)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|[nRF52840](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/nRF52840)
 [Handheld Edition](https://github.com/lyusupov/SoftRF/wiki/Handheld-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|[nRF52840](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/nRF52840)
-[Card Edition](https://github.com/lyusupov/SoftRF/wiki/Card-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|[nRF52840](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/nRF52840)
-[Cozy Edition](https://github.com/lyusupov/SoftRF/wiki/Cozy-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|[nRF52840](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/nRF52840)
+[Card Edition](https://github.com/lyusupov/SoftRF/wiki/Card-Edition)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|[nRF52840](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/nRF52840)
+[Cozy Edition](https://github.com/lyusupov/SoftRF/wiki/Cozy-Edition)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|[nRF52840](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/nRF52840)
+[Solaris Edition](https://github.com/lyusupov/SoftRF/wiki/Solaris-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|TODO
+[Pocket Edition](https://github.com/lyusupov/SoftRF/wiki/Pocket-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[nRF52840](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nrf52840)|TODO
 [Dongle Edition](https://github.com/lyusupov/SoftRF/wiki/Dongle-Edition)|[S76G](https://github.com/lyusupov/SoftRF/wiki/AcSiP-S7xG-flashing-instructions#s76g)|[S76G](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/STM32/S76G)
 [ES Edition](https://github.com/lyusupov/SoftRF/wiki/ES-Edition)|[LPC4320](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#lpc4320)|[LPC4320](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/LPC4320)
 [Lego Edition](https://github.com/lyusupov/SoftRF/wiki/Lego-Edition)|[RP2040](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#rp2040)|[RP2040](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/RP2040/SoftRF)
 [Balkan Edition](https://github.com/lyusupov/SoftRF/wiki/Balkan-Edition)|[STM32WLE5](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#stm32wle5)|[STM32WLE5](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/STM32/WLE5)
+[Labubu Edition](https://github.com/lyusupov/SoftRF/wiki/Labubu-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|[STM32WL55](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#stm32wl55)|TODO
 [Uni Edition](https://github.com/lyusupov/SoftRF/wiki/Uni-Edition)|[CC1352R](https://github.com/lyusupov/SoftRF/wiki/Uni-Edition.-Firmware-maintenance-procedures#initial-installation)|[CC1352](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/CC13XX/CC1352)
 [Mini Edition](https://github.com/lyusupov/SoftRF/wiki/Mini-Edition)|[CubeCell](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#cubecell)|[ASR650x](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/ASR650x)
 [Octave Concept](https://github.com/lyusupov/SoftRF/wiki/Octave-Concept)|[ASR6601](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#asr6601)|[ASR6601](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/ASR6601)
 [Raspberry Edition](https://github.com/lyusupov/SoftRF/wiki/Raspberry-Edition)||[RaspberryPi](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/RaspberryPi)
 [UAV Edition](https://github.com/lyusupov/SoftRF/wiki/UAV-Edition)|[NodeMCU](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/binaries/README.md#nodemcu)|[NodeMCU](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/NodeMCU/SoftRF)
 [Academy Edition](https://github.com/lyusupov/SoftRF/wiki/Academy-Edition)|N/A<sup>1</sup>|N/A<sup>1</sup>
-[Eco Edition](https://github.com/lyusupov/SoftRF/wiki/Eco-Edition)&nbsp;![](https://github.com/lyusupov/SoftRF/raw/master/documents/images/new-icon.jpg)|N/A<sup>2</sup>|N/A<sup>2</sup>
+[Eco Edition](https://github.com/lyusupov/SoftRF/wiki/Eco-Edition)|N/A<sup>2</sup>|N/A<sup>2</sup>
 
 <sup>1</sup> - since primary purpose of the **Academy Edition** is education - we do not provide firmware binaries for this model. Students and a teacher are responsible to [build and install the SoftRF firmware](https://github.com/lyusupov/SoftRF/blob/master/software/firmware/source/README.md) ( [SAMD21](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/source#samd21) or [RA4M1](https://github.com/lyusupov/SoftRF/edit/master/software/firmware/source#ra4m1) ) from source code by themselves ;<br>
 <sup>2</sup> - users of **Eco Edition** should build and install the SoftRF firmware from source code as well.<br>
@@ -309,6 +314,38 @@ C:\OpenOCD-20211118-0.11.0>.\bin\openocd.exe -f interface/cmsis-dap.cfg -c "cmsi
 Example:<br>
 
 ![](https://github.com/lyusupov/SoftRF/blob/master/documents/images/Balkan-7.jpg)
+
+<br>
+
+## STM32WL55
+
+1. Download and install **STM32CubeProgrammer** tool for Windows from this location: https://www.st.com/en/development-tools/stm32cubeprog.html ;
+2. Download an appropriate version of SoftRF firmware from [this location](https://github.com/lyusupov/SoftRF/tree/master/software/firmware/binaries/STM32/WL55) ;
+3. Connect the SoftRF Labubu Edition device to your PC by means of a USB cable ;
+4. Enter into Device Firmware Update (DFU) mode by
+    * press device `BOOT` button ,
+    * press `RST`button ,
+    * release `RST`button ,
+    * release `BOOT`button
+6. Open up  **STM32CubeProgrammer** application
+    * Select UART download mode
+    * Select COM port the device is connected to
+    * Select Negative pulse mode for RTS and DTR
+    * Clock onto `Connect` button
+
+<img src="https://github.com/Xinyuan-LilyGO/T3-STM32/blob/master/docs/image/image-5.png" width="800">
+
+<br>
+
+7. When the device gets connectected successfully - click on the `+` sign to add the firmware binary been downloaded at Step 2
+
+<img src="https://github.com/Xinyuan-LilyGO/T3-STM32/blob/master/docs/image/image-6.png" width="800">
+
+<br>
+
+8. Click `Download` to start the device firmware update
+   
+<img src="https://learn.rakwireless.com/hc/article_attachments/26687641302423" width="800">
 
 <br>
 
