@@ -251,6 +251,7 @@ char *Root_content() {
   }
 #endif /* ENABLE_RECORDER */
 
+  if (!settings->aerobaticbox)  // hide firmware update on CIVA HMD
   /* SoC specific part 1 */
   if (SoC->id != SOC_RP2040      && SoC->id != SOC_RP2350_ARM &&
       SoC->id != SOC_RP2350_RISC && SoC->id != SOC_RA4M1      &&
