@@ -231,8 +231,9 @@ void WiFi_setup()
 
   if (settings->aerobaticbox)
   {
-	host_name = "SoftRF-";
-    host_name += String((0xAEAB00+settings->CIVA_HMD_ID), HEX);
+    char buffer[20];
+    snprintf(buffer, sizeof(buffer), "CIVA_HMD-%03d", settings->CIVA_HMD_ID);
+    host_name = buffer;
   }
 
   if (SoC->id == SOC_ESP8266    || SoC->id == SOC_RP2040 ||
