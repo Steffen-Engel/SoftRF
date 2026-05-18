@@ -1,6 +1,6 @@
 /*
  * Platform_ASR66.cpp
- * Copyright (C) 2022-2025 Linar Yusupov
+ * Copyright (C) 2022-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -591,6 +591,11 @@ static void ASR66_Button_fini()
 #endif /* SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN */
 }
 
+static void ASR66_TTS(char *message)
+{
+
+}
+
 const SoC_ops_t ASR66_ops = {
   SOC_ASR66,
   "ASR66",
@@ -636,6 +641,7 @@ const SoC_ops_t ASR66_ops = {
   ASR66_Button_setup,
   ASR66_Button_loop,
   ASR66_Button_fini,
+  ASR66_TTS,
   NULL
 };
 

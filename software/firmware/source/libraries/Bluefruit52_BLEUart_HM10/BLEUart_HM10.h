@@ -38,7 +38,13 @@
 #define BLEUART_HM10_H_
 
 #include "bluefruit_common.h"
+
+#if defined(ARDUINO_ARCH_NRF52)
 #include "utility/adafruit_fifo.h"
+#endif /* ARDUINO_ARCH_NRF52 */
+#if defined(ARDUINO_ARCH_NRF54L15CLEAN)
+#include "adafruit_fifo.h"
+#endif /* ARDUINO_ARCH_NRF54L15CLEAN */
 
 #include "BLECharacteristic.h"
 #include "BLEService.h"

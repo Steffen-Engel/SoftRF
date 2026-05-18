@@ -1,6 +1,6 @@
 /*
  * EEPROMHelper.cpp
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,10 @@ void EEPROM_store()    {}
 
 eeprom_t eeprom_block;
 settings_t *settings;
+
+#if defined(USE_EXT_EEPROM)
+extern JC_EEPROM EEPROM;
+#endif /* USE_EXT_EEPROM */
 
 void EEPROM_setup()
 {
@@ -86,7 +90,8 @@ void EEPROM_defaults()
                                               SOFTRF_MODE_UAV : SOFTRF_MODE_NORMAL;
   eeprom_block.field.settings.rf_protocol   = hw_info.model == SOFTRF_MODEL_BRACELET ||
                                               hw_info.model == SOFTRF_MODEL_CARD     ||
-                                              hw_info.model == SOFTRF_MODEL_POCKET ?
+                                              hw_info.model == SOFTRF_MODEL_POCKET   ||
+                                              hw_info.model == SOFTRF_MODEL_RUGGED ?
                                               RF_PROTOCOL_FANET :
                                               hw_info.model == SOFTRF_MODEL_ES ?
                                               RF_PROTOCOL_ADSB_1090 :
@@ -105,7 +110,9 @@ void EEPROM_defaults()
                                               RF_TX_POWER_OFF :
                                               hw_info.model == SOFTRF_MODEL_HAM ?
                                               RF_TX_POWER_LOW : RF_TX_POWER_FULL;
-  eeprom_block.field.settings.bluetooth     = BLUETOOTH_NONE;
+  eeprom_block.field.settings.bluetooth     = hw_info.model == SOFTRF_MODEL_AIRVENTURE ||
+                                              hw_info.model == SOFTRF_MODEL_CONCORDE ?
+                                              BLUETOOTH_LE_HM10_SERIAL : BLUETOOTH_NONE;
   eeprom_block.field.settings.alarm         = TRAFFIC_ALARM_DISTANCE;
 
   /*
@@ -124,8 +131,9 @@ void EEPROM_defaults()
       eeprom_block.field.settings.volume    = BUZZER_VOLUME_FULL;
     } else
 #endif /* USE_PWM_SOUND */
-    if (hw_info.model == SOFTRF_MODEL_GIZMO ||
-        hw_info.model == SOFTRF_MODEL_AIRVENTURE) {
+    if (hw_info.model == SOFTRF_MODEL_GIZMO      ||
+        hw_info.model == SOFTRF_MODEL_AIRVENTURE ||
+        hw_info.model == SOFTRF_MODEL_CONCORDE) {
       eeprom_block.field.settings.volume    = BUZZER_VOLUME_FULL;
     } else {
       eeprom_block.field.settings.volume    = BUZZER_OFF;
@@ -152,12 +160,16 @@ void EEPROM_defaults()
                                            NMEA_UART : NMEA_USB;
 #elif defined(ARDUINO_ARCH_SILABS)
   eeprom_block.field.settings.nmea_out   = NMEA_UART;
+#elif defined(ARDUINO_ARCH_NRF54L15CLEAN)
+  eeprom_block.field.settings.nmea_out   = NMEA_BLUETOOTH;
 #else
   eeprom_block.field.settings.nmea_out   = hw_info.model == SOFTRF_MODEL_BADGE    ||
                                            hw_info.model == SOFTRF_MODEL_CARD     ||
                                            hw_info.model == SOFTRF_MODEL_COZY     ||
                                            hw_info.model == SOFTRF_MODEL_HANDHELD ||
+                                           hw_info.model == SOFTRF_MODEL_SOLARIS  ||
                                            hw_info.model == SOFTRF_MODEL_POCKET   ||
+                                           hw_info.model == SOFTRF_MODEL_RUGGED   ||
                                            hw_info.model == SOFTRF_MODEL_DECENT   ?
                                            NMEA_BLUETOOTH :
                                            hw_info.model == SOFTRF_MODEL_ES        ?

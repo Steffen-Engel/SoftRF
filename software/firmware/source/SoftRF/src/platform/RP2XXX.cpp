@@ -1,6 +1,6 @@
 /*
  * Platform_RP2XXX.cpp
- * Copyright (C) 2022-2025 Linar Yusupov
+ * Copyright (C) 2022-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1220,6 +1220,11 @@ static void RP2xxx_Button_fini()
 #endif /* USE_BOOTSEL_BUTTON */
 }
 
+static void RP2xxx_TTS(char *message)
+{
+
+}
+
 static void RP2xxx_USB_setup()
 {
 #if !defined(ARDUINO_ARCH_MBED)
@@ -1602,6 +1607,7 @@ const SoC_ops_t RP2xxx_ops = {
   RP2xxx_Button_setup,
   RP2xxx_Button_loop,
   RP2xxx_Button_fini,
+  RP2xxx_TTS,
   NULL
 };
 

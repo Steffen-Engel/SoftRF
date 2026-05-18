@@ -32,7 +32,11 @@ Recommended:
 - [ ]   Uni
 - [ ]   Ham
 - [ ]   Card
+- [ ]   Concorde
 - [ ]   Handheld
+- [ ]   Airventure
+- [ ]   Solaris
+- [ ]   Pocket
 - [ ]   Nano
 - [ ]   Cozy
 - [ ]   Midi

@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 /** The power-of-2 chunk size of a buffer allocation */
-#if !defined(ESP8266)  && !defined(ESP32)
+#if !defined(ESP8266)  && !defined(ESP32) && !defined(ARDUINO_ARCH_NRF54L15CLEAN)
 #define NMEALIB_BUFFER_CHUNK_SIZE (4096UL)
 #else
 #define NMEALIB_BUFFER_CHUNK_SIZE (256UL)

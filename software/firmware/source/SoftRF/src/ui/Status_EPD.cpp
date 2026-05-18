@@ -1,6 +1,6 @@
 /*
  * View_Status_EPD.cpp
- * Copyright (C) 2019-2025 Linar Yusupov
+ * Copyright (C) 2019-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -249,8 +249,9 @@ static void EPD_Draw_NavBoxes()
 #if defined(EPD_ASPECT_RATIO_2C1)
     display->setCursor(navbox6.x + 55, navbox6.y + 30);
 #endif /* EPD_ASPECT_RATIO_2C1 */
-    if (settings->mode        == SOFTRF_MODE_RECEIVER ||
-        settings->rf_protocol == RF_PROTOCOL_ADSB_UAT ||
+    if (settings->mode        == SOFTRF_MODE_RECEIVER  ||
+        settings->rf_protocol == RF_PROTOCOL_ADSB_1090 ||
+        settings->rf_protocol == RF_PROTOCOL_ADSB_UAT  ||
         settings->txpower     == RF_TX_POWER_OFF) {
       display->print("OFF");
     } else {

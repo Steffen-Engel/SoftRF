@@ -1,6 +1,6 @@
 /*
  * SoftRF(.ino) firmware
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * Author: Linar Yusupov, linar.r.yusupov@gmail.com
  *
@@ -38,7 +38,7 @@
  *   EasyLink library is developed by Robert Wessels and Tony Cave
  *   Dump978 library is developed by Oliver Jowett
  *   FEC library is developed by Phil Karn
- *   PCF8563, AXP20X, XPowersLib and SensorsLib libraries are developed by Lewis He
+ *   PCF8563, AXP20X, XPowersLib and SensorLib libraries are developed by Lewis He
  *   Arduino Core for STM32 is developed by Frederic Pillon
  *   TFT library is developed by Bodmer
  *   STM32duino Low Power and RTC libraries are developed by Wi6Labs
@@ -73,6 +73,8 @@
  *   ArduinoBLE library is developed by Arduino LLC
  *   Arduino Core for CH32 is developed by Tianpei Lee
  *   QMA6100P library is developed by Tristan Alderson
+ *   Arduino Core for nRF54L15 is developed by Loren Bufanu
+ *   Arduino EEPROM library is developed by Jack Christensen
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -148,6 +150,10 @@ hardware_info_t hw_info = {
   .imu      = IMU_NONE,
   .mag      = MAG_NONE,
   .pmu      = PMU_NONE,
+  .audio    = AUDIO_NONE,
+  .touch    = TOUCH_NONE,
+  .haptic   = HAPTIC_NONE,
+  .camera   = CAMERA_NONE,
 };
 
 unsigned long LEDTimeMarker = 0;
@@ -166,7 +172,7 @@ void setup()
   Serial.print(SoC->name);
   Serial.print(F(" FW.REV: " SOFTRF_FIRMWARE_VERSION " DEV.ID: "));
   Serial.println(String(SoC->getChipId(), HEX));
-  Serial.println(F("Copyright (C) 2015-2025 Linar Yusupov. All rights reserved."));
+  Serial.println(F("Copyright (C) 2015-2026 Linar Yusupov. All rights reserved."));
 
   SERIAL_FLUSH();
 

@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2012 by Salvatore Sanfilippo <antirez@gmail.com>
  * Copyright (C) 2017, Thomas Watson
- * Copyright (C) 2021-2025 Linar Yusupov
+ * Copyright (C) 2021-2026 Linar Yusupov
  *
  * All rights reserved.
  *
@@ -73,22 +73,36 @@ typedef long long ms_time_t;
 #undef time
 extern time_t now_C();
 #define time(x) now_C()
-#endif
-
-#define USE_BYTE_MAG
-#define MODE_S_INTERACTIVE_TTL 10 /* TTL before being removed */
 
 #ifdef DFU_MODE
 #ifdef MAGLUT_IN_ROM
 #undef MAGLUT_IN_ROM
-#endif
+#endif /* MAGLUT_IN_ROM */
 #ifndef MAG_LUT_128X128
 #define MAG_LUT_128X128
-#endif
-#endif
+#endif /* MAG_LUT_128X128 */
+#endif /* DFU_MODE */
+#endif /* HACKRF_ONE */
+
+#if defined(ARDUINO)
+#undef time
+#ifndef __cplusplus
+extern time_t now_C();
+#else
+extern "C" time_t now_C();
+#endif /* __cplusplus */
+#define time(x) now_C()
+#endif /* ARDUINO */
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+#define MAGLUT_IN_ROM
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
+
+#define USE_BYTE_MAG
+#define MODE_S_INTERACTIVE_TTL 10 /* TTL before being removed */
 
 typedef unsigned long ms_time_t;
-#endif
+#endif /* ! HACKRF_ONE && ! ARDUINO */
 
 #if defined(USE_BYTE_MAG)
 typedef uint8_t mag_t;

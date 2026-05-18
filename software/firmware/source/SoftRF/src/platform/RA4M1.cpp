@@ -1,6 +1,6 @@
 /*
  * Platform_RA4M1.cpp
- * Copyright (C) 2024-2025 Linar Yusupov
+ * Copyright (C) 2024-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -791,6 +791,11 @@ static void RA4M1_Button_fini()
 #endif /* SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN */
 }
 
+static void RA4M1_TTS(char *message)
+{
+
+}
+
 static void RA4M1_USB_setup() {
 #if defined(NO_USB)
   USBSerial.begin(SERIAL_OUT_BR);
@@ -941,6 +946,7 @@ const SoC_ops_t RA4M1_ops = {
   RA4M1_Button_setup,
   RA4M1_Button_loop,
   RA4M1_Button_fini,
+  RA4M1_TTS,
   NULL
 };
 

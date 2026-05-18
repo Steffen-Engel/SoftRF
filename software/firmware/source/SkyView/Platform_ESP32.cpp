@@ -1,6 +1,6 @@
 /*
  * Platform_ESP32.cpp
- * Copyright (C) 2019-2025 Linar Yusupov
+ * Copyright (C) 2019-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,6 +64,7 @@
 #if defined(ESP_IDF_VERSION_MAJOR) && ESP_IDF_VERSION_MAJOR>=5
 #include <esp_mac.h>
 #include <esp_flash.h>
+#include <esp_wifi_ap_get_sta_list.h>
 #endif /* ESP_IDF_VERSION_MAJOR */
 
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
@@ -382,6 +383,12 @@ const uint16_t ESP32SX_Device_Version = SKYVIEW_USB_FW_VERSION;
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
 #include "esp_check.h"
 #include "es8311.h"
+#include <ExtensionIOXL9555.hpp>
+#include <GaugeBQ27220.hpp>
+
+ExtensionIOXL9555 *xl9535 = nullptr;
+GaugeBQ27220      bq_27220;
+bool ESP32_has_gpio_extension = false;
 
 #define EXAMPLE_SAMPLE_RATE     11025
 #define EXAMPLE_VOICE_VOLUME    75 // 0 - 100
@@ -482,37 +489,40 @@ static void ESP32_setup()
   uint32_t flash_id = ESP32_getFlashId();
 
   /*
-   *    Board         |   Module         |  Flash memory IC
-   *  ----------------+------------------+--------------------
-   *  DoIt ESP32      | WROOM            | GIGADEVICE_GD25Q32
-   *  TTGO T3  V2.0   | PICO-D4 IC       | GIGADEVICE_GD25Q32
-   *  TTGO T3  V2.1.6 | PICO-D4 IC       | GIGADEVICE_GD25Q32
-   *  TTGO T22 V06    |                  | WINBOND_NEX_W25Q32_V
-   *  TTGO T22 V08    |                  | WINBOND_NEX_W25Q32_V
-   *  TTGO T22 V11    |                  | BOYA_BY25Q32AL
-   *  TTGO T22 V12    |                  | WINBOND_NEX_W25Q32_V
-   *  TTGO T8  V1.8   | WROVER           | GIGADEVICE_GD25LQ32
-   *  TTGO T8 S2 V1.1 |                  | WINBOND_NEX_W25Q32_V
-   *  TTGO T5S V1.9   |                  | WINBOND_NEX_W25Q32_V
-   *  TTGO T5S V2.8   |                  | BOYA_BY25Q32AL
-   *  TTGO T5  4.7    | WROVER-E         | XMC_XM25QH128C
-   *  TTGO T-Watch    |                  | WINBOND_NEX_W25Q128_V
-   *  Ai-T NodeMCU-S3 | ESP-S3-12K       | GIGADEVICE_GD25Q64C
-   *  TTGO T-Dongle   |                  | BOYA_BY25Q32AL
-   *  TTGO S3 Core    |                  | GIGADEVICE_GD25Q64C
-   *  TTGO T-01C3     |                  | BOYA_BY25Q32AL
-   *                  | ESP-C3-12F       | XMC_XM25QH32B
-   *  LilyGO T-TWR    | WROOM-1-N16R8    | GIGADEVICE_GD25Q128
-   *  Heltec Tracker  |                  | GIGADEVICE_GD25Q64
-   *                  | WT0132C6-S5      | ZBIT_ZB25VQ32B
-   *  LilyGO T3-C6    | ESP32-C6-MINI    | XMC_XM25QH32B
-   *  LilyGO T3-S3-EP | ESP32-S3-MINI    | XMC_XM25QH32B
-   *  LilyGO T3-S3-OL | ESP32-S3FH4R2    |
-   *  Elecrow TN-M2   | ESP32-S3-N4R8    | ZBIT_ZB25VQ32B
-   *  Elecrow TN-M5   | ESP32-S3-N4R8    |
-   *  Ebyte EoRa-HUB  | ESP32-S3FH4R2    |
-   *  WT99P4C5-S1 CPU | WT0132P4-A1      | ZBIT_ZB25VQ128ASIG
-   *  WT99P4C5-S1 NCU | ESP32-C5-WROOM-1 | XMC_XM25QH64B
+   *    Board             |   Module         |  Flash memory IC
+   *  --------------------+------------------+--------------------
+   *  DoIt ESP32          | WROOM            | GIGADEVICE_GD25Q32
+   *  TTGO T3  V2.0       | PICO-D4 IC       | GIGADEVICE_GD25Q32
+   *  TTGO T3  V2.1.6     | PICO-D4 IC       | GIGADEVICE_GD25Q32
+   *  TTGO T22 V06        |                  | WINBOND_NEX_W25Q32_V
+   *  TTGO T22 V08        |                  | WINBOND_NEX_W25Q32_V
+   *  TTGO T22 V11        |                  | BOYA_BY25Q32AL
+   *  TTGO T22 V12        |                  | WINBOND_NEX_W25Q32_V
+   *  TTGO T8  V1.8       | WROVER           | GIGADEVICE_GD25LQ32
+   *  TTGO T8 S2 V1.1     |                  | WINBOND_NEX_W25Q32_V
+   *  TTGO T5S V1.9       |                  | WINBOND_NEX_W25Q32_V
+   *  TTGO T5S V2.8       |                  | BOYA_BY25Q32AL
+   *  TTGO T5  4.7        | WROVER-E         | XMC_XM25QH128C
+   *  TTGO T-Watch        |                  | WINBOND_NEX_W25Q128_V
+   *  Ai-T NodeMCU-S3     | ESP-S3-12K       | GIGADEVICE_GD25Q64C
+   *  TTGO T-Dongle       |                  | BOYA_BY25Q32AL
+   *  TTGO S3 Core        |                  | GIGADEVICE_GD25Q64C
+   *  TTGO T-01C3         |                  | BOYA_BY25Q32AL
+   *                      | ESP-C3-12F       | XMC_XM25QH32B
+   *  LilyGO T-TWR        | WROOM-1-N16R8    | GIGADEVICE_GD25Q128
+   *  Heltec Tracker      |                  | GIGADEVICE_GD25Q64
+   *                      | WT0132C6-S5      | ZBIT_ZB25VQ32B
+   *  LilyGO T3-C6        | ESP32-C6-MINI    | XMC_XM25QH32B
+   *  LilyGO T3-S3-EP     | ESP32-S3-MINI    | XMC_XM25QH32B
+   *  LilyGO T3-S3-OL     | ESP32-S3FH4R2    |
+   *  Elecrow TN-M2       | ESP32-S3-N4R8    | ZBIT_ZB25VQ32B
+   *  RadioMaster XR1     | ESP32-C3 (QFN32) | XMC_XM25QH32B
+   *  RadioMaster XR1     |                  | 0x464016 (TBD)
+   *  Elecrow TN-M5       | ESP32-S3-N4R8    | 0x464016 (TBD)
+   *  Ebyte EoRa-HUB      | ESP32-S3FH4R2    |
+   *  WT99P4C5-S1 CPU     | WT0132P4-A1      | ZBIT_ZB25VQ128ASIG
+   *  WT99P4C5-S1 NCU     | ESP32-C5-WROOM-1 | XMC_XM25QH64B
+   *  LilyGO T-Display P4 |                  | GIGADEVICE_GD25Q128
    */
 
   if (psramFound()) {
@@ -536,6 +546,9 @@ static void ESP32_setup()
       break;
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
+    case MakeFlashId(GIGADEVICE_ID, GIGADEVICE_GD25Q128):
+      hw_info.revision = HW_REV_TDISPLAY_P4_TFT;
+      break;
     case MakeFlashId(ZBIT_ID, ZBIT_ZB25VQ128A): /* WT0132P4-A1 ESP32-P4NRW32 */
       hw_info.revision = HW_REV_DEVKIT;
       break;
@@ -703,22 +716,91 @@ static void ESP32_setup()
 #if defined(CONFIG_IDF_TARGET_ESP32P4)
   Wire.begin(SOC_GPIO_PIN_SDA, SOC_GPIO_PIN_SCL);
 
-  Wire.beginTransmission(GT911_ADDRESS);
-  if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_DEVKIT;
-  Wire.beginTransmission(GT911_ADDRESS_ALT);
-  if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_DEVKIT;
-  Wire.beginTransmission(HI8561_ADDRESS);
-  if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_TDISPLAY_P4_TFT;
-  // Wire.beginTransmission(GT9895_ADDRESS);
-  // if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_TDISPLAY_P4_AMOLED;
+  // Wire.beginTransmission(GT911_ADDRESS);
+  // if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_DEVKIT;
+  // Wire.beginTransmission(GT911_ADDRESS_ALT);
+  // if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_DEVKIT;
+
+  Wire.beginTransmission(BQ27220_SLAVE_ADDRESS);
+  bool has_bq27220 = (Wire.endTransmission() == 0);
+  if (has_bq27220 && bq_27220.begin(Wire,
+                                    SOC_GPIO_PIN_TDP4_SDA,
+                                    SOC_GPIO_PIN_TDP4_SCL)) {
+    ESP32_has_CPM = true;
+  }
 
   switch (hw_info.revision)
   {
   case HW_REV_TDISPLAY_P4_TFT:
   case HW_REV_TDISPLAY_P4_AMOLED:
 
+    pinMode(SOC_GPIO_PIN_TDP4_XL9, INPUT); /* INT */
+
+    xl9535 = new ExtensionIOXL9555();
+    ESP32_has_gpio_extension = xl9535->begin(Wire, XL9535_ADDRESS,
+                                             SOC_GPIO_PIN_SDA,
+                                             SOC_GPIO_PIN_SCL);
+    if (ESP32_has_gpio_extension) {
+      /* make GNSS inactive prior to 3.3V power ON */
+      xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_GNSS_WKE, LOW);
+      xl9535->pinMode(ExtensionIOXL9555::SOC_EXPIO_TDP4_GNSS_WKE, OUTPUT);
+
+      /* make ESP32-C6 inactive prior to 3.3V power ON */
+      xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_SLAVE_EN, LOW);
+      xl9535->pinMode(ExtensionIOXL9555::SOC_EXPIO_TDP4_SLAVE_EN, OUTPUT);
+
+      /* USB PHY power */
+      xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_VCCA_EN,  LOW);
+      xl9535->pinMode(ExtensionIOXL9555::SOC_EXPIO_TDP4_VCCA_EN,  OUTPUT);
+
+      /*
+       * Turn ON power of
+       * GNSS, TFT back light, ESP32-C6,
+       * camera (SGM38121), haptic (AW86224), IMU (ICM20948),
+       * ETH PHY and ES8311 digital circuits
+       */
+      xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_3V3_EN,   LOW);
+
+      /* Power of NS4150 audio amp. and ES8311 analog circuits */
+      xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_5V0_EN,   HIGH);
+
+      xl9535->pinMode(ExtensionIOXL9555::SOC_EXPIO_TDP4_3V3_EN,   OUTPUT);
+      xl9535->pinMode(ExtensionIOXL9555::SOC_EXPIO_TDP4_5V0_EN,   OUTPUT);
+
+      /* Power of micro-SD */
+      xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_SD_EN,    LOW);
+      xl9535->pinMode(ExtensionIOXL9555::SOC_EXPIO_TDP4_SD_EN,    OUTPUT);
+
+      xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_DSI_RST,  HIGH);
+      xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_TP_RST,   HIGH);
+      xl9535->pinMode(ExtensionIOXL9555::SOC_EXPIO_TDP4_DSI_RST,  OUTPUT);
+      xl9535->pinMode(ExtensionIOXL9555::SOC_EXPIO_TDP4_TP_RST,   OUTPUT);
+
+      delay(200);
+
+      xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_SLAVE_EN, HIGH);
+      /* Wake up Quectel L76K GNSS */
+      xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_GNSS_WKE, HIGH);
+
+      Wire.beginTransmission(GT9895_ADDRESS);
+      if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_TDISPLAY_P4_AMOLED;
+      Wire.beginTransmission(HI8561_ADDRESS);
+      if (Wire.endTransmission() == 0) hw_info.revision = HW_REV_TDISPLAY_P4_TFT;
+    }
+
     // I2C #2 (ES8311, AW86224, SGM38121, ICM20948, Camera)
     Wire1.begin(SOC_GPIO_PIN_TDP4_SDA, SOC_GPIO_PIN_TDP4_SCL);
+
+#if SOC_SDMMC_IO_POWER_EXTERNAL
+    {
+      esp_ldo_channel_handle_t ldo_sdio = NULL;
+      esp_ldo_channel_config_t ldo_sdio_config = {
+          .chan_id = BOARD_SDMMC_POWER_CHANNEL,
+          .voltage_mv = 3300,
+      };
+      esp_ldo_acquire_channel(&ldo_sdio_config, &ldo_sdio);
+    }
+#endif /* SOC_SDMMC_IO_POWER_EXTERNAL */
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 0)
     pin_config.mck_io_num   = SOC_GPIO_PIN_TDP4_MCK;
@@ -806,18 +888,24 @@ static void ESP32_post_init()
 
   switch (hw_info.revision)
   {
-  case HW_REV_T5S_1_9    : Serial.println(F("LilyGO T5S"));   break;
-  case HW_REV_T5S_2_8    : Serial.println(F("LilyGO T5S"));   break;
-  case HW_REV_BPI        : Serial.println(F("Banana PicoW")); break;
-  case HW_REV_DEVKIT     : Serial.print(SoC->name);
-                           Serial.println(F(" DevKit"));      break;
-  default                : Serial.println(F("OTHER"));        break;
+  case HW_REV_T5S_1_9            : Serial.println(F("LilyGO T5S"));                 break;
+  case HW_REV_T5S_2_8            : Serial.println(F("LilyGO T5S"));                 break;
+  case HW_REV_BPI                : Serial.println(F("Banana PicoW"));               break;
+  case HW_REV_TDISPLAY_P4_TFT    : Serial.println(F("LilyGO T-Display-P4 TFT"));    break;
+  case HW_REV_TDISPLAY_P4_AMOLED : Serial.println(F("LilyGO T-Display-P4 AMOLED")); break;
+  case HW_REV_DEVKIT             : Serial.print(SoC->name);
+                                   Serial.println(F(" DevKit"));                    break;
+  default                        : Serial.println(F("OTHER"));                      break;
   }
 
   Serial.print(F("Display      : "));
 
   if (hw_info.display == DISPLAY_TFT_7_0) {
     Serial.println(F("7 inch TFT"));
+  } else if (hw_info.display == DISPLAY_TFT_4_05) {
+    Serial.println(F("4 inch TFT"));
+  } else if (hw_info.display == DISPLAY_AMOLED_4_1) {
+    Serial.println(F("4.1 inch AMOLED"));
   } else if (hw_info.display != DISPLAY_EPD_2_7 || display == NULL) {
     Serial.println(F("NONE"));
   } else {
@@ -993,7 +1081,21 @@ static bool ESP32_EEPROM_begin(size_t size)
 
 static void ESP32_EEPROM_extension(int cmd)
 {
-  /* TBD */
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  if (cmd == EEPROM_EXT_LOAD || cmd == EEPROM_EXT_DEFAULTS) {
+    switch (hw_info.revision)
+    {
+    case HW_REV_TDISPLAY_P4_TFT:
+    case HW_REV_TDISPLAY_P4_AMOLED:
+      settings->adapter = ADAPTER_MIPI_DSI;
+      if (cmd == EEPROM_EXT_DEFAULTS) { settings->baudrate = B115200; }
+      break;
+    case HW_REV_DEVKIT:
+    default:
+      break;
+    }
+  }
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 }
 
 static const int8_t ESP32_dB_to_power_level[21] = {
@@ -1040,7 +1142,20 @@ static bool ESP32_WiFi_hostname(String aHostname)
 
 static void ESP32_swSer_begin(unsigned long baud)
 {
-  SerialInput.begin(baud, SERIAL_8N1, SOC_GPIO_PIN_GNSS_RX, SOC_GPIO_PIN_GNSS_TX);
+  switch (hw_info.revision)
+  {
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  case HW_REV_TDISPLAY_P4_TFT:
+  case HW_REV_TDISPLAY_P4_AMOLED:
+    SerialInput.begin(baud, SERIAL_8N1, SOC_GPIO_PIN_TDP4_GNSS_RX, SOC_GPIO_PIN_TDP4_GNSS_TX);
+    break;
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
+  case HW_REV_DEVKIT:
+  default:
+    SerialInput.begin(baud, SERIAL_8N1, SOC_GPIO_PIN_GNSS_RX, SOC_GPIO_PIN_GNSS_TX);
+    break;
+  }
+
   SerialInput.setRxBufferSize(baud / 10); /* 1 second */
 }
 
@@ -1078,7 +1193,10 @@ static void ESP32_Battery_setup()
 #endif /* CONFIG_IDF_TARGET_ESP32 */
 #else
 #if defined(CONFIG_IDF_TARGET_ESP32C5) || defined(CONFIG_IDF_TARGET_ESP32P4)
-  calibrate_voltage(SOC_GPIO_PIN_BATTERY);
+  if (hw_info.revision != HW_REV_TDISPLAY_P4_TFT &&
+      hw_info.revision != HW_REV_TDISPLAY_P4_AMOLED) {
+    calibrate_voltage(SOC_GPIO_PIN_BATTERY);
+  }
 #elif defined(CONFIG_IDF_TARGET_ESP32C6)  || \
       defined(CONFIG_IDF_TARGET_ESP32C61) || \
       defined(CONFIG_IDF_TARGET_ESP32H2)
@@ -1099,6 +1217,21 @@ static float ESP32_Battery_voltage()
     return (busvoltage + (shuntvoltage / 1000));
   }
 #endif /* CONFIG_IDF_TARGET_ESP32S3 */
+
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  if (ESP32_has_CPM) {
+    float voltage = 0;
+
+    if (bq_27220.refresh()) {
+      BatteryStatus batteryStatus = bq_27220.getBatteryStatus();
+      if (batteryStatus.isBatteryPresent()) {
+        voltage = bq_27220.getVoltage();
+      }
+    }
+
+    return voltage * 0.001;
+  }
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
 
   float voltage = ((float) read_voltage()) * 0.001 ;
 
@@ -1258,6 +1391,17 @@ extern Board *panel;
 #define _TO_STR(name) #name
 #define TO_STR(name) _TO_STR(name)
 
+extern "C" esp_err_t set_rm69a10_brightness(esp_lcd_panel_t *panel, uint8_t brightness);
+
+#define ESP_PANEL_BOARD_BACKLIGHT_CUSTOM_FUNCTION(percent, user_data)  \
+{  \
+    auto board = static_cast<Board *>(user_data); \
+    auto lcd = board->getLCD(); \
+    esp_lcd_panel_t *panel = lcd->getRefreshPanelHandle() ;  \
+    set_rm69a10_brightness(panel, static_cast<uint8_t>(static_cast<float>(percent) * 2.55)); \
+    return true; \
+}
+
 const BoardConfig Board_Config_WTP4C5MP07S = {
     .name = "WTP4C5MP07S",
 
@@ -1301,7 +1445,7 @@ const BoardConfig Board_Config_WTP4C5MP07S = {
             .invert_color = 0,
         },
     },
-
+#if defined(USE_EDPLIB_TOUCH)
     .touch = BoardConfig::TouchConfig{
         .bus_config = BusI2C::Config{
             .host_id = 0,
@@ -1332,7 +1476,7 @@ const BoardConfig Board_Config_WTP4C5MP07S = {
             .mirror_y = 1,
         },
     },
-
+#endif /* USE_EDPLIB_TOUCH */
     .backlight = BoardConfig::BacklightConfig{
         .config = BacklightSwitchGPIO::Config{
             .io_num = SOC_GPIO_PIN_LCD_BLED,
@@ -1370,16 +1514,16 @@ const BoardConfig Board_Config_LilyGO_TDP4_TFT = {
                 .lane_bit_rate_mbps = 1000,
             },
             .refresh_panel = BusDSI::RefreshPanelPartialConfig{
-                .dpi_clock_freq_mhz = 52,
-                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565, /* TBD */
-                .h_size = 1168,
-                .v_size = 540,
-                .hsync_pulse_width = 10,
-                .hsync_back_porch = 160,
-                .hsync_front_porch = 160,
-                .vsync_pulse_width = 1,
-                .vsync_back_porch = 23,
-                .vsync_front_porch = 12,
+                .dpi_clock_freq_mhz = 60,
+                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565,
+                .h_size = 540,
+                .v_size = 1168,
+                .hsync_pulse_width = 28,
+                .hsync_back_porch = 26,
+                .hsync_front_porch = 20,
+                .vsync_pulse_width = 2,
+                .vsync_back_porch = 22,
+                .vsync_front_porch = 200,
             },
             .phy_ldo = BusDSI::PHY_LDO_PartialConfig{
                 .chan_id = 3
@@ -1390,19 +1534,19 @@ const BoardConfig Board_Config_LilyGO_TDP4_TFT = {
             .device = LCD::DevicePartialConfig{
                 .reset_gpio_num = -1, /* XL 2 */
                 .rgb_ele_order = 0,
-                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565, /* TBD */
-                .flags_reset_active_high = 1, /* TBD */
+                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565,
+                .flags_reset_active_high = 0,
             },
             .vendor = LCD::VendorPartialConfig{
-                .hor_res = 1168,
-                .ver_res = 540,
+                .hor_res = 540,
+                .ver_res = 1168,
             },
         },
         .pre_process = {
             .invert_color = 0,
         },
     },
-
+#if defined(USE_EDPLIB_TOUCH)
     .touch = BoardConfig::TouchConfig{
         .bus_config = BusI2C::Config{
             .host_id = 0,
@@ -1419,8 +1563,8 @@ const BoardConfig Board_Config_LilyGO_TDP4_TFT = {
         .device_name = TO_STR(GT911),/* HI8561 */
         .device_config = {
             .device = Touch::DevicePartialConfig{
-                .x_max = 1168,
-                .y_max = 540,
+                .x_max = 540,
+                .y_max = 1168,
                 .rst_gpio_num = -1, /* XL 3 */
                 .int_gpio_num = -1, /* XL 4 */
                 .levels_reset = 0,
@@ -1433,7 +1577,7 @@ const BoardConfig Board_Config_LilyGO_TDP4_TFT = {
             .mirror_y = 1,
         },
     },
-
+#endif /* USE_EDPLIB_TOUCH */
     .backlight = BoardConfig::BacklightConfig{
         .config = BacklightSwitchGPIO::Config{
             .io_num = SOC_GPIO_PIN_TDP4_BL,
@@ -1471,16 +1615,16 @@ const BoardConfig Board_Config_LilyGO_TDP4_AMOLED = {
                 .lane_bit_rate_mbps = 1000,
             },
             .refresh_panel = BusDSI::RefreshPanelPartialConfig{
-                .dpi_clock_freq_mhz = 52,
-                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565, /* TBD */
-                .h_size = 1232,
-                .v_size = 568,
-                .hsync_pulse_width = 10,
-                .hsync_back_porch = 160,
-                .hsync_front_porch = 160,
-                .vsync_pulse_width = 1,
-                .vsync_back_porch = 23,
-                .vsync_front_porch = 12,
+                .dpi_clock_freq_mhz = 60,
+                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565,
+                .h_size = 568,
+                .v_size = 1232,
+                .hsync_pulse_width = 50,
+                .hsync_back_porch = 150,
+                .hsync_front_porch = 50,
+                .vsync_pulse_width = 40,
+                .vsync_back_porch = 120,
+                .vsync_front_porch = 80,
             },
             .phy_ldo = BusDSI::PHY_LDO_PartialConfig{
                 .chan_id = 3
@@ -1491,19 +1635,19 @@ const BoardConfig Board_Config_LilyGO_TDP4_AMOLED = {
             .device = LCD::DevicePartialConfig{
                 .reset_gpio_num = -1, /* XL 2 */
                 .rgb_ele_order = 0,
-                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565, /* TBD */
-                .flags_reset_active_high = 1, /* TBD */
+                .bits_per_pixel = ESP_PANEL_LCD_COLOR_BITS_RGB565,
+                .flags_reset_active_high = 0,
             },
             .vendor = LCD::VendorPartialConfig{
-                .hor_res = 1232,
-                .ver_res = 568,
+                .hor_res = 568,
+                .ver_res = 1232,
             },
         },
         .pre_process = {
             .invert_color = 0,
         },
     },
-
+#if defined(USE_EDPLIB_TOUCH)
     .touch = BoardConfig::TouchConfig{
         .bus_config = BusI2C::Config{
             .host_id = 0,
@@ -1520,8 +1664,8 @@ const BoardConfig Board_Config_LilyGO_TDP4_AMOLED = {
         .device_name = TO_STR(GT911), /* GT9895 */
         .device_config = {
             .device = Touch::DevicePartialConfig{
-                .x_max = 1232,
-                .y_max = 568,
+                .x_max = 568,
+                .y_max = 1232,
                 .rst_gpio_num = -1, /* XL 3 */
                 .int_gpio_num = -1, /* XL 4 */
                 .levels_reset = 0,
@@ -1534,11 +1678,12 @@ const BoardConfig Board_Config_LilyGO_TDP4_AMOLED = {
             .mirror_y = 1,
         },
     },
-
+#endif /* USE_EDPLIB_TOUCH */
     .backlight = BoardConfig::BacklightConfig{
-        .config = BacklightSwitchGPIO::Config{
-            .io_num = -1, /* AMOLED */
-            .on_level = 1,
+        .config = BacklightCustom::Config{
+            .callback = [](int percent, void *user_data)
+                ESP_PANEL_BOARD_BACKLIGHT_CUSTOM_FUNCTION(percent, user_data),
+            .user_data = nullptr,
         },
         .pre_process = {
             .idle_off = 0,
@@ -1608,6 +1753,11 @@ static byte ESP32_Display_setup(bool splash_screen)
     display = NULL;
     break;
 #endif /* BUILD_SKYVIEW_HD */
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+  case ADAPTER_MIPI_DSI:
+    display = NULL;
+    break;
+#endif /* CONFIG_IDF_TARGET_ESP32P4 */
   case ADAPTER_TTGO_T5S:
   default:
     display = &epd_ttgo_t5s_W3;
@@ -1644,9 +1794,21 @@ static byte ESP32_Display_setup(bool splash_screen)
     switch (hw_info.revision)
     {
     case HW_REV_TDISPLAY_P4_TFT:
+      if (ESP32_has_gpio_extension) {
+        xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_DSI_RST, LOW);
+        delay(20);
+        xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_DSI_RST, HIGH);
+        delay(20);
+      }
       panel = new Board(Board_Config_LilyGO_TDP4_TFT);
       break;
     case HW_REV_TDISPLAY_P4_AMOLED:
+      if (ESP32_has_gpio_extension) {
+        xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_DSI_RST, LOW);
+        delay(20);
+        xl9535->digitalWrite(ExtensionIOXL9555::SOC_EXPIO_TDP4_DSI_RST, HIGH);
+        delay(20);
+      }
       panel = new Board(Board_Config_LilyGO_TDP4_AMOLED);
       break;
     case HW_REV_DEVKIT:
@@ -1662,8 +1824,9 @@ static byte ESP32_Display_setup(bool splash_screen)
     lcd->configFrameBufferNumber(LVGL_PORT_DISP_BUFFER_NUM);
 #endif
 
+#if defined(USE_EDPLIB_TOUCH)
     static_cast<esp_panel::drivers::BusI2C *>(panel->getTouch()->getBus())->configI2C_HostSkipInit();
-
+#endif /* USE_EDPLIB_TOUCH */
     assert(panel->begin());
 
     rval = TFT_setup();
@@ -1679,6 +1842,8 @@ static void ESP32_Display_loop()
   {
 #if defined(USE_TFT)
   case DISPLAY_TFT_7_0:
+  case DISPLAY_TFT_4_05:
+  case DISPLAY_AMOLED_4_1:
     TFT_loop();
     break;
 #endif /* USE_TFT */
@@ -1697,6 +1862,8 @@ static void ESP32_Display_fini(const char *msg, bool screen_saver)
   {
 #if defined(USE_TFT)
   case DISPLAY_TFT_7_0:
+  case DISPLAY_TFT_4_05:
+  case DISPLAY_AMOLED_4_1:
     TFT_fini();
     break;
 #endif /* USE_TFT */
@@ -1720,6 +1887,8 @@ static bool ESP32_Display_is_ready()
   {
 #if defined(USE_TFT)
   case DISPLAY_TFT_7_0:
+  case DISPLAY_TFT_4_05:
+  case DISPLAY_AMOLED_4_1:
     /* TBD */
     break;
 #endif /* USE_TFT */
@@ -1741,6 +1910,8 @@ static void ESP32_Display_update(int val)
   {
 #if defined(USE_TFT)
   case DISPLAY_TFT_7_0:
+  case DISPLAY_TFT_4_05:
+  case DISPLAY_AMOLED_4_1:
     /* TBD */
     break;
 #endif /* USE_TFT */
@@ -1770,15 +1941,14 @@ static int ESP32_WiFi_clients_count()
     ESP_ERROR_CHECK(esp_wifi_ap_get_sta_list(&stations));
 
 #if defined(ESP_IDF_VERSION_MAJOR) && ESP_IDF_VERSION_MAJOR>=5
-    /* TBD */
-
-    return stations.num;
+    wifi_sta_mac_ip_list_t infoList;
+    ESP_ERROR_CHECK(esp_wifi_ap_get_sta_list_with_ip(&stations, &infoList));
 #else
     tcpip_adapter_sta_list_t infoList;
     ESP_ERROR_CHECK(tcpip_adapter_get_sta_list(&stations, &infoList));
-
-    return infoList.num;
 #endif /* ESP_IDF_VERSION_MAJOR */
+    return infoList.num;
+
   case WIFI_STA:
   default:
     return -1; /* error */

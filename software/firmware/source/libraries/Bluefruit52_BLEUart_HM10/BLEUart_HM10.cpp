@@ -36,7 +36,14 @@
 /**************************************************************************/
 
 #include "bluefruit.h"
+
+#if defined(ARDUINO_ARCH_NRF52)
 #include "utility/TimeoutTimer.h"
+#endif /* ARDUINO_ARCH_NRF52 */
+#if defined(ARDUINO_ARCH_NRF54L15CLEAN)
+#include "TimeoutTimer.h"
+#endif /* ARDUINO_ARCH_NRF54L15CLEAN */
+
 #include <BLEUart_HM10.h>
 
 /* UART Serivce: 0000ffe0-0000-1000-8000-00805f9b34fb
@@ -56,6 +63,17 @@ static const uint8_t BLEUART_HM10_UUID128_CHR_RW[] =
     0xFB, 0x34, 0x9B, 0x5F, 0x80, 0x00, 0x00, 0x80,
     0x00, 0x10, 0x00, 0x00, 0xE1, 0xFF, 0x00, 0x00,
 };
+
+#if defined(ARDUINO_ARCH_NRF54L15CLEAN)
+#define _GET_3RD_ARG(arg1, arg2, arg3, ...)  arg3
+
+#define VERIFY_STATUS(x) x
+
+#define VERIFY_1ARGS(cond)            if (!(cond)) return false;
+#define VERIFY_2ARGS(cond, _error)    if (!(cond)) return _error;
+
+#define VERIFY(...)  _GET_3RD_ARG(__VA_ARGS__, VERIFY_2ARGS, VERIFY_1ARGS)(__VA_ARGS__)
+#endif /* ARDUINO_ARCH_NRF54L15CLEAN */
 
 // Constructor
 BLEUart_HM10::BLEUart_HM10(uint16_t rx_fifo_depth, uint16_t tx_fifo_depth)
@@ -86,7 +104,9 @@ void BLEUart_HM10::bleuart_rxd_cb(uint16_t conn_hdl, BLECharacteristic* chr, uin
 
   if ( wrcount < len )
   {
+#if defined(ARDUINO_ARCH_NRF52)
     LOG_LV1("MEMORY", "bleuart rxd fifo OVERFLOWED!");
+#endif /* ARDUINO_ARCH_NRF52 */
 
     // invoke overflow callback
     if (svc._overflow_cb) svc._overflow_cb(conn_hdl, len - wrcount);
@@ -105,7 +125,12 @@ void BLEUart_HM10::bleuart_txd_cccd_cb(uint16_t conn_hdl, BLECharacteristic* chr
 {
   BLEUart_HM10& svc = (BLEUart_HM10&) chr->parentService();
 
+#if defined(ARDUINO_ARCH_NRF52)
   if ( svc._notify_cb ) svc._notify_cb(conn_hdl, value & BLE_GATT_HVX_NOTIFICATION);
+#endif /* ARDUINO_ARCH_NRF52 */
+#if defined(ARDUINO_ARCH_NRF54L15CLEAN)
+  if ( svc._notify_cb ) svc._notify_cb(conn_hdl, value); /* TODD */
+#endif /* ARDUINO_ARCH_NRF54L15CLEAN */
 }
 
 void BLEUart_HM10::setRxCallback(rx_callback_t fp, bool deferred)

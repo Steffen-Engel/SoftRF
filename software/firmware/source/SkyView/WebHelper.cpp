@@ -1,6 +1,6 @@
 /*
  * WebHelper.cpp
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ const char about_html[] PROGMEM = "<html>\
 <tr><th align=left>sekigon-gonnoc</th><td align=left>Pico PIO USB library</td></tr>\
 </table>\
 <hr>\
-Copyright (C) 2019-2025 &nbsp;&nbsp;&nbsp; Linar Yusupov\
+Copyright (C) 2019-2026 &nbsp;&nbsp;&nbsp; Linar Yusupov\
 </body>\
 </html>";
 
@@ -123,14 +123,17 @@ char *Root_content() {
     SoC->getFreeHeap(),
 #endif /* RASPBERRY_PI */
     low_voltage ? "red" : "green", str_Vcc,
-    hw_info.display      == DISPLAY_EPD_2_7   ||
-    hw_info.display      == DISPLAY_EPD_4_7   ? "e-Paper" :
-    hw_info.display      == DISPLAY_OLED_2_4  ? "OLED" : "NONE",
-    settings->connection == CON_SERIAL_MAIN   ? "Serial" :
-    settings->connection == CON_BLUETOOTH_SPP ? "Bluetooth SPP" :
-    settings->connection == CON_BLUETOOTH_LE  ? "Bluetooth LE" :
-    settings->connection == CON_USB           ? "USB" :
-    settings->connection == CON_WIFI_UDP      ? "WiFi" : "NONE"
+    hw_info.display      == DISPLAY_EPD_2_7    ||
+    hw_info.display      == DISPLAY_EPD_4_7    ? "e-Paper" :
+    hw_info.display      == DISPLAY_TFT_7_0    ||
+    hw_info.display      == DISPLAY_TFT_4_05   ? "TFT" :
+    hw_info.display      == DISPLAY_AMOLED_4_1 ? "AMOLED" :
+    hw_info.display      == DISPLAY_OLED_2_4   ? "OLED" : "NONE",
+    settings->connection == CON_SERIAL_MAIN    ? "Serial" :
+    settings->connection == CON_BLUETOOTH_SPP  ? "Bluetooth SPP" :
+    settings->connection == CON_BLUETOOTH_LE   ? "Bluetooth LE" :
+    settings->connection == CON_USB            ? "USB" :
+    settings->connection == CON_WIFI_UDP       ? "WiFi" : "NONE"
   );
 
   len = strlen(offset);
@@ -320,11 +323,13 @@ char *Settings_content() {
 <select name='adapter'>\
 <option %s value='%d'>e-Paper Waveshare HAT 2.7</option>\
 <option %s value='%d'>e-Paper Waveshare HAT 2.7 V2</option>\
+<option %s value='%d'>MIPI DSI</option>\
 </select>\
 </td>\
 </tr>"),
     (settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7    ? "selected" : ""), ADAPTER_WAVESHARE_PI_HAT_2_7,
-    (settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7_V2 ? "selected" : ""), ADAPTER_WAVESHARE_PI_HAT_2_7_V2
+    (settings->adapter == ADAPTER_WAVESHARE_PI_HAT_2_7_V2 ? "selected" : ""), ADAPTER_WAVESHARE_PI_HAT_2_7_V2,
+    (settings->adapter == ADAPTER_MIPI_DSI                ? "selected" : ""), ADAPTER_MIPI_DSI
     );
   }
 

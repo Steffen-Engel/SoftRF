@@ -1,6 +1,6 @@
 /*
  * MAVLinkHelper.cpp
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@ void MAVLink_setup()
 void PickMAVLinkFix()
 {
   read_mavlink();
+  send_mavlink_heartbeat();
 }
 
 void MAVLinkTimeSync()

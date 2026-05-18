@@ -1,6 +1,6 @@
 /*
  * Platform_SAMD.cpp
- * Copyright (C) 2021-2025 Linar Yusupov
+ * Copyright (C) 2021-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -671,6 +671,11 @@ static void SAMD_Button_fini()
 #endif /* SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN */
 }
 
+static void SAMD_TTS(char *message)
+{
+
+}
+
 static void SAMD_USB_setup()
 {
   if (USBSerial && USBSerial != Serial) {
@@ -892,6 +897,7 @@ const SoC_ops_t SAMD_ops = {
   SAMD_Button_setup,
   SAMD_Button_loop,
   SAMD_Button_fini,
+  SAMD_TTS,
   NULL
 };
 

@@ -1,6 +1,6 @@
 /*
  * BluetoothHelper.h
- * Copyright (C) 2018-2025 Linar Yusupov
+ * Copyright (C) 2018-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ enum
 #include "../platform/bluetooth/Bluedroid.h"
 #endif /* USE_NIMBLE */
 #endif /* EXCLUDE_BLUETOOTH */
-#elif defined(ARDUINO_ARCH_NRF52)
+#elif defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF54L15CLEAN)
 #include "../platform/bluetooth/Bluefruit.h"
 #elif defined(ARDUINO_ARCH_NRF52840)
 #include "../system/SoC.h"

@@ -34,7 +34,7 @@
       defined(ARDUINO_ARCH_RENESAS) || defined(ARDUINO_ARCH_SILABS)   || \
       defined(ARDUINO_ARCH_CH32)    || defined(ARDUINO_ARCH_RP2350)   || \
       defined(ARDUINO_ARCH_ZEPHYR)  || defined(RASPBERRY_PI)          || \
-      defined(LUCKFOX_LYRA))
+      defined(LUCKFOX_LYRA)         || defined(ARDUINO_ARCH_NRF54L15CLEAN))
 #include <Adafruit_Sensor.h>
 #endif
 

@@ -43,6 +43,8 @@ extern Exp_SoftwareSerial swSer;
 extern HardwareSerial Serial1;
 #elif defined(ARDUINO_ARCH_NRF52)
 extern Uart Serial1;
+#elif defined(ARDUINO_ARCH_NRF54L15CLEAN)
+extern HardwareSerial Serial1;
 #endif
 
 mavlink_system_t mavlink_system = {12, MAV_COMP_ID_ADSB};
@@ -57,7 +59,7 @@ void comm_send_ch(mavlink_channel_t chan, uint8_t ch)
 #else
   Serial.write(ch);
 #endif /* C3 || C6 */
-#elif defined(ARDUINO_ARCH_NRF52)
+#elif defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF54L15CLEAN)
   Serial1.write(ch);
 #else
   Serial.write(ch);
@@ -133,7 +135,6 @@ namespace{
 
 void read_mavlink()
 {
-
    static bool mavlink_active = false;
    static int packet_drops = 0;
    static int  parse_error = 0;
@@ -150,7 +151,7 @@ void read_mavlink()
 #elif defined(ESP32)
    while (Serial1.available() > 0) {
             uint8_t ch = Serial1.read();
-#elif defined(ARDUINO_ARCH_NRF52)
+#elif defined(ARDUINO_ARCH_NRF52) || defined(ARDUINO_ARCH_NRF54L15CLEAN)
    while (Serial1.available() > 0) {
             uint8_t ch = Serial1.read();
 #else
@@ -204,16 +205,37 @@ void read_mavlink()
       }
    }
  
-  packet_drops += status.packet_rx_drop_count;
-  parse_error += status.parse_error;
+   packet_drops += status.packet_rx_drop_count;
+   parse_error += status.parse_error;
 }
 
 void write_mavlink( uint32_t addr, float latitude, float longtitude,
                     float altitude, float course, float h_speed, float v_speed,
                     uint16_t squawk, char *callsign, uint8_t emitter_type)
 {
-    do_mavlink_adsb(addr, latitude, longtitude, altitude, course,
-                    h_speed, v_speed, squawk, callsign, emitter_type);
+   do_mavlink_adsb(addr, latitude, longtitude, altitude, course,
+                   h_speed, v_speed, squawk, callsign, emitter_type);
+}
+
+void send_mavlink_heartbeat()
+{
+   static uint32_t heartbeat_send_ts = 0;
+
+   uint32_t now = millis();
+   if (now - heartbeat_send_ts < MAVLINK_HEARTBEAT_INTERVAL_MS) {
+      return;
+   }
+
+   heartbeat_send_ts = now;
+
+   mavlink_msg_heartbeat_send(
+      MAVLINK_COMM_0,
+      MAV_TYPE_ADSB,
+      MAV_AUTOPILOT_INVALID,
+      0,
+      0,
+      MAV_STATE_ACTIVE
+   );
 }
 
 namespace {

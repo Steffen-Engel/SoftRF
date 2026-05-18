@@ -1,6 +1,6 @@
 /*
  * Platform_ESP8266.cpp
- * Copyright (C) 2018-2025 Linar Yusupov
+ * Copyright (C) 2018-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -445,6 +445,11 @@ static void ESP8266_Button_fini()
   /* TODO */
 }
 
+static void ESP8266_TTS(char *message)
+{
+
+}
+
 const SoC_ops_t ESP8266_ops = {
   SOC_ESP8266,
   "ESP8266",
@@ -490,6 +495,7 @@ const SoC_ops_t ESP8266_ops = {
   ESP8266_Button_setup,
   ESP8266_Button_loop,
   ESP8266_Button_fini,
+  ESP8266_TTS,
   NULL
 };
 

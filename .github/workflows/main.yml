@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         board:
           [
@@ -55,7 +56,9 @@ jobs:
             'arduino:mbed_rp2040:pico',
             #'arduino:mbed_nano:nanorp2040connect',
             'SiliconLabs:silabs:nano_matter:protocol_stack=ble_arduino',
-            'WCH:ch32v:CH32V30x_EVT'
+            'WCH:ch32v:CH32V30x_EVT',
+            #'nrf54l15clean:nrf54l15clean:nrf54l15dk_pca10156',
+            'nrf54l15clean:nrf54l15clean:xiao_nrf54l15'
           ]
 
     env:
@@ -207,7 +210,7 @@ jobs:
           fi
           if [[ "$BOARD" =~ "esp32:esp32:esp32c5" ]]; then
             arduino --pref "boardsmanager.additional.urls=https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json" --save-prefs ;
-            arduino --install-boards esp32:esp32:3.3.4 ;
+            arduino --install-boards esp32:esp32:3.3.8 ;
             arduino --board $BOARD --save-prefs ;
             arduino --pref "custom_CPUFreq=esp32c5_80"                 --save-prefs ;
             arduino --pref "custom_DebugLevel=esp32c5_none"            --save-prefs ;
@@ -286,8 +289,9 @@ jobs:
           fi
           if [[ "$BOARD" =~ "esp32:esp32:esp32p4" ]]; then
             arduino --pref "boardsmanager.additional.urls=https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json" --save-prefs ;
-            arduino --install-boards esp32:esp32:3.3.4 ;
+            arduino --install-boards esp32:esp32:3.3.8 ;
             arduino --board $BOARD --save-prefs ;
+            arduino --pref "custom_ChipVariant=esp32p4_prev3"          --save-prefs ;
             arduino --pref "custom_CPUFreq=esp32p4_40"                 --save-prefs ;
             arduino --pref "custom_DebugLevel=esp32p4_none"            --save-prefs ;
             arduino --pref "custom_FlashFreq=esp32p4_40"               --save-prefs ;
@@ -299,7 +303,10 @@ jobs:
             arduino --pref "custom_PartitionScheme=esp32p4_no_fs"      --save-prefs ;
             arduino --pref "custom_UploadSpeed=esp32p4_921600"         --save-prefs ;
             arduino --install-library esp-lib-utils,ESP32_IO_Expander,ESP32_Display_Panel,lvgl:8.4.0 ;
-            # cd $HOME/.arduino15/packages/esp32/hardware/esp32/3.3.4 ;
+            # cd $HOME/.arduino15/packages/esp32/hardware/esp32/3.3.8 ;
+            # wget https://github.com/espressif/arduino-esp32/commit/73ef1e6ad3655275a3b597a04e365525b0ccd393.patch ;
+            # cat 73ef1e6ad3655275a3b597a04e365525b0ccd393.patch | patch -p1 ;
+            # rm 73ef1e6ad3655275a3b597a04e365525b0ccd393.patch ;
             # sed -i "s\echo '-DARDUINO_CORE_BUILD'\echo -DARDUINO_CORE_BUILD\g" platform.txt ;
             cd $GITHUB_WORKSPACE ;
           fi
@@ -394,6 +401,23 @@ jobs:
             fi ;
             cd $GITHUB_WORKSPACE ;
           fi
+          if [[ "$BOARD" =~ "nrf54l15clean:nrf54l15clean:" ]]; then
+            arduino --pref "boardsmanager.additional.urls=https://raw.githubusercontent.com/lolren/NRF54L15-Clean-Arduino-core/refs/heads/main/package_nrf54l15clean_index.json" --save-prefs ;
+            # arduino --pref "boardsmanager.additional.urls=https://github.com/lolren/nrf54-arduino-core/releases/download/v0.7.0/package_nrf54l15clean_index.json" --save-prefs ;
+            arduino --install-boards nrf54l15clean:nrf54l15clean:0.7.2 ;
+            arduino --pref "custom_clean_cpu=xiao_nrf54l15_cpu128" --save-prefs ;
+            arduino --pref "custom_clean_vpr=xiao_nrf54l15_off"    --save-prefs ;
+            arduino --pref "custom_clean_zigbee=xiao_nrf54l15_off" --save-prefs ;
+            arduino --pref "custom_clean_thread=xiao_nrf54l15_off" --save-prefs ;
+            arduino --pref "custom_clean_matter=xiao_nrf54l15_off" --save-prefs ;
+            #arduino --pref "custom_clean_cpu=nrf54l15dk_pca10156_cpu128" --save-prefs ;
+            #arduino --pref "custom_clean_vpr=nrf54l15dk_pca10156_off"    --save-prefs ;
+            #arduino --pref "custom_clean_zigbee=nrf54l15dk_pca10156_off" --save-prefs ;
+            #arduino --pref "custom_clean_thread=nrf54l15dk_pca10156_off" --save-prefs ;
+            #arduino --pref "custom_clean_matter=nrf54l15dk_pca10156_off" --save-prefs ;
+            arduino --board $BOARD --save-prefs ;
+            cd $GITHUB_WORKSPACE ;
+          fi
           if [[ "$BOARD" =~ "arduino:mbed_edge:" ]]; then
             arduino --pref "boardsmanager.additional.urls=https://downloads.arduino.cc/packages/package_index.json" --save-prefs ;
             arduino --install-boards arduino:mbed_edge:4.2.1 ;
@@ -420,7 +444,7 @@ jobs:
             # sed -i "s\ArduinoCore-renesas_uno-1.3.2.tar.bz2\ArduinoCore-renesas_uno-1.4.0.tar.bz2\g" ~/.arduino15/package_index.json ;
             # sed -i "s\78d6a3d6f3e3a93a4a1220c07c257d4a3d32c8a076e997e58b92284414fc4333\4e705d414baf5f9eabb62d7800872db14e759e2ba7dffccf20a36147bf801bef\g" ~/.arduino15/package_index.json ;
             # sed -i "s\10157682\10304196\g" ~/.arduino15/package_index.json ;
-            arduino --install-boards arduino:renesas_uno:1.4.1 ;
+            arduino --install-boards arduino:renesas_uno:1.5.3 ;
             arduino --board $BOARD --save-prefs ;
             wget https://github.com/arduino-libraries/ArduinoBLE/archive/refs/tags/${ARDUINO_BLE_VERSION}.tar.gz ;
             tar xzf ${ARDUINO_BLE_VERSION}.tar.gz ;
@@ -430,7 +454,7 @@ jobs:
           fi
           if [[ "$BOARD" =~ "rp2040:rp2040:" ]]; then
             arduino --pref "boardsmanager.additional.urls=https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json" --save-prefs ;
-            arduino --install-boards rp2040:rp2040:5.4.3 ;
+            arduino --install-boards rp2040:rp2040:5.6.0 ;
             arduino --board $BOARD --save-prefs ;
             if [[ "$BOARD" =~ "rp2040:rp2040:rpipicow" ]]; then
               arduino --pref "custom_freq=rpipicow_120"               --save-prefs ;
@@ -474,7 +498,7 @@ jobs:
           fi
           #if [[ "$BOARD" =~ "SiliconLabs:silabs:" ]]; then
           #  arduino --pref "boardsmanager.additional.urls=https://siliconlabs.github.io/arduino/package_arduinosilabs_index.json" --save-prefs ;
-          #  arduino --install-boards SiliconLabs:silabs:3.0.0 ;
+          #  arduino --install-boards SiliconLabs:silabs:4.0.0 ;
           #  arduino --board $BOARD --save-prefs ;
           #  cd $GITHUB_WORKSPACE ;
           #fi
@@ -482,7 +506,7 @@ jobs:
             arduino-cli config init ;
             arduino-cli config add board_manager.additional_urls https://siliconlabs.github.io/arduino/package_arduinosilabs_index.json ;
             arduino-cli core update-index ;
-            arduino-cli core install SiliconLabs:silabs@3.0.0 ;
+            arduino-cli core install SiliconLabs:silabs@4.0.0 ;
             # arduino-cli board attach -b $BOARD ;
             wget https://github.com/arduino-libraries/ArduinoBLE/archive/refs/tags/${ARDUINO_BLE_VERSION}.tar.gz ;
             tar xzf ${ARDUINO_BLE_VERSION}.tar.gz ;
@@ -515,12 +539,14 @@ jobs:
             arduino-cli config init ;
             arduino-cli config add board_manager.additional_urls https://downloads.arduino.cc/packages/package_zephyr_index.json ;
             arduino-cli core update-index ;
-            arduino-cli core install arduino:zephyr_main@0.52.0 ;
+            arduino-cli core install arduino:zephyr_main@0.55.0 ;
             # arduino-cli board attach -b $BOARD ;
             wget https://github.com/facchinm/ArduinoBLE/archive/refs/heads/zephyr_hci.zip ;
             unzip zephyr_hci.zip ;
             rm zephyr_hci.zip ;
             mv ArduinoBLE-zephyr_hci $HOME/Arduino/libraries/ ;
+            # cd $HOME/.arduino15/packages/arduino/hardware/zephyr_main/0.55.0 ;
+            # sed -i "s\nano33ble.upload.maximum_size=98304\nano33ble.upload.maximum_size=786432\g" boards.txt ;
             cd $GITHUB_WORKSPACE ;
           fi
 
@@ -623,4 +649,7 @@ jobs:
           fi ;
           if [[ "$BOARD" =~ "arduino:zephyr_main:" ]]; then
             arduino-cli compile -v -b "$BOARD" $PWD/software/firmware/source/SoftRF ;
+          fi ;
+          if [[ "$BOARD" =~ "nrf54l15clean:nrf54l15clean:" ]]; then
+            arduino --verify --verbose-build --board $BOARD $PWD/software/firmware/source/SoftRF/SoftRF.ino ;
           fi ;

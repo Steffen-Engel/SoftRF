@@ -1,6 +1,6 @@
 /*
  * SoCHelper.cpp
- * Copyright (C) 2018-2025 Linar Yusupov
+ * Copyright (C) 2018-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,6 +55,8 @@ byte SoC_setup()
   SoC = &CH32_ops;
 #elif defined(LUCKFOX_LYRA)
   SoC = &RK35_ops;
+#elif defined(ARDUINO_ARCH_NRF54L15CLEAN)
+  SoC = &nRF54_ops;
 #else
 #error "This hardware platform is not supported!"
 #endif

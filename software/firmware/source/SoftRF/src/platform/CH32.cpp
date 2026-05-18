@@ -1,6 +1,6 @@
 /*
  * Platform_CH32.cpp
- * Copyright (C) 2024-2025 Linar Yusupov
+ * Copyright (C) 2024-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -144,6 +144,10 @@ uCDB<FatVolume, File32> ucdb(fatfs);
 #if defined(EXCLUDE_EEPROM)
 eeprom_t eeprom_block;
 settings_t *settings = &eeprom_block.field.settings;
+#else
+#if defined(USE_EXT_EEPROM)
+JC_EEPROM EEPROM(JC_EEPROM::kbits_64, 1, 64, FT24C64_ADDRESS);
+#endif /* USE_EXT_EEPROM */
 #endif /* EXCLUDE_EEPROM */
 
 #if defined(USE_TINYUSB)
@@ -623,6 +627,20 @@ static void CH32_WiFi_transmit_UDP(int port, byte *buf, size_t size)
 
 static bool CH32_EEPROM_begin(size_t size)
 {
+#if !defined(EXCLUDE_EEPROM)
+#if defined(USE_EXT_EEPROM)
+  if (CH32_has_eeprom == false) {
+    return false;
+  }
+#else
+  if (size > 58) {
+    return false;
+  }
+#endif /* USE_EXT_EEPROM */
+
+  EEPROM.begin();
+#endif /* EXCLUDE_EEPROM */
+
   return true;
 }
 
@@ -873,6 +891,11 @@ static void CH32_Button_fini()
 #endif /* SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN */
 }
 
+static void CH32_TTS(char *message)
+{
+
+}
+
 #if defined(USE_TINYUSB)
 static void CH32_USB_setup() {
 #if !defined(USBCON)
@@ -983,6 +1006,7 @@ const SoC_ops_t CH32_ops = {
   CH32_Button_setup,
   CH32_Button_loop,
   CH32_Button_fini,
+  CH32_TTS,
   NULL
 };
 

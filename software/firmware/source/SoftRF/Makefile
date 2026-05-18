@@ -1,6 +1,6 @@
 #
 # Makefile.RPi
-# Copyright (C) 2018-2025 Linar Yusupov
+# Copyright (C) 2018-2026 Linar Yusupov
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -270,7 +270,12 @@ ifeq ($(RADIOLIB), yes)
                  $(RADIOLIB_PATH)/modules/LR11x0/LR11x0.o \
                  $(RADIOLIB_PATH)/modules/LR11x0/LR1110.o \
                  $(RADIOLIB_PATH)/modules/LR11x0/LR1120.o \
-                 $(RADIOLIB_PATH)/modules/LR11x0/LR1121.o
+                 $(RADIOLIB_PATH)/modules/LR11x0/LR1121.o \
+                 $(RADIOLIB_PATH)/modules/LR11x0/LR11x0_commands.o \
+                 $(RADIOLIB_PATH)/modules/LR11x0/LR11x0_crypto.o \
+                 $(RADIOLIB_PATH)/modules/LR11x0/LR11x0_gnss.o \
+                 $(RADIOLIB_PATH)/modules/LR11x0/LR11x0_wifi.o \
+                 $(RADIOLIB_PATH)/modules/LR11x0/LR_common.o
   CFLAGS      += -DUSE_RADIOLIB
 endif
 
@@ -359,6 +364,10 @@ psoc4:
 # Nordic nRF52840
 nuf2:
 	$(UF2CONV) $(HEXDIR)/$(BIN_HEX) -c -f 0xada52840 -o $(HEXDIR)/$(BIN_UF2)
+
+# Nordic nRF54L15 and YAPicoprobe ( https://github.com/rgrr/yapicoprobe )
+n4uf2:
+	$(UF2CONV) $(HEXDIR)/$(BIN_HEX) -c -f 0xada54b15 -o $(HEXDIR)/$(BIN_UF2)
 
 # Microchip (Atmel) SAMD21
 suf2:

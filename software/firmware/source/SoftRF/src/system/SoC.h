@@ -1,6 +1,6 @@
 /*
  * SoCHelper.h
- * Copyright (C) 2018-2025 Linar Yusupov
+ * Copyright (C) 2018-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@
 #include "../platform/EFR32.h"
 #include "../platform/CH32.h"
 #include "../platform/RK35.h"
+#include "../platform/nRF54.h"
 
 typedef struct SoC_ops_struct {
   uint8_t id;
@@ -88,6 +89,7 @@ typedef struct SoC_ops_struct {
   void (*Button_setup)();
   void (*Button_loop)();
   void (*Button_fini)();
+  void (*TTS)(char *);
   DB_ops_t *ADB_ops;
 } SoC_ops_t;
 
@@ -98,6 +100,7 @@ enum
 	SOC_ESP32,
 	SOC_ESP32S2,
 	SOC_ESP32S3,
+	SOC_ESP32S31,
 	SOC_ESP32C2,
 	SOC_ESP32C3,
 	SOC_ESP32C5,
@@ -112,6 +115,7 @@ enum
 	SOC_STM32,
 	SOC_PSOC4,
 	SOC_NRF52,
+	SOC_NRF54,
 	SOC_LPC43,
 	SOC_SAMD,
 	SOC_AVR,
@@ -174,6 +178,9 @@ extern const SoC_ops_t CH32_ops;
 #endif
 #if defined(LUCKFOX_LYRA)
 extern const SoC_ops_t RK35_ops;
+#endif
+#if defined(ARDUINO_ARCH_NRF54L15CLEAN)
+extern const SoC_ops_t nRF54_ops;
 #endif
 
 byte SoC_setup(void);

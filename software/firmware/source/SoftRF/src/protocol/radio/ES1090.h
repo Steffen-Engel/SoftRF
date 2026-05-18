@@ -2,7 +2,7 @@
  * Protocol_ES1090.h
  *
  * Decoder for Extended Squitter 1090 MHz ADS-B radio protocol
- * Copyright (C) 2021-2025 Linar Yusupov
+ * Copyright (C) 2021-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,11 @@
 #include <protocol.h>
 
 #define ES1090_PREAMBLE_TYPE   RF_PREAMBLE_TYPE_AA
-#define ES1090_PREAMBLE_SIZE   0
+#define ES1090_PREAMBLE_SIZE   0 /* N/A */
 
-#define ES1090_SYNCWORD        { 0x02, 0x85 }
-#define ES1090_SYNCWORD_SIZE   2
-#define ES1090_PAYLOAD_SIZE    MODE_S_LONG_MSG_BYTES
+#define ES1090_SYNCWORD        { 0x00 } /* 0x0285 , LSB first */
+#define ES1090_SYNCWORD_SIZE   0
+#define ES1090_PAYLOAD_SIZE    (MODE_S_LONG_MSG_BYTES - ES1090_CRC_SIZE)
 #define ES1090_CRC_TYPE        RF_CHECKSUM_TYPE_CRC_MODES
 #define ES1090_CRC_SIZE        3
 

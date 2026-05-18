@@ -1,6 +1,6 @@
 /*
  * Protocol.h
- * Copyright (C) 2017-2025 Linar Yusupov
+ * Copyright (C) 2017-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,6 +66,7 @@ enum
 	RF_BITRATE_100KBPS,
 	RF_BITRATE_38400,
 	RF_BITRATE_1042KBPS,
+	RF_BITRATE_2000KBPS,
 };
 
 enum

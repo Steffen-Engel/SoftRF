@@ -433,7 +433,7 @@ const rfc_CMD_PROP_RADIO_DIV_SETUP_t RF_cmdPropRadioDivSetup_fsk_100kbps_legacy 
     .symbolRate.decimMode = 0x0,
     .rxBw = 0x54,
     .preamConf.nPreamBytes = 0x1,
-    .preamConf.preamMode = 0x2,
+    .preamConf.preamMode = 0x0,
     .formatConf.nSwBits = 0x20,
     .formatConf.bBitReversal = 0x0,
     .formatConf.bMsbFirst = 0x1,
@@ -493,7 +493,7 @@ const rfc_CMD_PROP_TX_t RF_cmdPropTx_fsk_100kbps_legacy =
     .pktConf.bUseCrc = 0x0,
     .pktConf.bVarLen = 0x0,
     .pktLen = 0x37,
-    .syncWord = 0x99A5A955,
+    .syncWord = 0x5599A5A9,
     .pPkt = 0
 };
 
@@ -526,7 +526,7 @@ const rfc_CMD_PROP_RX_ADV_t RF_cmdPropRxAdv_fsk_100kbps_legacy =
     .rxConf.bAppendRssi = 0x0,
     .rxConf.bAppendTimestamp = 0x0,
     .rxConf.bAppendStatus = 0x0,
-    .syncWord0 = 0x99A5A955,
+    .syncWord0 = 0x5599A5A9,
     .syncWord1 = 0x00000000,
     .maxPktLen = 0x0037,
     .hdrConf.numHdrBits = 0x0,

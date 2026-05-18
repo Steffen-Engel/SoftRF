@@ -4,7 +4,7 @@
 
 ## License
 
-Copyright (C) 2016-2025 Linar Yusupov <linar.r.yusupov@gmail.com>
+Copyright (C) 2016-2026 Linar Yusupov <linar.r.yusupov@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * EasyLink library is developed by **Robert Wessels** and **Tony Cave**
  * Dump978 library is developed by **Oliver Jowett**
  * FEC library is developed by **Phil Karn**
- * AXP20X, XPowersLib, BMA423, FT5206, PCF8563 and SensorsLib libraries are developed by **Lewis He**
+ * AXP20X, XPowersLib, BMA423, FT5206, PCF8563 and SensorLib libraries are developed by **Lewis He**
  * GxEPD2 library is developed by **Jean-Marc Zingg**
  * Adafruit SSD1306, GFX, BusIO, INA219 and BME680 libraries are developed by **Adafruit Industries**
  * GDL90 decoder is developed by **Ryan David**
@@ -93,3 +93,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * Arduino Core for EFR32 Series 2 is developed by **Tamas Jozsi**
  * Arduino Core for CH32 is developed by **Tianpei Lee**
  * QMA6100P library is developed by **Tristan Alderson**
+ * Arduino Core for nRF54L15 is developed by **Loren Bufanu**
+ * Arduino EEPROM library is developed by **Jack Christensen**

@@ -1,6 +1,6 @@
 /*
  * TrafficHelper.h
- * Copyright (C) 2018-2025 Linar Yusupov
+ * Copyright (C) 2018-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
 #define ALARM_ZONE_LOW        2000  /* zone range is  700m <->  2000m */
 #define ALARM_ZONE_IMPORTANT  700   /* zone range is  400m <->   700m */
 #define ALARM_ZONE_URGENT     400   /* zone range is    0m <->   400m */
+/* ADS-B, UAT, FANET */
+#define ALARM_ZONE_NONE_EXT   75500 /* zone range is 1000m <-> 75500m */
 
 #define VERTICAL_SEPARATION         300 /* metres */
 #define VERTICAL_VISIBILITY_RANGE   500 /* value from Classic FLARM data port specs */
@@ -40,6 +42,11 @@ typedef struct traffic_by_dist_struct {
   float distance;
 } traffic_by_dist_t;
 
+typedef struct traffic_alert_struct {
+  uint32_t  addr;
+  time_t    ts;
+} traffic_alert_t;
+
 enum
 {
 	TRAFFIC_ALARM_NONE,
@@ -48,7 +55,8 @@ enum
 	TRAFFIC_ALARM_LEGACY
 };
 
-#define TRAFFIC_ALERT_SOUND   1
+#define isTimeToAlert()       (millis() - Traffic_Alert_TimeMarker > 2000)
+#define ALERT_EXPIRATION_TIME 5 /* seconds */
 
 void ParseData(void);
 void Traffic_setup(void);

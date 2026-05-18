@@ -1,6 +1,6 @@
 /*
  * Platform_PSoC4.cpp
- * Copyright (C) 2020-2025 Linar Yusupov
+ * Copyright (C) 2020-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -757,6 +757,11 @@ static void PSoC4_Button_fini()
 #endif /* SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN */
 }
 
+static void PSoC4_TTS(char *message)
+{
+
+}
+
 #include "RingBuffer.h"
 
 #define UART1_TX_FIFO_SIZE (MAX_TRACKING_OBJECTS * 65 + 75 + 75 + 42 + 20)
@@ -845,6 +850,7 @@ const SoC_ops_t PSoC4_ops = {
   PSoC4_Button_setup,
   PSoC4_Button_loop,
   PSoC4_Button_fini,
+  PSoC4_TTS,
   NULL
 };
 

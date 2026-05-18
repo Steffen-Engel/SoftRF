@@ -1,6 +1,6 @@
 /*
  * View_Text_EPD.cpp
- * Copyright (C) 2019-2025 Linar Yusupov
+ * Copyright (C) 2019-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -230,7 +230,7 @@ static void EPD_Draw_Text()
       } else if ((int) RelativeVertical < -50) {
         strcat(info_line, "below");
       } else {
-        strcpy(info_line, "  same alt."); 
+        strcpy(info_line, "  same alt.");
       }
 
       display->getTextBounds(info_line, 0, 0, &tbx, &tby, &tbw, &tbh);

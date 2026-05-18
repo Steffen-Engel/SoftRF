@@ -1,6 +1,6 @@
 /*
  * Platform_ESP32.h
- * Copyright (C) 2018-2025 Linar Yusupov
+ * Copyright (C) 2018-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@
 #else
 #define UATSerial               Serial
 #endif /* ARDUINO_USB_CDC_ON_BOOT */
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#elif defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S31)
 #define UATSerial               Serial2
 #define SA8X8_Serial            Serial2
 #if ARDUINO_USB_CDC_ON_BOOT
@@ -100,6 +100,7 @@
 #elif !defined(CONFIG_IDF_TARGET_ESP32C3)  && \
       !defined(CONFIG_IDF_TARGET_ESP32C5)  && \
       !defined(CONFIG_IDF_TARGET_ESP32S3)  && \
+      !defined(CONFIG_IDF_TARGET_ESP32S31) && \
       !defined(CONFIG_IDF_TARGET_ESP32C6)  && \
       !defined(CONFIG_IDF_TARGET_ESP32C61) && \
       !defined(CONFIG_IDF_TARGET_ESP32H2)  && \
@@ -159,7 +160,7 @@ static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
 #define SOC_GPIO_PIN_LED        25
 #elif defined(CONFIG_IDF_TARGET_ESP32S2)
 #define SOC_GPIO_PIN_LED        7
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#elif defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S31)
 #define SOC_GPIO_PIN_LED        2 /* 48 ? */
 #elif defined(CONFIG_IDF_TARGET_ESP32C2)
 #define SOC_GPIO_PIN_LED        SOC_UNUSED_PIN /* TBD */
@@ -194,6 +195,8 @@ static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
                                 SOC_GPIO_PIN_BPIPW_STATUS :             \
                                hw_info.model == SOFTRF_MODEL_GIZMO     ?\
                                 SOC_GPIO_PIN_M2_LED :                   \
+                               hw_info.model == SOFTRF_MODEL_PRIME_MK4 ?\
+                                SOC_GPIO_PIN_1W_LED :                   \
                                hw_info.model == SOFTRF_MODEL_NANO    && \
                                hw_info.revision == 1                   ?\
                                 SOC_GPIO_PIN_ELRS_LED :                 \
@@ -213,6 +216,8 @@ static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
                                   (hw_info.revision >= 8 ?                \
                                     SOC_GPIO_PIN_TBEAM_V08_PPS :          \
                                     SOC_UNUSED_PIN) :                     \
+                                (hw_info.model == SOFTRF_MODEL_PRIME_MK4 ?\
+                                  SOC_GPIO_PIN_1W_GNSS_PPS :              \
                                 (hw_info.model == SOFTRF_MODEL_MIDI ?     \
                                   SOC_GPIO_PIN_HELTRK_GNSS_PPS :          \
                                 (hw_info.model == SOFTRF_MODEL_ECO ?      \
@@ -224,7 +229,7 @@ static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
                                 (hw_info.model == SOFTRF_MODEL_STANDALONE && \
                                  hw_info.revision == STD_EDN_REV_WT99P4C5 ?\
                                   SOC_GPIO_PIN_P4_GNSS_PPS :              \
-                                  SOC_UNUSED_PIN)))))))
+                                  SOC_UNUSED_PIN))))))))
 
 #define SOC_GPIO_PIN_BUZZER   (hw_info.model == SOFTRF_MODEL_PRIME_MK2 ? \
                                 SOC_UNUSED_PIN :                         \
@@ -278,13 +283,13 @@ static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
 
 #if defined(CONFIG_IDF_TARGET_ESP32S2)
 #define LV_HOR_RES                      (135) //Horizontal
-#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#elif defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S31)
 #define LV_HOR_RES                      (80) //Horizontal
 #else
 #define LV_HOR_RES                      (240) //Horizontal
 #endif
 
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S31)
 #define LV_VER_RES                      (160) //vertical
 #else
 #define LV_VER_RES                      (240) //vertical
@@ -323,6 +328,7 @@ static inline color_t uni_Color(uint8_t r, uint8_t g, uint8_t b) {
 #include "iomap/Ebyte_EoRa_HUB_900TB.h"
 #include "iomap/WT99P4C5.h"
 #include "iomap/LilyGO_TDisplay_P4.h"
+#include "iomap/LilyGO_TBeam_1W.h"
 
 enum rst_reason {
   REASON_DEFAULT_RST      = 0,  /* normal startup by power on */
@@ -337,6 +343,7 @@ enum rst_reason {
 enum esp32_board_id {
   ESP32_DEVKIT,
   ESP32_S3_DEVKIT,
+  ESP32_S31_DEVKIT,
   ESP32_C2_DEVKIT,
   ESP32_C3_DEVKIT,
   ESP32_C5_DEVKIT,
@@ -350,6 +357,7 @@ enum esp32_board_id {
   ESP32_HELTEC_OLED,
   ESP32_TTGO_T_BEAM,
   ESP32_TTGO_T_BEAM_SUPREME,
+  ESP32_TTGO_T_BEAM_1W,
   ESP32_TTGO_T_WATCH,
   ESP32_S2_T8_V1_1,
   ESP32_LILYGO_T_TWR2,
@@ -386,6 +394,7 @@ enum softrf_usb_pid {
   SOFTRF_USB_PID_BANANA     = 0x812B,
   SOFTRF_USB_PID_GIZMO      = 0x82D9,
   SOFTRF_USB_PID_AIRVENTURE = 0x82F9,
+  SOFTRF_USB_PID_CONCORDE   = 0x8343,
 };
 
 struct rst_info {
@@ -429,6 +438,14 @@ struct rst_info {
 
 #define PCA9557_ADDRESS         (0x18)
 
+#define XL9535_ADDRESS          (0x20) /* A0 = A1 = A2 = LOW */
+#define ICM20948_ADDRESS        (0x68)
+#define AW86224_ADDRESS         (0x58)
+#define SGM38121_ADDRESS        (0x28)
+#define HI8561_ADDRESS          (0x68)
+#define GT9895_ADDRESS          (0x5D)
+#define OV2710_ADDRESS          (0x36)
+
 /* Disable brownout detection (avoid unexpected reset on some boards) */
 #define ESP32_DISABLE_BROWNOUT_DETECTOR 0
 
@@ -440,7 +457,8 @@ struct rst_info {
 //#define USE_TFT
 #define USE_NMEA_CFG
 #define USE_BASICMAC
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S31)
+
 #define USE_SKYVIEW_CFG
 #define USE_RADIOLIB
 //#define EXCLUDE_LR11XX
@@ -450,6 +468,8 @@ struct rst_info {
 #define EXCLUDE_SI446X
 #define EXCLUDE_SX1231
 #define EXCLUDE_SX1280
+#define USE_FEM
+
 #elif defined(CONFIG_IDF_TARGET_ESP32C3) || \
       defined(CONFIG_IDF_TARGET_ESP32C5) || \
       defined(CONFIG_IDF_TARGET_ESP32C6) || \
@@ -461,13 +481,36 @@ struct rst_info {
 //#define USE_RADIOHEAD
 #endif /* ARDUINO_USB_CDC_ON_BOOT */
 //#define EXCLUDE_LR11XX
+#if defined(USE_RADIOLIB)
+#include <BuildOpt.h>
+#if RADIOLIB_VERSION_MAJOR <= 7 && RADIOLIB_VERSION_MINOR < 6
 #define EXCLUDE_LR20XX
+#endif /* RADIOLIB_VERSION */
+#endif /* USE_RADIOLIB */
 #define EXCLUDE_CC1101
 #define EXCLUDE_SI443X
 #define EXCLUDE_SI446X
 #define EXCLUDE_SX1231
 #define EXCLUDE_SX1280
-#endif /* S3 C3 C6 */
+
+#elif defined(CONFIG_IDF_TARGET_ESP32P4)
+
+#define USE_SKYVIEW_CFG
+#define USE_RADIOLIB
+//#define EXCLUDE_LR11XX
+#if defined(USE_RADIOLIB)
+#include <BuildOpt.h>
+#if RADIOLIB_VERSION_MAJOR <= 7 && RADIOLIB_VERSION_MINOR < 6
+#define EXCLUDE_LR20XX
+#endif /* RADIOLIB_VERSION */
+#endif /* USE_RADIOLIB */
+#define EXCLUDE_CC1101
+#define EXCLUDE_SI443X
+#define EXCLUDE_SI446X
+#define EXCLUDE_SX1231
+#define EXCLUDE_SX1280
+
+#endif /* S3 C3 C6 P4 */
 
 #define USE_TIME_SLOTS
 
@@ -514,7 +557,9 @@ struct rst_info {
 
 #define EXCLUDE_UATM
 
-#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(CONFIG_IDF_TARGET_ESP32S2) || \
+    defined(CONFIG_IDF_TARGET_ESP32S3) || \
+    defined(CONFIG_IDF_TARGET_ESP32S31)
 #define EXCLUDE_NRF905
 
 /* Experimental */
@@ -597,7 +642,7 @@ extern const USB_Device_List_t supported_USB_devices[];
 #endif /* SX || CX || H2 || H4 || P4 */
 #endif /* CONFIG_IDF_TARGET_ESP32 */
 
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S31)
 #define EXCLUDE_EGM96
 //#undef USE_NMEALIB
 #define USE_U10_EXT
@@ -637,6 +682,9 @@ extern const USB_Device_List_t supported_USB_devices[];
 //#define EXCLUDE_VOICE_MESSAGE
 #define USE_OLED
 //#define USE_USB_HOST
+//#define USE_LIB_RTLSDR
+//#define USE_DSI
+#define USE_SENSORLIB_TOUCH
 #endif /* P4 */
 
 #define POWER_SAVING_WIFI_TIMEOUT 600000UL /* 10 minutes */
@@ -647,9 +695,9 @@ extern const USB_Device_List_t supported_USB_devices[];
 
 #if defined(USE_OLED)
 #define U8X8_OLED_I2C_BUS_TYPE  U8X8_SSD1306_128X64_NONAME_2ND_HW_I2C
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S31)
 #define ENABLE_OLED_TEXT_PAGE
-#endif /* CONFIG_IDF_TARGET_ESP32S3 */
+#endif /* CONFIG_IDF_TARGET_ESP32S3-S31 */
 #endif /* USE_OLED */
 
 #if defined(USE_EPAPER)

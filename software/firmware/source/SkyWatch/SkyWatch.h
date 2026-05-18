@@ -1,6 +1,6 @@
 /*
  * SkyWatch.h
- * Copyright (C) 2019-2025 Linar Yusupov
+ * Copyright (C) 2019-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -172,6 +172,15 @@ enum
 	SOFTRF_MODEL_NEO,
 	SOFTRF_MODEL_HANDHELD,
 	SOFTRF_MODEL_GIZMO,
+	SOFTRF_MODEL_NANO,
+	SOFTRF_MODEL_DECENT,
+	SOFTRF_MODEL_LYRA,
+	SOFTRF_MODEL_AIRVENTURE,
+	SOFTRF_MODEL_SOLARIS,
+	SOFTRF_MODEL_POCKET,
+	SOFTRF_MODEL_LABUBU,
+	SOFTRF_MODEL_CONCORDE,
+	SOFTRF_MODEL_RUGGED,
 };
 
 enum

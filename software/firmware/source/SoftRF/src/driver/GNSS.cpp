@@ -1,6 +1,6 @@
 /*
  * GNSSHelper.cpp
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,6 +70,7 @@ const char *GNSS_name[] = {
   [GNSS_MODULE_U9]      = "U9",
   [GNSS_MODULE_U10]     = "U10",
   [GNSS_MODULE_U11]     = "U11",
+  [GNSS_MODULE_U12]     = "U12",
   [GNSS_MODULE_MAV]     = "MAV",
   [GNSS_MODULE_SONY]    = "SONY",
   [GNSS_MODULE_AT65]    = "AT65",
@@ -279,16 +280,17 @@ uint8_t makeUBXCFG(uint8_t cl, uint8_t id, uint8_t msglen, const uint8_t *msg)
   return (msglen + 8);
 }
 
-// Send a byte array of UBX protocol to the GPS
+// Send a byte array of UBX protocol to the GNSS
 static void sendUBX(const uint8_t *MSG, uint8_t len) {
   for (int i = 0; i < len; i++) {
     Serial_GNSS_Out.write( MSG[i]);
     GNSS_DEBUG_PRINT(MSG[i], HEX);
   }
-//  Serial_GNSS_Out.println();
+
+  GNSS_FLUSH();
 }
 
-// Calculate expected UBX ACK packet and parse UBX response from GPS
+// Calculate expected UBX ACK packet and parse UBX response from GNSS
 static boolean getUBX_ACK(uint8_t cl, uint8_t id) {
   uint8_t b;
   uint8_t ackByteID = 0;
@@ -533,7 +535,7 @@ static byte ublox_version() {
   uint8_t msglen = makeUBXCFG(0x0A, 0x04, 0, NULL); // MON-VER
   sendUBX(GNSSbuf, msglen);
 
-  // Get the message back from the GPS
+  // Get the message back from the GNSS
   GNSS_DEBUG_PRINT(F(" * Reading response: "));
 
   while ((millis() - startTime) < 2000 ) {
@@ -579,6 +581,8 @@ static byte ublox_version() {
               rval = GNSS_MODULE_U9;
             else if (GNSSbuf[33] == 'A')
               rval = GNSS_MODULE_U10;
+            else if (GNSSbuf[33] == 'B')
+              rval = GNSS_MODULE_U11;
 
 #if defined(USE_U10_EXT)
             _ulox_version_cache = rval;
@@ -608,7 +612,7 @@ static bool ublox_setup()
 {
 #if 1
   // Set the navigation mode (Airborne, 1G)
-  // Turning off some GPS NMEA sentences on the uBlox modules
+  // Turning off some GNSS NMEA sentences on the uBlox modules
   setup_UBX();
 #else
   //Serial_GNSS_Out.write("$PUBX,41,1,0007,0003,9600,0*10\r\n");
@@ -617,7 +621,7 @@ static bool ublox_setup()
   GNSS_FLUSH();
   SoC->swSer_begin(38400);
 
-  // Turning off some GPS NMEA strings on the uBlox modules
+  // Turning off some GNSS NMEA strings on the uBlox modules
   Serial_GNSS_Out.write("$PUBX,40,GLL,0,0,0,0*5C\r\n"); delay(250);
   Serial_GNSS_Out.write("$PUBX,40,GSV,0,0,0,0*59\r\n"); delay(250);
   Serial_GNSS_Out.write("$PUBX,40,VTG,0,0,0,0*5E\r\n"); delay(250);
@@ -684,7 +688,7 @@ const gnss_chip_ops_t ublox_ops = {
 
 static void ublox_factory_reset()
 {
-  // reset GPS to factory settings
+  // reset GNSS to factory settings
   for (int i = 0; i < sizeof(factoryUBX); i++) {
     Serial_GNSS_Out.write(pgm_read_byte(&factoryUBX[i]));
   }
@@ -1046,6 +1050,10 @@ static bool at65_setup()
 
   Serial_GNSS_Out.write("$PCAS11,6*1B\r\n"); /* Aviation < 2g */ delay(250);
 
+  if (hw_info.model == SOFTRF_MODEL_CONCORDE) {
+    Serial_GNSS_Out.write("$PCAS02,1000*2E\r\n"); /* 1 Hz */     delay(250);
+  }
+
   return true;
 }
 
@@ -1135,6 +1143,18 @@ static bool uc65_setup()
    * $CFGGEOID,0*1E
    * $CFGDYN,h00,0,0*55
    */
+
+#if 0
+  Serial_GNSS_Out.write("$CFGSYS,h1111\r\n"); /* GPS L1 + BDS B1I + GLO L1 + GAL E1 */
+  /* The receiver resets automatically after receiving the $CFGSYS command */
+  delay(500);
+#endif
+#if 0
+  Serial_GNSS_Out.write("$CFGSYS,h4004\r\n"); /* GPS L5 + GAL E5a */
+  /* The receiver resets automatically after receiving the $CFGSYS command */
+  delay(500);
+#endif
+
   Serial_GNSS_Out.write("$CFGMSG,0,2,0\r\n"); delay(250); /* GSA off */
   Serial_GNSS_Out.write("$CFGMSG,0,3,0\r\n"); delay(250); /* GSV off */
   Serial_GNSS_Out.write("$CFGMSG,6,0,0\r\n"); delay(250); /* TXT off */
@@ -1334,6 +1354,7 @@ byte GNSS_setup() {
 
   if (hw_info.model == SOFTRF_MODEL_PRIME_MK2 ||
       hw_info.model == SOFTRF_MODEL_PRIME_MK3 ||
+      hw_info.model == SOFTRF_MODEL_PRIME_MK4 ||
       hw_info.model == SOFTRF_MODEL_UNI       ||
       hw_info.model == SOFTRF_MODEL_BADGE     ||
       hw_info.model == SOFTRF_MODEL_ACADEMY   ||
@@ -1354,6 +1375,8 @@ byte GNSS_setup() {
       hw_info.model == SOFTRF_MODEL_SOLARIS   ||
       hw_info.model == SOFTRF_MODEL_POCKET    ||
       hw_info.model == SOFTRF_MODEL_LABUBU    ||
+      hw_info.model == SOFTRF_MODEL_CONCORDE  ||
+      hw_info.model == SOFTRF_MODEL_RUGGED    ||
       hw_info.model == SOFTRF_MODEL_AIRVENTURE)
   {
     // power on by wakeup call

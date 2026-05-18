@@ -1,6 +1,6 @@
 /*
  * SoftRF.h
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 
 #if defined(ENERGIA_ARCH_CC13XX) || defined(ENERGIA_ARCH_CC13X2) || \
     defined(HACKRF_ONE)          || defined(ARDUINO_ARCH_AVR)    || \
-    defined(ARDUINO_ARCH_SILABS)
+    defined(ARDUINO_ARCH_SILABS) || defined(ARDUINO_ARCH_NRF54L15CLEAN)
 #include <TimeLib.h>
 #endif /* CC13XX || CC13X2 || HACKRF_ONE || AVR || SILABS */
 
@@ -34,8 +34,8 @@
 #endif /* RASPBERRY_PI */
 
 #define SOFTRF_IDENT            "SoftRF"
-#define SOFTRF_FIRMWARE_VERSION "1.7.1"
-#define SOFTRF_USB_FW_VERSION   0x0107
+#define SOFTRF_FIRMWARE_VERSION "1.9"
+#define SOFTRF_USB_FW_VERSION   0x0109
 
 #define ENTRY_EXPIRATION_TIME   10 /* seconds */
 #define LED_EXPIRATION_TIME     5  /* seconds */
@@ -147,9 +147,6 @@ typedef struct UFO {
     float     bearing;
     int8_t    alarm_level;
 
-    /* bitmap of issued voice/tone/ble/... alerts */
-    uint8_t   alert;
-
     /* ADS-B (ES, UAT, GDL90) specific data */
     uint8_t   callsign[8];
 } ufo_t;
@@ -167,6 +164,10 @@ typedef struct hardware_info {
     byte  imu;
     byte  mag;
     byte  pmu;
+    byte  audio;
+    byte  touch;
+    byte  haptic;
+    byte  camera;
 } hardware_info_t;
 
 typedef struct IODev_ops_struct {
@@ -240,6 +241,8 @@ enum
 	SOFTRF_MODEL_POCKET,
 	SOFTRF_MODEL_LABUBU,
 	SOFTRF_MODEL_CONCORDE,
+	SOFTRF_MODEL_RUGGED,
+	SOFTRF_MODEL_PRIME_MK4,
 };
 
 enum
@@ -299,8 +302,45 @@ enum
 	MAG_AK8963,
 	MAG_AK09916,
 	MAG_IIS2MDC,
-	MAG_QMC6310,
+	MAG_QMC6309,
+	MAG_QMC6310U,
+	MAG_QMC6310N,
 	MAG_BMM150,
+	MAG_BMM350,
+};
+
+enum
+{
+	AUDIO_NONE,
+	AUDIO_PWM, /* or PDM */
+	AUDIO_MAX98357,
+	AUDIO_NS4168,
+	AUDIO_ES8311,
+};
+
+enum
+{
+	TOUCH_NONE,
+	TOUCH_FT5206,
+	TOUCH_TTP223,
+	TOUCH_FT6336,
+	TOUCH_GT911,
+	TOUCH_JD9365TG, /* HI8561 */
+	TOUCH_GT9895,
+};
+
+enum
+{
+	HAPTIC_NONE,
+	HAPTIC_DRV2605,
+	HAPTIC_AW86224,
+};
+
+enum
+{
+	CAMERA_NONE,
+	CAMERA_OV5647,
+	CAMERA_OV2710,
 };
 
 enum

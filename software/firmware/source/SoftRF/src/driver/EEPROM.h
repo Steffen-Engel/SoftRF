@@ -1,6 +1,6 @@
 /*
  * EEPROMHelper.h
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,11 @@
 #include <raspi/EEPROM.h>
 #else
 #ifdef __cplusplus
+#if defined(USE_EXT_EEPROM)
+#include <JC_EEPROM.h>
+#else
 #include <EEPROM.h>
+#endif /* USE_EXT_EEPROM */
 #endif /* __cplusplus */
 #endif /* CC13XX or CC13X2 */
 #endif /* EXCLUDE_EEPROM */

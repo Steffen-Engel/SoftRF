@@ -1,6 +1,6 @@
 /*
  * Platform_AVR.cpp
- * Copyright (C) 2021-2025 Linar Yusupov
+ * Copyright (C) 2021-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -517,6 +517,11 @@ static void AVR_Button_fini()
 #endif /* SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN */
 }
 
+static void AVR_TTS(char *message)
+{
+
+}
+
 static void AVR_USB_setup()
 {
   if (USBSerial && USBSerial != Serial) {
@@ -624,6 +629,7 @@ const SoC_ops_t AVR_ops = {
   AVR_Button_setup,
   AVR_Button_loop,
   AVR_Button_fini,
+  AVR_TTS,
   NULL
 };
 

@@ -1,6 +1,6 @@
 /*
  * Platform_STM32.cpp
- * Copyright (C) 2019-2025 Linar Yusupov
+ * Copyright (C) 2019-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1424,6 +1424,11 @@ static void STM32_Button_fini()
   }
 }
 
+static void STM32_TTS(char *message)
+{
+
+}
+
 #if defined(USBD_USE_CDC)
 
 #include <USBSerial.h>
@@ -1523,6 +1528,7 @@ const SoC_ops_t STM32_ops = {
   STM32_Button_setup,
   STM32_Button_loop,
   STM32_Button_fini,
+  STM32_TTS,
   NULL
 };
 

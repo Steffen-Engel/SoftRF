@@ -1,6 +1,6 @@
 /*
  * Platform_LPC43.cpp
- * Copyright (C) 2021-2025 Linar Yusupov
+ * Copyright (C) 2021-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,6 +66,10 @@ hardware_info_t hw_info = {
   .imu      = IMU_NONE,
   .mag      = MAG_NONE,
   .pmu      = PMU_NONE,
+  .audio    = AUDIO_NONE,
+  .touch    = TOUCH_NONE,
+  .haptic   = HAPTIC_NONE,
+  .camera   = CAMERA_NONE,
 };
 
 const uint16_t LPC43_Vendor_Id = 0x1d50; /* OpenMoko, Inc. */
@@ -76,7 +80,7 @@ const uint16_t LPC43_Device_Version   = SOFTRF_USB_FW_VERSION;
 
 const char *LPC43_boot_str1 = SOFTRF_IDENT "-" PLAT_LPC43_NAME
                               " FW.REV: " SOFTRF_FIRMWARE_VERSION " DEV.ID: ";
-const char *LPC43_boot_str2 = "Copyright (C) 2015-2025 Linar Yusupov. ";
+const char *LPC43_boot_str2 = "Copyright (C) 2015-2026 Linar Yusupov. ";
 const char *LPC43_boot_str3 = "All rights reserved";
 
 #if defined(USE_PORTAPACK)
@@ -456,6 +460,11 @@ static void LPC43_Button_fini()
   /* TODO */
 }
 
+static void LPC43_TTS(char *message)
+{
+
+}
+
 void LPC43_USB_CDC_Sync()
 {
   unsigned long ms = millis();
@@ -587,6 +596,7 @@ const SoC_ops_t LPC43_ops = {
   LPC43_Button_setup,
   LPC43_Button_loop,
   LPC43_Button_fini,
+  LPC43_TTS,
   NULL
 };
 

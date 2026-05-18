@@ -1,6 +1,6 @@
 /*
  * Platform_nRF52.h
- * Copyright (C) 2020-2025 Linar Yusupov
+ * Copyright (C) 2020-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,11 +81,13 @@ enum nRF52_board_id {
   NRF52_LILYGO_TECHO_PLUS,      /* 2025 */
   NRF52_LILYGO_TULTIMA,
   NRF52_SEEED_T1000E,
+  NRF52_SEEED_T1000E_PRO,       /* 2026 */
   NRF52_HELTEC_T114,
   NRF52_ELECROW_TN_M1,
   NRF52_ELECROW_TN_M3,
   NRF52_ELECROW_TN_M6,
   NRF52_SEEED_WIO_L1,
+  NRF52_SEEED_T2000,
 };
 
 enum nRF52_display_id {
@@ -138,6 +140,7 @@ struct rst_info {
 #define AHT20_ADDRESS         (0x38)
 #define SC7A20H_ADDRESS_L     (0x18)
 #define SC7A20H_ADDRESS_H     (0x19)
+#define BMM350_ADDRESS        (0x14)
 
 #if defined(ARDUINO_ARCH_MBED) || defined(ARDUINO_ARCH_ZEPHYR)
 #define PCF8563_SLAVE_ADDRESS (0x51)
@@ -153,11 +156,13 @@ struct rst_info {
 #include "iomap/LilyGO_TEcho.h"
 #include "iomap/LilyGO_TUltima.h"
 #include "iomap/Seeed_T1000E.h"
+#include "iomap/Seeed_T1000E_Pro.h"
+#include "iomap/Seeed_T2000.h"
+#include "iomap/Seeed_Wio_L1.h"
 #include "iomap/Heltec_T114.h"
 #include "iomap/Elecrow_ThinkNode_M1.h"
 #include "iomap/Elecrow_ThinkNode_M3.h"
 #include "iomap/Elecrow_ThinkNode_M6.h"
-#include "iomap/Seeed_Wio_L1.h"
 
 #define SOC_GPIO_LED_PCA10059_STATUS    _PINNUM(0,  6) // P0.06
 #define SOC_GPIO_LED_PCA10059_GREEN     _PINNUM(1,  9) // P1.09 (Green)
@@ -317,7 +322,12 @@ struct rst_info {
 #define USE_TFT
 #define USE_RADIOLIB
 //#define EXCLUDE_LR11XX
+#if defined(USE_RADIOLIB)
+#include <BuildOpt.h>
+#if RADIOLIB_VERSION_MAJOR <= 7 && RADIOLIB_VERSION_MINOR < 6
 #define EXCLUDE_LR20XX
+#endif /* RADIOLIB_VERSION */
+#endif /* USE_RADIOLIB */
 #define EXCLUDE_CC1101
 #define EXCLUDE_SI443X
 #define EXCLUDE_SI446X
@@ -360,9 +370,11 @@ struct rst_info {
 #define PFLAA_EXT1_ARGS ,Container[i].no_track,data_source,Container[i].rssi
 
 #if defined(USE_PWM_SOUND)
-#define SOC_GPIO_PIN_BUZZER   (nRF52_board == NRF52_SEEED_T1000E  ? SOC_GPIO_PIN_T1000_BUZZER : \
-                               nRF52_board == NRF52_ELECROW_TN_M1 ? SOC_GPIO_PIN_M1_BUZZER    : \
-                               nRF52_board == NRF52_SEEED_WIO_L1  ? SOC_GPIO_PIN_L1_BUZZER    : \
+#define SOC_GPIO_PIN_BUZZER   (nRF52_board == NRF52_SEEED_T1000E  ? SOC_GPIO_PIN_T1000_BUZZER     : \
+                               nRF52_board == NRF52_SEEED_T1000E_PRO ? SOC_GPIO_PIN_T1KEP_BUZZER  : \
+                               nRF52_board == NRF52_ELECROW_TN_M1 ? SOC_GPIO_PIN_M1_BUZZER        : \
+                               nRF52_board == NRF52_ELECROW_TN_M3 ? SOC_GPIO_PIN_M3_BUZZER        : \
+                               nRF52_board == NRF52_SEEED_WIO_L1  ? SOC_GPIO_PIN_L1_BUZZER        : \
                                nRF52_board == NRF52_LILYGO_TECHO_PLUS ? SOC_GPIO_PIN_TECHO_BUZZER : \
                                hw_info.rf != RF_IC_SX1262 ? SOC_UNUSED_PIN           : \
                                hw_info.revision == 1 ? SOC_GPIO_PIN_TECHO_REV_1_DIO0 : \
@@ -384,7 +396,7 @@ extern Adafruit_NeoPixel strip;
 extern Uart Serial2;
 #endif
 
-extern const char *nRF52_Device_Manufacturer, *nRF52_Device_Model, *Hardware_Rev[];
+extern const char *nRF5x_Device_Manufacturer, *nRF5x_Device_Model, *Hardware_Rev[];
 
 #if defined(USE_EPAPER)
 typedef void EPD_Task_t;

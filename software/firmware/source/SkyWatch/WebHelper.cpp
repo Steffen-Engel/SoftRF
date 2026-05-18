@@ -1,6 +1,6 @@
 /*
  * WebHelper.cpp
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -108,7 +108,7 @@ static const char about_html[] PROGMEM = "<html>\
 <tr><th align=left>sekigon-gonnoc</th><td align=left>Pico PIO USB library</td></tr>\
 </table>\
 <hr>\
-Copyright (C) 2019-2025 &nbsp;&nbsp;&nbsp; Linar Yusupov\
+Copyright (C) 2019-2026 &nbsp;&nbsp;&nbsp; Linar Yusupov\
 </body>\
 </html>";
 
@@ -770,7 +770,7 @@ void handleSettings_master() {
 
 void handleSettings_slave() {
 
-  size_t size = 7290;
+  size_t size = 7370;
   char *offset;
   size_t len = 0;
   char *Settings_temp = (char *) malloc(size);
@@ -895,10 +895,12 @@ void handleSettings_slave() {
 <option %s value='%d'>Glider</option>\
 <option %s value='%d'>Towplane</option>\
 <option %s value='%d'>Powered</option>\
+<option %s value='%d'>Jet</option>\
 <option %s value='%d'>Helicopter</option>\
 <option %s value='%d'>UAV</option>\
 <option %s value='%d'>Hangglider</option>\
 <option %s value='%d'>Paraglider</option>\
+<option %s value='%d'>Parachute</option>\
 <option %s value='%d'>Balloon</option>\
 <option %s value='%d'>Static</option>\
 </select>\
@@ -958,10 +960,12 @@ void handleSettings_slave() {
   (settings->s.aircraft_type == AIRCRAFT_TYPE_GLIDER ? "selected" : ""),  AIRCRAFT_TYPE_GLIDER,
   (settings->s.aircraft_type == AIRCRAFT_TYPE_TOWPLANE ? "selected" : ""),  AIRCRAFT_TYPE_TOWPLANE,
   (settings->s.aircraft_type == AIRCRAFT_TYPE_POWERED ? "selected" : ""),  AIRCRAFT_TYPE_POWERED,
+  (settings->s.aircraft_type == AIRCRAFT_TYPE_JET ? "selected" : ""),  AIRCRAFT_TYPE_JET,
   (settings->s.aircraft_type == AIRCRAFT_TYPE_HELICOPTER ? "selected" : ""),  AIRCRAFT_TYPE_HELICOPTER,
   (settings->s.aircraft_type == AIRCRAFT_TYPE_UAV ? "selected" : ""),  AIRCRAFT_TYPE_UAV,
   (settings->s.aircraft_type == AIRCRAFT_TYPE_HANGGLIDER ? "selected" : ""),  AIRCRAFT_TYPE_HANGGLIDER,
   (settings->s.aircraft_type == AIRCRAFT_TYPE_PARAGLIDER ? "selected" : ""),  AIRCRAFT_TYPE_PARAGLIDER,
+  (settings->s.aircraft_type == AIRCRAFT_TYPE_PARACHUTE ? "selected" : ""),  AIRCRAFT_TYPE_PARACHUTE,
   (settings->s.aircraft_type == AIRCRAFT_TYPE_BALLOON ? "selected" : ""),  AIRCRAFT_TYPE_BALLOON,
   (settings->s.aircraft_type == AIRCRAFT_TYPE_STATIC ? "selected" : ""),  AIRCRAFT_TYPE_STATIC,
   (settings->s.alarm == TRAFFIC_ALARM_NONE ? "selected" : ""),  TRAFFIC_ALARM_NONE,

@@ -1,6 +1,6 @@
 /*
  * NMEAHelper.cpp
- * Copyright (C) 2017-2025 Linar Yusupov
+ * Copyright (C) 2017-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 #include "../../driver/Baro.h"
 #include "../../TrafficHelper.h"
 
-#define ADDR_TO_HEX_STR(s, c) (s += ((c) < 0x10 ? "0" : "") + String((c), HEX))
+#define ADDR_TO_HEX_STR(s, c) (s += String((c) < 0x10 ? "0" : "") + String((c), HEX))
 
 #if defined(NMEA_TCP_SERVICE)
 WiFiServer *NmeaTCPServer = NULL;
@@ -443,7 +443,13 @@ void NMEA_Export()
           if (settings->nmea_l) {
             distance = Container[i].distance;
 
-            if (distance < ALARM_ZONE_NONE) {
+            float max_distance;
+            max_distance = Container[i].protocol == RF_PROTOCOL_ADSB_1090 ||
+                           Container[i].protocol == RF_PROTOCOL_ADSB_UAT  ||
+                           Container[i].protocol == RF_PROTOCOL_FANET ?
+                           ALARM_ZONE_NONE_EXT : ALARM_ZONE_NONE;
+
+            if (distance < max_distance) {
 
               total_objects++;
 

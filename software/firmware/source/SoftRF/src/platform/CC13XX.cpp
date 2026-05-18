@@ -1,6 +1,6 @@
 /*
  * Platform_CC13XX.cpp
- * Copyright (C) 2019-2025 Linar Yusupov
+ * Copyright (C) 2019-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -912,6 +912,11 @@ static void CC13XX_Button_fini()
 #endif /* SOC_GPIO_PIN_BUTTON != SOC_UNUSED_PIN */
 }
 
+static void CC13XX_TTS(char *message)
+{
+
+}
+
 const SoC_ops_t CC13XX_ops = {
 #if defined(ENERGIA_ARCH_CC13XX)
   SOC_CC13X0,
@@ -962,6 +967,7 @@ const SoC_ops_t CC13XX_ops = {
   CC13XX_Button_setup,
   CC13XX_Button_loop,
   CC13XX_Button_fini,
+  CC13XX_TTS,
   NULL
 };
 

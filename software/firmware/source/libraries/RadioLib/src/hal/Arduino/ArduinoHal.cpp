@@ -10,6 +10,9 @@ void ArduinoHal::init() {
   if(initInterface) {
     spiBegin();
   }
+  #if defined(ARDUINO_ARCH_STM32) && defined(DWT_BASE)
+    dwt_init();
+  #endif
 }
 
 void ArduinoHal::term() {
@@ -64,7 +67,7 @@ void inline ArduinoHal::delay(RadioLibTime_t ms) {
 #if !defined(RADIOLIB_CLOCK_DRIFT_MS)
   ::delay(ms);
 #else
-  ::delay(ms * 1000 / (1000 + RADIOLIB_CLOCK_DRIFT_MS));
+  ::delay((RadioLibTime_t)((uint64_t)ms * 1000ULL / (1000ULL + (uint64_t)RADIOLIB_CLOCK_DRIFT_MS)));
 #endif
 }
 
@@ -72,7 +75,7 @@ void inline ArduinoHal::delayMicroseconds(RadioLibTime_t us) {
 #if !defined(RADIOLIB_CLOCK_DRIFT_MS)
   ::delayMicroseconds(us);
 #else
-  ::delayMicroseconds(us * 1000 / (1000 + RADIOLIB_CLOCK_DRIFT_MS));
+  ::delayMicroseconds((RadioLibTime_t)((uint64_t)us * 1000ULL / (1000ULL + (uint64_t)RADIOLIB_CLOCK_DRIFT_MS)));
 #endif
 }
 
@@ -80,7 +83,7 @@ RadioLibTime_t inline ArduinoHal::millis() {
 #if !defined(RADIOLIB_CLOCK_DRIFT_MS)
   return(::millis());
 #else
-  return(::millis() * 1000 / (1000 + RADIOLIB_CLOCK_DRIFT_MS));
+  return (RadioLibTime_t)((uint64_t)::millis() * 1000ULL / (1000ULL + (uint64_t)RADIOLIB_CLOCK_DRIFT_MS));
 #endif
 }
 
@@ -88,7 +91,7 @@ RadioLibTime_t inline ArduinoHal::micros() {
 #if !defined(RADIOLIB_CLOCK_DRIFT_MS)
   return(::micros());
 #else
-  return(::micros() * 1000 / (1000 + RADIOLIB_CLOCK_DRIFT_MS));
+  return (RadioLibTime_t)((uint64_t)::micros() * 1000ULL / (1000ULL + (uint64_t)RADIOLIB_CLOCK_DRIFT_MS));
 #endif
 }
 

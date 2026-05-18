@@ -1,6 +1,6 @@
 /*
  * BluetoothHelper.h
- * Copyright (C) 2018-2025 Linar Yusupov
+ * Copyright (C) 2018-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -98,4 +98,4 @@ class BLEDfuSecure : public BLEService
     virtual err_t begin(void);
 };
 
-extern IODev_ops_t nRF52_Bluetooth_ops;
+extern IODev_ops_t nRF5x_Bluetooth_ops;

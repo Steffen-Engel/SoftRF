@@ -1,6 +1,6 @@
 /*
  * Platform_STM32.h
- * Copyright (C) 2019-2025 Linar Yusupov
+ * Copyright (C) 2019-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -250,7 +250,8 @@ typedef struct stm32_backup_struct {
 #define EXCLUDE_IMU
 #define EXCLUDE_MAG
 #define EXCLUDE_TRAFFIC_FILTER_EXTENSION
-#define EXCLUDE_AIR7             //  -1.8 kb
+//#define EXCLUDE_AIR7           //  -1.8 kb
+#define EXCLUDE_AIR6
 //#define USE_OGN_RF_DRIVER
 //#define WITH_RFM95
 //#define WITH_RFM69

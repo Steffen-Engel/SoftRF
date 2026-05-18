@@ -1,6 +1,6 @@
 /*
  * WebHelper.cpp
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,6 +45,12 @@
 #if defined(ENABLE_RECORDER)
 #include "../system/Recorder.h"
 #endif /* ENABLE_RECORDER */
+
+#if defined(USE_LIB_RTLSDR)
+extern int      rtlsdr_is_connected;
+extern uint32_t rtlsdr_df17_frames_counter;
+extern int      rtlsdr_acfts_in_sight;
+#endif /* USE_LIB_RTLSDR */
 
 const char about_html[] PROGMEM = "<html>\
   <head>\
@@ -91,7 +97,7 @@ const char about_html[] PROGMEM = "<html>\
 <tr><th align=left>Robert Wessels and Tony Cave</th><td align=left>EasyLink library</td></tr>\
 <tr><th align=left>Oliver Jowett</th><td align=left>Dump978 library</td></tr>\
 <tr><th align=left>Phil Karn</th><td align=left>FEC library</td></tr>\
-<tr><th align=left>Lewis He</th><td align=left>AXP20X, XPowersLib and SensorsLib libraries</td></tr>\
+<tr><th align=left>Lewis He</th><td align=left>AXP20X, XPowersLib and SensorLib libraries</td></tr>\
 <tr><th align=left>Bodmer</th><td align=left>TFT library</td></tr>\
 <tr><th align=left>Michael Kuyper</th><td align=left>Basic MAC library</td></tr>\
 <tr><th align=left>Earle Philhower</th><td align=left>Arduino Core for RP2XXX and ESP8266Audio library</td></tr>\
@@ -104,7 +110,7 @@ const char about_html[] PROGMEM = "<html>\
 <tr><th align=left>Khoi Hoang</th><td align=left>WiFiWebServer and Functional-Vlpp libraries</td></tr>\
 </table>\
 <hr>\
-Copyright (C) 2015-2025 &nbsp;&nbsp;&nbsp; Linar Yusupov\
+Copyright (C) 2015-2026 &nbsp;&nbsp;&nbsp; Linar Yusupov\
 </body>\
 </html>";
 
@@ -128,7 +134,7 @@ char *Root_content() {
   char str_alt[16];
   char str_Vcc[8];
 
-  size_t size = 2420;
+  size_t size = 2700;
   char *offset;
   size_t len = 0;
 
@@ -185,8 +191,18 @@ char *Root_content() {
      <th align=left>Tx&nbsp;&nbsp;</th><td align=right>%u</td>\
      <th align=left>&nbsp;&nbsp;&nbsp;&nbsp;Rx&nbsp;&nbsp;</th><td align=right>%u</td>\
    </tr></table></td></tr>\
- </table>\
- <h2 align=center>Most recent GNSS fix</h2>\
+ </table>"
+#if defined(USE_LIB_RTLSDR)
+ "</table>\
+ <table width=100%%>\
+   <tr><th align=left>RTL-SDR</th>\
+    <td align=right><table><tr>\
+     <th align=left>DF17&nbsp;&nbsp;</th><td align=right>%u</td>\
+     <th align=left>&nbsp;&nbsp;&nbsp;&nbsp;ACFTS&nbsp;&nbsp;</th><td align=right>%u</td>\
+   </tr></table></td></tr>\
+ </table>"
+#endif /* USE_LIB_RTLSDR */
+"<h2 align=center>Most recent GNSS fix</h2>\
  <table width=100%%>\
   <tr><th align=left>Time</th><td align=right>%u</td></tr>\
   <tr><th align=left>Satellites</th><td align=right>%d</td></tr>\
@@ -226,6 +242,9 @@ char *Root_content() {
     ESP32_USB_Serial.connected ? supported_USB_devices[ESP32_USB_Serial.index].last_name  : "N/A",
 #endif /* USE_USB_HOST */
     tx_packets_counter, rx_packets_counter,
+#if defined(USE_LIB_RTLSDR)
+    rtlsdr_df17_frames_counter, rtlsdr_acfts_in_sight,
+#endif /* USE_LIB_RTLSDR */
     timestamp, sats, str_lat, str_lon, str_alt
   );
 
@@ -275,7 +294,7 @@ char *Root_content() {
 
 char *Settings_content() {
 
-  size_t size = 5520;
+  size_t size = 5600;
   char *offset;
   size_t len = 0;
   char *Settings_temp = (char *) malloc(size);
@@ -350,9 +369,7 @@ char *Settings_content() {
 #else
 "<!--<option %s value='%d'>%s</option>-->"
 #endif /* ENABLE_PROL */
-"</select>\
-</td>\
-</tr>"),
+      ),
     (settings->rf_protocol == RF_PROTOCOL_LEGACY   ? "selected" : ""),
      RF_PROTOCOL_LEGACY, legacy_proto_desc.name,
     (settings->rf_protocol == RF_PROTOCOL_OGNTP    ? "selected" : ""),
@@ -366,6 +383,28 @@ char *Settings_content() {
     (settings->rf_protocol == RF_PROTOCOL_APRS     ? "selected" : ""),
      RF_PROTOCOL_APRS, prol_proto_desc.name
     );
+
+    len = strlen(offset);
+    offset += len;
+    size -= len;
+
+    if (hw_info.rf == RF_IC_LR2021) {
+      snprintf_P ( offset, size,
+        PSTR("\
+<option %s value='%d'>%s</option>\
+<!--<option %s value='%d'>%s</option>-->"), /* https://github.com/Lora-net/usp/issues/4 */
+      (settings->rf_protocol == RF_PROTOCOL_ADSB_1090 ? "selected" : ""),
+       RF_PROTOCOL_ADSB_1090, es1090_proto_desc.name,
+      (settings->rf_protocol == RF_PROTOCOL_ADSB_UAT  ? "selected" : ""),
+       RF_PROTOCOL_ADSB_UAT, uat978_proto_desc.name
+      );
+
+      len = strlen(offset);
+      offset += len;
+      size -= len;
+    }
+
+    snprintf_P (offset, size, PSTR("</select></td></tr>"));
   } else if (hw_info.rf == RF_IC_SX1231 ||
              hw_info.rf == RF_IC_SI4432 ||
              hw_info.rf == RF_IC_SI4463 ||
@@ -430,16 +469,16 @@ char *Settings_content() {
 <td align=right>\
 <select name='band'>\
 <!--<option %s value='%d'>AUTO</option>-->\
-<option %s value='%d'>EU (868.2 MHz)</option>\
-<option %s value='%d'>RU (868.8 MHz)</option>\
-<option %s value='%d'>CN (470 MHz)</option>\
-<option %s value='%d'>US/CA (915 MHz)</option>\
-<option %s value='%d'>NZ (869.25 MHz)</option>\
-<!--<option %s value='%d'>UK (869.52 MHz)</option>-->\
-<option %s value='%d'>AU (921 MHz)</option>\
-<option %s value='%d'>IN (866 MHz)</option>\
-<option %s value='%d'>KR (920.9 MHz)</option>\
-<option %s value='%d'>IL (916.2 MHz)</option>\
+<option %s value='%d'>EU</option>\
+<option %s value='%d'>RU</option>\
+<option %s value='%d'>CN</option>\
+<option %s value='%d'>US/CA</option>\
+<option %s value='%d'>NZ</option>\
+<!--<option %s value='%d'>UK</option>-->\
+<option %s value='%d'>AU</option>\
+<option %s value='%d'>IN</option>\
+<option %s value='%d'>KR</option>\
+<option %s value='%d'>IL</option>\
 <!--<option %s value='%d'>Reserved</option>-->\
 </select>\
 </td>\

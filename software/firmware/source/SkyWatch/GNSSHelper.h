@@ -1,6 +1,6 @@
 /*
  * GNSSHelper.h
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,8 @@ typedef enum
   GNSS_MODULE_U8,   /* Ublox 8 */
   GNSS_MODULE_U9,   /* Ublox 9 */
   GNSS_MODULE_U10,  /* Ublox 10 */
-  GNSS_MODULE_U11,  /* RESERVED */
+  GNSS_MODULE_U11,  /* Ublox 11 */
+  GNSS_MODULE_U12,  /* RESERVED */
   GNSS_MODULE_MAV,  /* MAVLink */
   GNSS_MODULE_SONY, /* S7XG */
   GNSS_MODULE_AT65, /* AT6558 */

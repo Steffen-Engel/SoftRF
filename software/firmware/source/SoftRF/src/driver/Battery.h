@@ -1,6 +1,6 @@
 /*
  * BatteryHelper.h
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,6 +57,7 @@ enum
 	PMU_AXP202,
 	PMU_AXP2101,
 	PMU_SY6970,
+	BMU_BQ27220,
 };
 
 void    Battery_setup(void);

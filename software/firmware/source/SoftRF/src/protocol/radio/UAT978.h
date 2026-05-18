@@ -2,7 +2,7 @@
  * Protocol_UAT978.h
  *
  * Decoder for UAT 978 MHz ADS-B radio protocol
- * Copyright (C) 2019-2025 Linar Yusupov
+ * Copyright (C) 2019-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,10 +24,10 @@
 #include <uat.h>
 #include <uat_decode.h>
 
-#define UAT978_PREAMBLE_TYPE   RF_PREAMBLE_TYPE_AA /* TBD */
-#define UAT978_PREAMBLE_SIZE   4                   /* TBD */
+#define UAT978_PREAMBLE_TYPE   RF_PREAMBLE_TYPE_AA
+#define UAT978_PREAMBLE_SIZE   0
 
-#define UAT978_SYNCWORD        { 0xAC, 0xDD, 0xA4, 0xE2 }
+#define UAT978_SYNCWORD        { /* E */ 0xAC, 0xDD, 0xA4, 0xE2 }
 #define UAT978_SYNCWORD_SIZE   4
 #define UAT978_PAYLOAD_SIZE    LONG_FRAME_DATA_BYTES
 #define UAT978_CRC_TYPE        RF_CHECKSUM_TYPE_RS

@@ -3,7 +3,7 @@
 #define SOC_GPIO_PIN_CONS_T1000_RX    _PINNUM(0, 17) // P0.17
 #define SOC_GPIO_PIN_CONS_T1000_TX    _PINNUM(0, 16) // P0.16
 
-/* AG3335MN */
+/* AG3335MN, L1 band only */
 #define SOC_GPIO_PIN_GNSS_T1000_RX    _PINNUM(0, 14) // P0.14
 #define SOC_GPIO_PIN_GNSS_T1000_TX    _PINNUM(0, 13) // P0.13
 

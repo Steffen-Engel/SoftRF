@@ -1,6 +1,6 @@
 /*
  * RFHelper.cpp
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ String Bin2Hex(byte *buffer, size_t size)
   String str = "";
   for (int i=0; i < size; i++) {
     byte c = buffer[i];
-    str += (c < 0x10 ? "0" : "") + String(c, HEX);
+    str += String(c < 0x10 ? "0" : "") + String(c, HEX);
   }
   return str;
 }
@@ -105,16 +105,16 @@ byte RF_setup(void)
     if (false) {
 #endif /* EXCLUDE_SX12XX */
 #if defined(USE_RADIOLIB)
+#if !defined(EXCLUDE_LR20XX)
+    } else if (lr2021_ops.probe()) {
+      rf_chip = &lr2021_ops;
+#endif /* EXCLUDE_LR20XX */
 #if !defined(EXCLUDE_LR11XX)
     } else if (lr1110_ops.probe()) {
       rf_chip = &lr1110_ops;
     } else if (lr1121_ops.probe()) {
       rf_chip = &lr1121_ops;
 #endif /* EXCLUDE_LR11XX */
-#if !defined(EXCLUDE_LR20XX)
-    } else if (lr2021_ops.probe()) {
-      rf_chip = &lr2021_ops;
-#endif /* EXCLUDE_LR20XX */
 #if !defined(EXCLUDE_SX1280)
     } else if (sx1280_ops.probe()) {
       rf_chip = &sx1280_ops;
@@ -319,9 +319,42 @@ void RF_SetChannel(void)
   }
 }
 
+#if defined(USE_RADIOLIB) && !defined(EXCLUDE_LR20XX)
+#include "../TrafficHelper.h"
+
+extern mode_s_t rl_mode_s_state;
+
+#define MODES_TASK_INTERVAL 998
+
+static unsigned long ModeS_Time_Marker = 0;
+#endif /* USE_RADIOLIB && LR20XX */
+
 void RF_loop()
 {
   RF_SetChannel();
+
+#if defined(USE_RADIOLIB) && !defined(EXCLUDE_LR20XX)
+  if (rf_chip && rf_chip->type == RF_IC_LR2021       &&
+      settings->rf_protocol == RF_PROTOCOL_ADSB_1090 &&
+      millis() - ModeS_Time_Marker > MODES_TASK_INTERVAL) {
+    struct mode_s_aircraft *a;
+
+    for (a = rl_mode_s_state.aircrafts; a; a = a->next) {
+      if (a->even_cprtime && a->odd_cprtime &&
+          abs((long) (a->even_cprtime - a->odd_cprtime)) <= MODE_S_INTERACTIVE_TTL * 1000 ) {
+        if (es1090_decode(a, &ThisAircraft, &fo)) {
+          memset(fo.raw, 0, sizeof(fo.raw));
+          Traffic_Update(&fo);
+          Traffic_Add(&fo);
+        }
+      }
+    }
+
+    interactiveRemoveStaleAircrafts(&rl_mode_s_state);
+
+    ModeS_Time_Marker = millis();
+  }
+#endif /* USE_RADIOLIB && LR20XX */
 }
 
 size_t RF_Encode(ufo_t *fop)

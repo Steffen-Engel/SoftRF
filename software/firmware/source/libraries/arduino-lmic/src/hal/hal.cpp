@@ -434,8 +434,9 @@ u1_t hal_checkTimer (u4_t time) {
     return delta_time(time) <= 0;
 }
 
-#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_SAMD) || \
-    defined(ARDUINO_ARCH_RENESAS) || defined(ARDUINO_ARCH_CH32)
+#if defined(ARDUINO_ARCH_STM32)   || defined(ARDUINO_ARCH_SAMD) || \
+    defined(ARDUINO_ARCH_RENESAS) || defined(ARDUINO_ARCH_CH32) || \
+    defined(ARDUINO_ARCH_NRF54L15CLEAN)
 
 // Fix for STM32 HAL based cores.
 

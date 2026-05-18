@@ -6,6 +6,8 @@ SoftSPI::SoftSPI(uint8_t mosi, uint8_t miso, uint8_t sck) : SPIClass(NRF_SPIM0, 
       defined(ARDUINO_ARCH_RENESAS) || defined(ARDUINO_ARCH_SILABS) || \
       defined(ARDUINO_ARCH_CH32)
 SoftSPI::SoftSPI(uint8_t mosi, uint8_t miso, uint8_t sck) : SPIClass()
+#elif defined(ARDUINO_ARCH_NRF54L15CLEAN)
+SoftSPI::SoftSPI(uint8_t mosi, uint8_t miso, uint8_t sck) : SPIClass(NRF_SPIM00, 0, 0, 0, 0)
 #else
 #error "This build architecture is not supported!"
 #endif /* NRF52 || ESP32 || RP2040 || RENESAS || SILABS || CH32 */

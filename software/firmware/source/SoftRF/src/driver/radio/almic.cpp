@@ -1,6 +1,6 @@
 /*
  * almic.cpp
- * Copyright (C) 2017-2025 Linar Yusupov
+ * Copyright (C) 2017-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -315,6 +315,13 @@ static void sx12xx_setup()
 
   RF_FreqPlan.setPlan(settings->band, settings->rf_protocol);
 
+#if defined(USE_FEM)
+  bool has_fem = (hw_info.model    == SOFTRF_MODEL_MIDI &&
+                  hw_info.revision == 23) ||
+                  hw_info.model    == SOFTRF_MODEL_PRIME_MK4 ?
+                 true : false;
+#endif /* USE_FEM */
+
   switch(settings->txpower)
   {
   case RF_TX_POWER_FULL:
@@ -322,25 +329,36 @@ static void sx12xx_setup()
     /* Load regional max. EIRP at first */
     LMIC.txpow = RF_FreqPlan.MaxTxPower;
 
-    if (rf_chip->type == RF_IC_SX1262) {
-      /* SX1262 is unable to give more than 22 dBm */
-      if (LMIC.txpow > 22)
-        LMIC.txpow = 22;
-    } else {
-      /* SX1276 is unable to give more than 20 dBm */
-      if (LMIC.txpow > 20)
-        LMIC.txpow = 20;
-    }
+#if defined(USE_FEM)
+    if (has_fem == true) {
+      if (hw_info.model == SOFTRF_MODEL_PRIME_MK4) {
+        if (LMIC.txpow > 32) LMIC.txpow = 32;
+      } else {
+        if (LMIC.txpow > 28) LMIC.txpow = 28;
+      }
+    } else
+#endif /* USE_FEM */
+    {
+      if (rf_chip->type == RF_IC_SX1262) {
+        /* SX1262 is unable to give more than 22 dBm */
+        if (LMIC.txpow > 22)
+          LMIC.txpow = 22;
+      } else {
+        /* SX1276 is unable to give more than 20 dBm */
+        if (LMIC.txpow > 20)
+          LMIC.txpow = 20;
+      }
 
 #if 1
-    /*
-     * Enforce Tx power limit until confirmation
-     * that RFM95W is doing well
-     * when antenna is not connected
-     */
-    if (LMIC.txpow > 17)
-      LMIC.txpow = 17;
+      /*
+       * Enforce Tx power limit until confirmation
+       * that RFM95W is doing well
+       * when antenna is not connected
+       */
+      if (LMIC.txpow > 17)
+        LMIC.txpow = 17;
 #endif
+    }
 
     /* Enforce Tx power limit for a limb-worn (handheld or wristband) device */
 #if 0
@@ -359,6 +377,23 @@ static void sx12xx_setup()
     LMIC.txpow = 2; /* 2 dBm is minimum for RFM95W on PA_BOOST pin */
     break;
   }
+
+#if defined(USE_FEM)
+  if (hw_info.model == SOFTRF_MODEL_MIDI && hw_info.revision == 23) {
+    const uint16_t tx_gain[22] = { 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
+                                   14, 13, 13, 13, 12, 12, 11, 10, 9, 8, 7 };
+    uint16_t tx_gain_num = 22;
+    for (int radio_dbm = 0; radio_dbm < tx_gain_num; radio_dbm++) {
+        if (((radio_dbm + tx_gain[radio_dbm]) > LMIC.txpow) ||
+            ((radio_dbm == (tx_gain_num - 1)) && ((radio_dbm + tx_gain[radio_dbm]) <= LMIC.txpow))) {
+            LMIC.txpow -= tx_gain[radio_dbm];
+            break;
+        }
+    }
+  } else if (hw_info.model == SOFTRF_MODEL_PRIME_MK4) {
+    LMIC.txpow -= 10; /* 32 - 22 = 10 */
+  }
+#endif /* USE_FEM */
 }
 
 static void sx12xx_setvars()

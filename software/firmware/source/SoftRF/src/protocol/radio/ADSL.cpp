@@ -2,7 +2,7 @@
  * Protocol_ADSL.cpp
  *
  * Encoder and decoder for ADS-L SRD-860 radio protocol
- * Copyright (C) 2024-2025 Linar Yusupov
+ * Copyright (C) 2024-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -127,7 +127,7 @@ bool adsl_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
   fop->addr      = r.getAddress();
   fop->latitude  = r.FNTtoFloat(r.getLat());
   fop->longitude = r.FNTtoFloat(r.getLon());
-  fop->altitude  = (float) r.getAlt();
+  fop->altitude  = (float) r.getAlt() - this_aircraft->geoid_separation;
   fop->pressure_altitude = 0; /* TBD */
   fop->aircraft_type = r.getAcftTypeOGN();
   fop->course    = (45.0/0x40) * r.getTrack();
@@ -153,6 +153,7 @@ size_t adsl_encode(void *pkt, ufo_t *this_aircraft) {
   pos.Latitude  = (int32_t) (this_aircraft->latitude * 600000);
   pos.Longitude = (int32_t) (this_aircraft->longitude * 600000);
   pos.Altitude  = (int32_t) (this_aircraft->altitude * 10);
+  pos.GeoidSeparation = (int32_t) (this_aircraft->geoid_separation * 10);
   if (this_aircraft->pressure_altitude != 0.0) {
     pos.StdAltitude = (int32_t) (this_aircraft->pressure_altitude * 10);
     pos.ClimbRate = this_aircraft->stealth ?

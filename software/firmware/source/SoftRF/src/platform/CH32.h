@@ -1,6 +1,6 @@
 /*
  * Platform_CH32.h
- * Copyright (C) 2024-2025 Linar Yusupov
+ * Copyright (C) 2024-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,8 +33,6 @@
 #define uni_numPixels()         strip.numPixels()
 #define uni_Color(r,g,b)        strip.Color(r,g,b)
 #define color_t                 uint32_t
-
-#define EEPROM_commit()         {}
 
 #define LED_STATE_ON            LOW  // State when LED is litted
 
@@ -233,6 +231,14 @@ extern  SPIClass RadioSPI;
 #endif
 
 //#define EXCLUDE_EEPROM
+#define USE_EXT_EEPROM
+
+#if defined(USE_EXT_EEPROM)
+#define EEPROM_commit()       {}
+#else
+#define EEPROM_commit()       EEPROM.commit()
+#endif /* USE_EXT_EEPROM */
+
 #define EXCLUDE_WIFI
 #define EXCLUDE_ETHERNET
 #define EXCLUDE_CC13XX
@@ -277,12 +283,17 @@ extern  SPIClass RadioSPI;
 #define USE_RADIOLIB
 //#define USE_RADIOHEAD
 //#define EXCLUDE_LR11XX
+#if defined(USE_RADIOLIB)
+#include <BuildOpt.h>
+#if RADIOLIB_VERSION_MAJOR <= 7 && RADIOLIB_VERSION_MINOR < 6
 #define EXCLUDE_LR20XX
-//#define EXCLUDE_CC1101
-//#define EXCLUDE_SI443X
+#endif /* RADIOLIB_VERSION */
+#endif /* USE_RADIOLIB */
+#define EXCLUDE_CC1101
+#define EXCLUDE_SI443X
 #define EXCLUDE_SI446X
-//#define EXCLUDE_SX1231
-//#define EXCLUDE_SX1280
+#define EXCLUDE_SX1231
+#define EXCLUDE_SX1280
 //#define ENABLE_RECORDER
 
 #if !defined(EXCLUDE_LED_RING)

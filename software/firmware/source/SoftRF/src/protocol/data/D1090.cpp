@@ -1,6 +1,6 @@
 /*
  * D1090Helper.cpp
- * Copyright (C) 2016-2025 Linar Yusupov
+ * Copyright (C) 2016-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 #include <adsb_encoder.h>
 #include <TimeLib.h>
+#include <protocol.h>
 
 #include "../../system/SoC.h"
 #include "D1090.h"
@@ -26,14 +27,14 @@
 #include "../../driver/EEPROM.h"
 #include "../../TrafficHelper.h"
 
-#define ADDR_TO_HEX_STR(s, c) (s += ((c) < 0x10 ? "0" : "") + String((c), HEX))
+#define ADDR_TO_HEX_STR(s, c) (s += String((c) < 0x10 ? "0" : "") + String((c), HEX))
 
-#define DF17_FRAME_TO_HEX_STR(s)                        \
-      ({                                                \
-        for (int i=0; i < sizeof(frame_data_t); i++) {  \
-          byte c = df17.msg[i];                         \
-          s += (c < 0x10 ? "0" : "") + String(c, HEX);  \
-        }                                               \
+#define DF17_FRAME_TO_HEX_STR(s)                             \
+      ({                                                     \
+        for (int i=0; i < sizeof(frame_data_t); i++) {       \
+          byte c = df17.msg[i];                              \
+          s += String(c < 0x10 ? "0" : "") + String(c, HEX); \
+        }                                                    \
       })
 
 #if defined(ENABLE_D1090_INPUT)
@@ -106,7 +107,12 @@ void D1090_Export()
 
         distance = Container[i].distance;
 
-        if (distance < ALARM_ZONE_NONE) {
+        float max_distance = Container[i].protocol == RF_PROTOCOL_ADSB_1090 ||
+                             Container[i].protocol == RF_PROTOCOL_ADSB_UAT  ||
+                             Container[i].protocol == RF_PROTOCOL_FANET ?
+                             ALARM_ZONE_NONE_EXT : ALARM_ZONE_NONE;
+
+        if (distance < max_distance) {
 
           float altitude;
           /* If the aircraft's data has standard pressure altitude - make use it */

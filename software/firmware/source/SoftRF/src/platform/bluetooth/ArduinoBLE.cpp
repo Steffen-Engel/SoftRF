@@ -1,6 +1,6 @@
 /*
  * ArduinoBLE.cpp
- * Copyright (C) 2024-2025 Linar Yusupov
+ * Copyright (C) 2024-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -159,6 +159,7 @@ static void ArdBLE_Bluetooth_setup()
                                   hw_info.model == SOFTRF_MODEL_GIZMO      ? "Gizmo Edition"      :
                                   hw_info.model == SOFTRF_MODEL_NANO       ? "Nano Edition"       :
                                   hw_info.model == SOFTRF_MODEL_AIRVENTURE ? "Airventure Edition" :
+                                  hw_info.model == SOFTRF_MODEL_CONCORDE   ? "Concorde Edition"   :
                                   "Unknown";
       char SerialNum[9];
       snprintf(SerialNum, sizeof(SerialNum), "%08X", SoC->getChipId());

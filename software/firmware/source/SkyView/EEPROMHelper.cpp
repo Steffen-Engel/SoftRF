@@ -1,6 +1,6 @@
 /*
  * EEPROMHelper.cpp
- * Copyright (C) 2019-2025 Linar Yusupov
+ * Copyright (C) 2019-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,6 +57,7 @@ void EEPROM_setup()
     Serial.println(F("WARNING! User defined settings are not initialized yet. Loading defaults..."));
 
     EEPROM_defaults();
+    cmd = EEPROM_EXT_DEFAULTS;
   } else {
     Serial.print(F("EEPROM version: "));
     Serial.println((unsigned long) eeprom_block.field.version);
@@ -65,6 +66,7 @@ void EEPROM_setup()
       Serial.println(F("WARNING! Version mismatch of user defined settings. Loading defaults..."));
 
       EEPROM_defaults();
+      cmd = EEPROM_EXT_DEFAULTS;
     }
   }
   settings = &eeprom_block.field.settings;

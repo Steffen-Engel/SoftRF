@@ -24,9 +24,10 @@
  along with this program. If not, see <http://www.gnu.org/licenses/>
 */
 
-#define MAVLINK_COMM_NUM_BUFFERS 1
-#define MAVLINK_USE_CONVENIENCE_FUNCTIONS
+#define MAVLINK_COMM_NUM_BUFFERS        1
+#define MAVLINK_HEARTBEAT_INTERVAL_MS   1000UL
 
+#define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 #define MAVLINK10
 
 uint32_t get_num_heartbeats();
@@ -34,6 +35,7 @@ void read_mavlink();
 void write_mavlink( uint32_t addr, float latitude, float longtitude,
                     float altitude, float course, float h_speed, float v_speed,
                     uint16_t squawk, char *callsign, uint8_t emitter_type);
+void send_mavlink_heartbeat();
 
 #include "include/mavlink/v1.0/mavlink_types.h"
 

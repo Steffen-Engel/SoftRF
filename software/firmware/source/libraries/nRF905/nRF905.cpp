@@ -16,7 +16,7 @@
     !defined(ARDUINO_ARCH_RP2040)  && !defined(ARDUINO_ARCH_RENESAS)  && \
     !defined(ARDUINO_ARCH_SILABS)  && !defined(ARDUINO_ARCH_CH32)     && \
     !defined(ARDUINO_ARCH_RP2350)  && !defined(ARDUINO_ARCH_ZEPHYR)   && \
-    !defined(LUCKFOX_LYRA)
+    !defined(LUCKFOX_LYRA)         && !defined(ARDUINO_ARCH_NRF54L15CLEAN)
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -193,7 +193,7 @@ void nRF905_init()
     !defined(ARDUINO_ARCH_RP2040)  && !defined(ARDUINO_ARCH_RENESAS) && \
     !defined(ARDUINO_ARCH_SILABS)  && !defined(ARDUINO_ARCH_MBED)    && \
     !defined(ARDUINO_ARCH_RP2350)  && !defined(ARDUINO_ARCH_ZEPHYR)  && \
-    !defined(LUCKFOX_LYRA)
+    !defined(LUCKFOX_LYRA)         && !defined(ARDUINO_ARCH_NRF54L15CLEAN)
 	SPI.setClockDivider(SPI_CLOCK_DIV2);
 #endif /* RASPBERRY_PI */
 #else

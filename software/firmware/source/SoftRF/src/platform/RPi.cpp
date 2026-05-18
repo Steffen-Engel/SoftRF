@@ -1,6 +1,6 @@
 /*
  * Platform_RPi.cpp
- * Copyright (C) 2018-2025 Linar Yusupov
+ * Copyright (C) 2018-2026 Linar Yusupov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -152,6 +152,10 @@ hardware_info_t hw_info = {
   .imu      = IMU_NONE,
   .mag      = MAG_NONE,
   .pmu      = PMU_NONE,
+  .audio    = AUDIO_NONE,
+  .touch    = TOUCH_NONE,
+  .haptic   = HAPTIC_NONE,
+  .camera   = CAMERA_NONE,
 };
 
 #define isTimeToExport() (millis() - ExportTimeMarker > 1000)
@@ -1068,6 +1072,11 @@ static void RPi_Button_fini()
   /* TODO */
 }
 
+static void RPi_TTS(char *message)
+{
+
+}
+
 const SoC_ops_t RPi_ops = {
   SOC_RPi,
   "RPi",
@@ -1113,6 +1122,7 @@ const SoC_ops_t RPi_ops = {
   RPi_Button_setup,
   RPi_Button_loop,
   RPi_Button_fini,
+  RPi_TTS,
   NULL
 };
 
@@ -1369,7 +1379,7 @@ void relay_loop()
                  Container[i].latitude  != 0.0 &&
                  Container[i].longitude != 0.0 &&
                  Container[i].altitude  != 0.0 &&
-                 Container[i].distance < (ALARM_ZONE_NONE * 2) ) {
+                 Container[i].distance < ALARM_ZONE_NONE_EXT ) {
 
         fo = Container[i];
         fo.timestamp = now(); /* GNSS date&time */
@@ -1581,7 +1591,7 @@ int main()
   Serial.print(SoC->name);
   Serial.print(F(" FW.REV: " SOFTRF_FIRMWARE_VERSION " DEV.ID: "));
   Serial.println(String(SoC->getChipId(), HEX));
-  Serial.println(F("Copyright (C) 2015-2025 Linar Yusupov. All rights reserved."));
+  Serial.println(F("Copyright (C) 2015-2026 Linar Yusupov. All rights reserved."));
   Serial.flush();
 
 #if !defined(EXCLUDE_EEPROM)

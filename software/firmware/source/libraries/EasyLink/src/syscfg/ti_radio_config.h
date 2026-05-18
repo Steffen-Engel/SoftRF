@@ -54,7 +54,7 @@ extern const rfc_CMD_FS_t RF_cmdFs_fsk_100kbps_ogntp;
 extern const rfc_CMD_PROP_TX_t RF_cmdPropTx_fsk_100kbps_ogntp;
 extern const rfc_CMD_PROP_RX_ADV_t RF_cmdPropRxAdv_fsk_100kbps_ogntp;
 
-#define LEGACY_SYNCWORD_SIZE  7
+#define LEGACY_SYNCWORD_SIZE  8
 #define LEGACY_PAYLOAD_SIZE   24
 #define LEGACY_CRC_SIZE       2
 

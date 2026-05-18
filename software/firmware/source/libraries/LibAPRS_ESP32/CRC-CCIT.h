@@ -7,7 +7,8 @@
 
 #if defined(__AVR__) || \
     defined(ENERGIA_ARCH_CC13XX) || defined(ENERGIA_ARCH_CC13X2) || \
-    (defined(ARDUINO_ARCH_RP2040) && defined(ARDUINO_ARCH_MBED))
+    (defined(ARDUINO_ARCH_RP2040) && defined(ARDUINO_ARCH_MBED)) || \
+    defined(ARDUINO_ARCH_NRF54L15CLEAN)
 #include <avr/pgmspace.h>
 #endif
 
