@@ -793,7 +793,7 @@ static void OLED_aerobatic()
   u8x8->drawString( 0, STATUSLINE, line);
 
 #define STATUSLINE2 7
-  snprintf(line, sizeof(line), "GS %3d", lround(gnss.speed.kmph()));
+  snprintf(line, sizeof(line), "GS%3d ID%3d Net%s", lround(gnss.speed.kmph()), settings->CIVA_HMD_ID, (WiFi.status() == WL_CONNECTED) ? "+":"-");
   u8x8->drawString( 0, STATUSLINE2, line);
 }
 
