@@ -182,7 +182,7 @@ bool ogntp_decode(void *pkt, ufo_t *this_aircraft, ufo_t *fop) {
             fabs(nmeaMathDegreeToNdeg(fop->longitude)), ((fop->longitude >= 0.0) ? 'E' : 'W'),
             fop->altitude,
             fop->course, // track
-            fop->speed,  // speed
+            fop->speed * _GPS_MPS_PER_KNOT,  // speed
             ogn_rx_pkt.Packet.CIVA.PenaltyAlarm,
             0.1*ogn_rx_pkt.Packet.CIVA.max_g,     // max pos g
             0.1*ogn_rx_pkt.Packet.CIVA.max_neg_g,  // max neg g
