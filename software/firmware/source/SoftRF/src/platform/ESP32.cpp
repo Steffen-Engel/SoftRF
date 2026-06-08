@@ -7273,7 +7273,7 @@ static void ESP32_Button_loop()
       // set altitude to 0, aircraft to ground
       Sound_Beep();
       CIVA_Status = CIVA_GROUND;
-      StartupAltitude = ThisAircraft.pressure_altitude;
+      StartupAltitude = ThisAircraft.pressure_altitude+settings->CIVA_altitude_offset;
 
       // at this time, check for altitude switch again and set penalty altitude
       if (digitalRead(CIVA_SELECT_SWITCH) == LOW)

@@ -204,7 +204,7 @@ void setup()
 
   hw_info.baro = Baro_setup();
 
-  StartupAltitude = ThisAircraft.pressure_altitude;
+  StartupAltitude = ThisAircraft.pressure_altitude+settings->CIVA_altitude_offset;
 
 #if defined(ENABLE_AHRS)
   hw_info.imu = AHRS_setup();

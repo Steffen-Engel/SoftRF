@@ -81,7 +81,7 @@ typedef struct Settings {
 
     int8_t   freq_corr; /* +/-, kHz */
     uint8_t  resvd2;
-    uint8_t  resvd3;
+    int8_t   CIVA_altitude_offset;
     /* Id for CIVA HMD altitude surveillance, number as sequence will be used to build the Device Id */
     uint8_t  CIVA_HMD_ID;
 

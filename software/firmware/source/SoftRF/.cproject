@@ -36,7 +36,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/flashrom}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/AXP202X_Library/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/U8g2/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/TFT_eSPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/ADC}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/AceButton/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Geoid}&quot;"/>
@@ -51,15 +50,11 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/IniFile/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/MPU9250}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/uCDB/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorsLib/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/OpenDroneID/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_MPL3115A2_Library}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit-BMP085-Library}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/core/variant}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_SPIFlash/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/WiFiClientSecure/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Update/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/ArduinoOTA/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/EEPROM/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/BluetoothSerial/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SPI/src}&quot;"/>
@@ -69,7 +64,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/WiFi/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/HTTPClient/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/elapsedMillis}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_NeoPixel}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/RadioLib/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FS/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SdFat/src}&quot;"/>
@@ -98,7 +92,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/flashrom}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/AXP202X_Library/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/U8g2/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/TFT_eSPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/ADC}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/AceButton/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Geoid}&quot;"/>
@@ -113,15 +106,11 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/IniFile/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/MPU9250}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/uCDB/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorsLib/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/OpenDroneID/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_MPL3115A2_Library}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit-BMP085-Library}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/core/variant}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_SPIFlash/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/WiFiClientSecure/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Update/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/ArduinoOTA/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/EEPROM/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/BluetoothSerial/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SPI/src}&quot;"/>
@@ -131,7 +120,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/WiFi/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/HTTPClient/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/elapsedMillis}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_NeoPixel}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/RadioLib/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FS/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SdFat/src}&quot;"/>
@@ -160,7 +148,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/flashrom}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/AXP202X_Library/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/U8g2/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/TFT_eSPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/ADC}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/AceButton/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Geoid}&quot;"/>
@@ -175,15 +162,11 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/IniFile/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/MPU9250}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/uCDB/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorsLib/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/OpenDroneID/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_MPL3115A2_Library}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit-BMP085-Library}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/core/variant}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_SPIFlash/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/WiFiClientSecure/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Update/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/ArduinoOTA/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/EEPROM/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/BluetoothSerial/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SPI/src}&quot;"/>
@@ -193,7 +176,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/WiFi/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/HTTPClient/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/elapsedMillis}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_NeoPixel}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/RadioLib/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/FS/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SdFat/src}&quot;"/>
@@ -295,7 +277,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/IniFile/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/core/variant}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/uCDB/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorsLib/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/MPU9250}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit-BMP085-Library}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_MPL3115A2_Library}&quot;"/>
@@ -319,6 +300,9 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/NetworkClientSecure/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Network/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Hash/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_Unified_Sensor}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_AHRS/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorLib/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.cpp.sketch.input.279474028" name="CPP source files" superClass="io.sloeber.compiler.cpp.sketch.input"/>
 							</tool>
@@ -355,7 +339,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/IniFile/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/core/variant}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/uCDB/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorsLib/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/MPU9250}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit-BMP085-Library}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_MPL3115A2_Library}&quot;"/>
@@ -379,6 +362,9 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/NetworkClientSecure/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Network/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Hash/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_Unified_Sensor}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_AHRS/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorLib/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.c.sketch.input.2052528182" name="C Source Files" superClass="io.sloeber.compiler.c.sketch.input"/>
 							</tool>
@@ -415,7 +401,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/IniFile/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/core/variant}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/uCDB/src}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorsLib/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/MPU9250}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit-BMP085-Library}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_MPL3115A2_Library}&quot;"/>
@@ -439,6 +424,9 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/NetworkClientSecure/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Network/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Hash/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_Unified_Sensor}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_AHRS/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorLib/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.S.sketch.input.1058674004" name="Assembly source files" superClass="io.sloeber.compiler.S.sketch.input"/>
 							</tool>
@@ -479,7 +467,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="libraries/SdFat_-_Adafruit_Fork/images|libraries/SdFat_-_Adafruit_Fork/doc|libraries/SdFat-master/images|libraries/SdFat-master/doc|libraries/Adafruit_AHRS/processing|libraries/SdFat.orig/images|libraries/SdFat.orig/doc|libraries/FastLED/docs|libraries/FastLED/dev|libraries/FastLED/ci|libraries/MPU9250/MPU9250|libraries/SensorsLib/tools|libraries/uCDB/docs|libraries/uCDB/.github|libraries/Adafruit_SPIFlash/tools|libraries/Adafruit_SPIFlash/.github|libraries/SdFat/doc|libraries/SdFat/.github|libraries/Adafruit_BusIO/.github|libraries/XPowersLib/datasheet|libraries/functional-vlpp/platformio|libraries/WiFiWebServer/utils|libraries/WiFiWebServer/platformio|libraries/WiFiWebServer/pics|libraries/WiFiWebServer/.github|libraries/TFT_eSPI/Processors|libraries/Adafruit_MPL3115A2_Library/.github|libraries/Adafruit_BMP280_Library/.github|libraries/Adafruit-BMP085-Library/.github|libraries/Wire/doc|libraries/AceButton/docs|libraries/TFT_eSPI/User_Setups|libraries/TFT_eSPI/Tools|libraries/TFT_eSPI/TFT_Drivers|libraries/TFT_eSPI/Fonts|libraries/TFT_eSPI/Extensions|libraries/ArduinoJson/scripts|libraries/ArduinoJson/fuzzing|libraries/ArduinoJson/.github|libraries/mavlink/include|libraries/OGN/rf|libraries/arduino-lmic/project_config|libraries/arduino-lmic/doc|libraries/?*/**/?xamples/**|libraries/?*/**/?xtras/**|libraries/?*/**/test*/**|libraries/?*/**/third-party/**|libraries/**/._*|libraries/?*/utility/*/*" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="libraries/SensorLib/tools|libraries/SdFat_-_Adafruit_Fork/images|libraries/SdFat_-_Adafruit_Fork/doc|libraries/SdFat-master/images|libraries/SdFat-master/doc|libraries/Adafruit_AHRS/processing|libraries/SdFat.orig/images|libraries/SdFat.orig/doc|libraries/FastLED/docs|libraries/FastLED/dev|libraries/FastLED/ci|libraries/MPU9250/MPU9250|libraries/SensorsLib/tools|libraries/uCDB/docs|libraries/uCDB/.github|libraries/Adafruit_SPIFlash/tools|libraries/Adafruit_SPIFlash/.github|libraries/SdFat/doc|libraries/SdFat/.github|libraries/Adafruit_BusIO/.github|libraries/XPowersLib/datasheet|libraries/functional-vlpp/platformio|libraries/WiFiWebServer/utils|libraries/WiFiWebServer/platformio|libraries/WiFiWebServer/pics|libraries/WiFiWebServer/.github|libraries/TFT_eSPI/Processors|libraries/Adafruit_MPL3115A2_Library/.github|libraries/Adafruit_BMP280_Library/.github|libraries/Adafruit-BMP085-Library/.github|libraries/Wire/doc|libraries/AceButton/docs|libraries/TFT_eSPI/User_Setups|libraries/TFT_eSPI/Tools|libraries/TFT_eSPI/TFT_Drivers|libraries/TFT_eSPI/Fonts|libraries/TFT_eSPI/Extensions|libraries/ArduinoJson/scripts|libraries/ArduinoJson/fuzzing|libraries/ArduinoJson/.github|libraries/mavlink/include|libraries/OGN/rf|libraries/arduino-lmic/project_config|libraries/arduino-lmic/doc|libraries/?*/**/?xamples/**|libraries/?*/**/?xtras/**|libraries/?*/**/test*/**|libraries/?*/**/third-party/**|libraries/**/._*|libraries/?*/utility/*/*" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

@@ -512,6 +512,12 @@ char *Settings_content() {
 </td>\
 </tr>\
 <tr>\
+<th align=left>CIVA datum altitude offset</th>\
+<td align=right>\
+<input type='number' name='CIVA_alt' min='0' max='100' value='%d'>\
+</td>\
+</tr>\
+<tr>\
 <th align=left>Alarm trigger</th>\
 <td align=right>\
 <select name='alarm'>\
@@ -574,6 +580,7 @@ char *Settings_content() {
   (settings->aircraft_type == AIRCRAFT_TYPE_STATIC ? "selected" : ""),  AIRCRAFT_TYPE_STATIC,
   (settings->aerobaticbox ? "checked" : ""),
   (settings->CIVA_HMD_ID),
+  (settings->CIVA_altitude_offset),
   (settings->alarm == TRAFFIC_ALARM_NONE ? "selected" : ""),  TRAFFIC_ALARM_NONE,
   (settings->alarm == TRAFFIC_ALARM_DISTANCE ? "selected" : ""),  TRAFFIC_ALARM_DISTANCE,
   (settings->alarm == TRAFFIC_ALARM_VECTOR ? "selected" : ""),  TRAFFIC_ALARM_VECTOR,
@@ -976,6 +983,7 @@ PSTR("<html>\
 <tr><th align=left>Aircraft type</th><td align=right>%d</td></tr>\
 <tr><th align=left>aerobatic box</th><td align=right>%d</td></tr>\
 <tr><th align=left>HMD Id</th><td align=right>%x</td></tr>\
+<tr><th align=left>Altitude offset</th><td align=right>%d</td></tr>\
 <tr><th align=left>Alarm trigger</th><td align=right>%d</td></tr>\
 <tr><th align=left>Tx Power</th><td align=right>%d</td></tr>\
 <tr><th align=left>Volume</th><td align=right>%d</td></tr>\
@@ -999,7 +1007,7 @@ PSTR("<html>\
 </body>\
 </html>"),
   settings->mode, settings->rf_protocol, settings->band,
-  settings->aircraft_type, settings->aerobaticbox, settings->CIVA_HMD_ID, settings->alarm, settings->txpower,
+  settings->aircraft_type, settings->aerobaticbox, settings->CIVA_HMD_ID, settings->CIVA_altitude_offset, settings->alarm, settings->txpower,
   settings->volume, settings->pointer, settings->bluetooth,
   BOOL_STR(settings->nmea_g), BOOL_STR(settings->nmea_p),
   BOOL_STR(settings->nmea_l), BOOL_STR(settings->nmea_s),
@@ -1123,7 +1131,9 @@ void handleInput() {
     } else if (server.argName(i).equals("aerobaticbox")) {
       settings->aerobaticbox = server.arg(i).toInt();
     } else if (server.argName(i).equals("CIVA_ID")) {
-      sscanf(server.arg(i).c_str(), "%d", &settings->CIVA_HMD_ID);
+      settings->CIVA_HMD_ID = server.arg(i).toInt();
+    } else if (server.argName(i).equals("CIVA_alt")) {
+      settings->CIVA_altitude_offset = server.arg(i).toInt();
     } else if (server.argName(i).equals("alarm")) {
       settings->alarm = server.arg(i).toInt();
     } else if (server.argName(i).equals("txpower")) {

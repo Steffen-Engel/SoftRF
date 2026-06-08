@@ -23,7 +23,7 @@ Config.T-Beam_MKIII.compile.sloeber.extra.all=
 Config.T-Beam_MKIII.compile.sloeber.extra.archive=
 Config.T-Beam_MKIII.compile.sloeber.extra.assembly=
 Config.T-Beam_MKIII.compile.sloeber.extra.c.compile=
-Config.T-Beam_MKIII.compile.sloeber.extra.compile=-DEXCLUDE_VOICE_MESSAGE -DEXCLUDE_OTA -DEXCLUDE_LED_RING -DMY_ACCESSPOINT_SSID=\"CIVA_HMD\" -DMY_ACCESSPOINT_PSK=\"CIVA_HMD\"
+Config.T-Beam_MKIII.compile.sloeber.extra.compile=-DEXCLUDE_VOICE_MESSAGE -DEXCLUDE_OTA -DEXCLUDE_LED_RING -DMY_ACCESSPOINT_SSID=\"CIVA_HMD\" -DMY_ACCESSPOINT_PSK=\"CIVA_HMD\" -Dplayback_inited=false
 Config.T-Beam_MKIII.compile.sloeber.extra.cpp.compile=
 Config.T-Beam_MKIII.compile.sloeber.extra.link=
 Config.T-Beam_MKIII.compile.sloeber.size.custom=
