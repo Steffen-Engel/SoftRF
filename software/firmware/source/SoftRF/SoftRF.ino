@@ -337,6 +337,7 @@ void loop()
   if (settings->aerobaticbox)
   {
     CIVARecorder_loop();
+    bridge();
   }
   else
   {
@@ -615,7 +616,17 @@ void bridge()
   size_t tx_size = Raw_Receive_UDP(&TxBuffer[0]);
 
   if (tx_size > 0) {
-    RF_Transmit(tx_size, true);
+    if (settings->aerobaticbox)
+    {
+      // simple parsing of PHMD1 message: set altitude offset for HMD.
+      if (strncmp((char *)TxBuffer, "$PHMD1,", 7) == 0)
+      {
+        settings->CIVA_altitude_offset = std::stoi((char*)&TxBuffer[7]);
+        EEPROM_store();
+      }
+    }
+    else
+      RF_Transmit(tx_size, true);
   }
 
   success = RF_Receive();
