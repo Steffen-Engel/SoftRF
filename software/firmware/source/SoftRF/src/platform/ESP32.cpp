@@ -7231,6 +7231,25 @@ static void ESP32_Button_setup()
 
 }
 
+void ResetQNH()
+{
+  // set altitude to 0, aircraft to ground
+  Sound_Beep();
+  CIVA_Status = CIVA_GROUND;
+  StartupAltitude = ThisAircraft.pressure_altitude+settings->CIVA_altitude_offset;
+
+  // at this time, check for altitude switch again and set penalty altitude
+  if (digitalRead(CIVA_SELECT_SWITCH) == LOW)
+  {
+    CIVAAltitude = CIVA_SPLIT_ALTITUDE;
+  }
+  else
+  {
+    CIVAAltitude = CIVA_ALTITUDE;
+  }
+
+}
+
 static void ESP32_Button_loop()
 {
   if (esp32_board == ESP32_TTGO_T_BEAM         ||
@@ -7270,20 +7289,21 @@ static void ESP32_Button_loop()
   {
     if (button == LOW)
     {
-      // set altitude to 0, aircraft to ground
-      Sound_Beep();
-      CIVA_Status = CIVA_GROUND;
-      StartupAltitude = ThisAircraft.pressure_altitude+settings->CIVA_altitude_offset;
-
-      // at this time, check for altitude switch again and set penalty altitude
-      if (digitalRead(CIVA_SELECT_SWITCH) == LOW)
-      {
-        CIVAAltitude = CIVA_SPLIT_ALTITUDE;
-      }
-      else
-      {
-        CIVAAltitude = CIVA_ALTITUDE;
-      }
+      ResetQNH();
+//      // set altitude to 0, aircraft to ground
+//      Sound_Beep();
+//      CIVA_Status = CIVA_GROUND;
+//      StartupAltitude = ThisAircraft.pressure_altitude+settings->CIVA_altitude_offset;
+//
+//      // at this time, check for altitude switch again and set penalty altitude
+//      if (digitalRead(CIVA_SELECT_SWITCH) == LOW)
+//      {
+//        CIVAAltitude = CIVA_SPLIT_ALTITUDE;
+//      }
+//      else
+//      {
+//        CIVAAltitude = CIVA_ALTITUDE;
+//      }
 
     }
     prev_Button = button;

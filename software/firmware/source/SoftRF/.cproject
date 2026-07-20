@@ -303,6 +303,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_Unified_Sensor}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_AHRS/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorLib/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/ArduinoOTA/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.cpp.sketch.input.279474028" name="CPP source files" superClass="io.sloeber.compiler.cpp.sketch.input"/>
 							</tool>
@@ -365,6 +366,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_Unified_Sensor}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_AHRS/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorLib/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/ArduinoOTA/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.c.sketch.input.2052528182" name="C Source Files" superClass="io.sloeber.compiler.c.sketch.input"/>
 							</tool>
@@ -427,6 +429,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_Unified_Sensor}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/Adafruit_AHRS/src}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/SensorLib/src}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SoftRF/libraries/ArduinoOTA/src}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.S.sketch.input.1058674004" name="Assembly source files" superClass="io.sloeber.compiler.S.sketch.input"/>
 							</tool>

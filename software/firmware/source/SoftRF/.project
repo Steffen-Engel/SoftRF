@@ -92,6 +92,11 @@
 			<locationURI>WORKSPACE_LOC/software/firmware/source/libraries/ArduinoJson</locationURI>
 		</link>
 		<link>
+			<name>libraries/ArduinoOTA</name>
+			<type>2</type>
+			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/3.3.4/libraries/ArduinoOTA</locationURI>
+		</link>
+		<link>
 			<name>libraries/BLE</name>
 			<type>2</type>
 			<locationURI>ECLIPSE_HOME/arduinoPlugin/packages/esp32/hardware/esp32/3.3.4/libraries/BLE</locationURI>

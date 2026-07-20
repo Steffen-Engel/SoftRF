@@ -608,6 +608,9 @@ void uav()
 }
 #endif /* EXCLUDE_MAVLINK */
 
+// external function to reste the QNH and accept new altitude for offset.
+void ResetQNH();
+
 #if !defined(EXCLUDE_WIFI)
 void bridge()
 {
@@ -623,6 +626,7 @@ void bridge()
       {
         settings->CIVA_altitude_offset = std::stoi((char*)&TxBuffer[7]);
         EEPROM_store();
+        ResetQNH();
       }
     }
     else
