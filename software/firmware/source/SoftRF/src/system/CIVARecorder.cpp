@@ -34,6 +34,7 @@ bool LogActive = false;
 
 #include "../driver/GNSS.h"
 #include "../driver/Baro.h"
+#include "src/driver/EEPROM.h"
 
 #include "CIVARecorder.h"
 #include "../../SoftRF.h"
@@ -43,7 +44,7 @@ extern SensorQMI8658 imu_qmi8658;
 #include <SensorQMC6310.hpp>
 extern SensorQMC6310 mag_qmc6310;
 
-#define FLIGHTS_DIR "Flights"
+char FLIGHTS_DIR[50] = "Flights";
 extern SdFat uSD;
 
 static File32 LogFile;
@@ -73,6 +74,7 @@ void CIVARecorder_setup()
   {
     if (uSD.volumeBegin())
     {
+      snprintf(FLIGHTS_DIR, sizeof(FLIGHTS_DIR), "Flights_%03d", settings->CIVA_HMD_ID);
       if (!uSD.exists(FLIGHTS_DIR))
       {
         if (!uSD.mkdir(FLIGHTS_DIR))
@@ -188,8 +190,8 @@ void CIVARecorder_loop()
 
       char LogName[50];
        snprintf(LogName, sizeof(LogName),
-           FLIGHTS_DIR "/%04d-%02d-%02d_%02d-%02d.dat",
-           year(), month(), day(), hour(), minute());
+           "%s/%04d-%02d-%02d_%02d-%02d.dat",
+           FLIGHTS_DIR, year(), month(), day(), hour(), minute());
       LogFile = uSD.open(LogName, O_WRONLY | O_CREAT);
       if (LogFile)
       {

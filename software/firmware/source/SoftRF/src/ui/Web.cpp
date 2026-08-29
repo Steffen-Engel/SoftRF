@@ -1203,7 +1203,7 @@ void handleInput() {
 extern SdFat uSD;
 
 #define FILESYSTEM       uSD
-#define FLIGHTS_DIR      "/Flights"
+extern char FLIGHTS_DIR[50];
 #define MAX_IGC_FILE_NUM 200
 
 typedef struct
@@ -1284,7 +1284,7 @@ void Handle_Flight_Download() {
     index = numfiles - 1;
     while (index >= 0) {
       filename = Filenames[index].filename;
-      webpage += "<tr><td align=left><a href='" FLIGHTS_DIR "/" + filename +
+      webpage += "<tr><td align=left><a href='" + String(FLIGHTS_DIR) + "/" + filename +
                  "'>" + filename + "</a><td align=right>" +
                  Filenames[index].fsize + "</td></tr>";
       index--;
